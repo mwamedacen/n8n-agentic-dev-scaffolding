@@ -1,0 +1,18 @@
+# Deployment Order Configuration
+# Workflows are deployed in tier order (tier 1 first, then tier 2, etc.)
+# Workflows within the same tier have no mutual dependencies.
+
+tiers:
+  - name: "Tier 1: Infrastructure Subworkflows"
+    workflows:
+      - lock_acquiring
+      - lock_releasing
+      - error_handler_lock_cleanup
+
+  - name: "Tier 2: Data Pipelines"
+    workflows:
+      - po_reconciliation_pipeline
+
+  - name: "Tier 3: Independent Workflows"
+    workflows:
+      - periodic_excel_report

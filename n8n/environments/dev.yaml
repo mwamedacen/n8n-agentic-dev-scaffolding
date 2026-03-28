@@ -1,0 +1,47 @@
+name: dev
+displayName: "Development"
+workflowNamePostfix: " [DEV]"
+
+sharepoint:
+  driveId: "your-sharepoint-drive-id"
+  paths:
+    reportFile: "/Reports/monthly_data.xlsx"
+    poDataFile: "/PurchaseOrders/po_data.xlsx"
+    reconciliationTracker: "/PurchaseOrders/reconciliation_tracker.xlsx"
+
+credentials:
+  msOauth:
+    id: "your-ms-oauth-credential-id"
+    name: "dev_ms_oauth"
+  openAi: # Used if your workflows call OpenAI directly via n8n nodes
+    id: "your-openai-credential-id"
+    name: "dev_openai"
+  gmail:
+    id: "your-gmail-credential-id"
+    name: "dev_gmail"
+  redis:
+    id: "your-redis-credential-id"
+    name: "dev_redis"
+
+cloudFunction:
+  apiUrl: "https://your-service.up.railway.app"
+
+n8n:
+  instanceName: "your-instance.app.n8n.cloud"
+
+workflows:
+  periodic_excel_report:
+    id: "your-workflow-id"
+    name: "Periodic Excel Report"
+  lock_acquiring:
+    id: "your-lock-acquiring-id"
+    name: "Acquire Lock"
+  lock_releasing:
+    id: "your-lock-releasing-id"
+    name: "Release Lock"
+  error_handler_lock_cleanup:
+    id: "your-error-handler-id"
+    name: "Error Handler Lock Cleanup"
+  po_reconciliation_pipeline:
+    id: "your-po-pipeline-id"
+    name: "PO Reconciliation Pipeline"

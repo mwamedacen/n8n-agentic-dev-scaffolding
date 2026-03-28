@@ -1,0 +1,4 @@
+dspy>=2.5
+litellm
+requests
+python-dotenv
