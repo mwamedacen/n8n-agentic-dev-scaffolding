@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.env
+.env.*
+!.env.example
+!.env.dev.example
+!.env.*.example
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Generated workflow files (environment-specific)
+n8n/workflows/generated/
+
+# DSPy optimization artifacts
+scripts/prompt_engineering/*.dspy
+scripts/prompt_engineering/optimized_programs/

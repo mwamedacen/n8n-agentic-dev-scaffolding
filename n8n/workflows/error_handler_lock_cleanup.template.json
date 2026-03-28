@@ -1,0 +1,205 @@
+{
+  "name": "Error Handler Lock Cleanup",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodes": [
+    {
+      "id": "{{HYDRATE:uuid:error-trigger-id}}",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {},
+      "webhookId": "{{HYDRATE:uuid:error-trigger-webhookId}}"
+    },
+    {
+      "id": "prepare-lock-scopes-node",
+      "name": "Prepare Lock Scopes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "parameters": {
+        "jsCode": "const errorData = $input.first().json;\nconst executionId = errorData.execution?.id || 'unknown';\nconst scopes = ['DATA_PROCESSING_LOCK'];\n\nreturn scopes.map(scope => ({\n  json: { scope, execution_id: executionId, error_workflow: errorData.workflow?.name || 'unknown' }\n}));"
+      }
+    },
+    {
+      "id": "get-lock-value-node",
+      "name": "Get Lock Value",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [440, 0],
+      "parameters": {
+        "operation": "get",
+        "key": "={{ $json.scope }}"
+      },
+      "credentials": {
+        "redis": {
+          "id": "{{HYDRATE:env:credentials.redis.id}}",
+          "name": "{{HYDRATE:env:credentials.redis.name}}"
+        }
+      }
+    },
+    {
+      "id": "check-lock-ownership-node",
+      "name": "Check Lock Ownership",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0],
+      "parameters": {
+        "jsCode": "const lockValue = $input.first().json.data;\nconst executionId = $('Prepare Lock Scopes').first().json.execution_id;\nconst scope = $('Prepare Lock Scopes').first().json.scope;\n\nlet shouldRelease = false;\nlet lockInfo = null;\n\nif (lockValue) {\n  try {\n    lockInfo = JSON.parse(lockValue);\n    shouldRelease = lockInfo.execution_id === executionId;\n  } catch {\n    shouldRelease = false;\n  }\n}\n\nreturn [{json: {\n  should_release: shouldRelease,\n  scope,\n  execution_id: executionId,\n  lock_info: lockInfo\n}}];"
+      }
+    },
+    {
+      "id": "if-should-release-node",
+      "name": "If Should Release",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [880, 0],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "should-release-condition",
+              "leftValue": "={{ $json.should_release }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "delete-lock-cleanup-node",
+      "name": "Delete Lock",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1100, -60],
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ $('Check Lock Ownership').item.json.scope }}"
+      },
+      "credentials": {
+        "redis": {
+          "id": "{{HYDRATE:env:credentials.redis.id}}",
+          "name": "{{HYDRATE:env:credentials.redis.name}}"
+        }
+      }
+    },
+    {
+      "id": "log-release-node",
+      "name": "Log Release",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1320, -60],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "released-scope-assignment",
+              "name": "released_scope",
+              "value": "={{ $('Check Lock Ownership').item.json.scope }}",
+              "type": "string"
+            },
+            {
+              "id": "released-execution-assignment",
+              "name": "released_for_execution",
+              "value": "={{ $('Check Lock Ownership').item.json.execution_id }}",
+              "type": "string"
+            },
+            {
+              "id": "released-at-assignment",
+              "name": "released_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "includeBinary": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Lock Scopes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Lock Scopes": {
+      "main": [
+        [
+          {
+            "node": "Get Lock Value",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Lock Value": {
+      "main": [
+        [
+          {
+            "node": "Check Lock Ownership",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Lock Ownership": {
+      "main": [
+        [
+          {
+            "node": "If Should Release",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Should Release": {
+      "main": [
+        [
+          {
+            "node": "Delete Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Lock": {
+      "main": [
+        [
+          {
+            "node": "Log Release",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
