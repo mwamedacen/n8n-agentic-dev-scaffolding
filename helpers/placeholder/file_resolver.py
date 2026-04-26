@@ -18,7 +18,8 @@ def resolve(text: str, workspace: Path) -> str:
             )
         full = workspace / rel_path
         if not full.exists():
-            raise FileNotFoundError(f"Placeholder file not found: {full} (from {{{{HYDRATE:{kind}:{rel_path}}}}}})")
+            placeholder = "{{HYDRATE:" + kind + ":" + rel_path + "}}"
+            raise FileNotFoundError(f"Placeholder file not found: {full} (from {placeholder})")
         content = full.read_text(encoding="utf-8")
         if kind == "json":
             # Return a JSON-stringified version (as a JSON string value)
