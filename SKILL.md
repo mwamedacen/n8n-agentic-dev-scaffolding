@@ -36,25 +36,36 @@ This is the entry point. When the user asks anything n8n-related, route to the m
 | [run-workflow.md](skills/run-workflow.md) | Fire a webhook + assert terminal status. |
 | [deploy-run-assert.md](skills/deploy-run-assert.md) | One-shot validate → deploy → run verify. |
 | [find-skills.md](skills/find-skills.md) | While authoring, find applicable patterns/integrations. |
+| [manage-credentials.md](skills/manage-credentials.md) | Create or link n8n credentials (Path A from `.env.<env>` / Path B from existing UI credential). |
+| [add-cloud-function.md](skills/add-cloud-function.md) | Scaffold a Python cloud function under `<workspace>/cloud-functions/`. |
+| [iterate-prompt.md](skills/iterate-prompt.md) | Optimize a prompt against a paired schema + dataset using DSPy. |
+| [test-functions.md](skills/test-functions.md) | Run unit tests over n8n Code-node JS and / or cloud-function Python. |
 
 ## Pattern skills (read-only knowledge)
 
 These are reference docs, not action triggers. Read them while authoring.
 
-- `skills/patterns/subworkflows.md`
-- `skills/patterns/error-handling.md`
-- `skills/patterns/credential-refs.md`
-- `skills/patterns/multi-env-uuid-collision.md`
-- `skills/patterns/validate-deploy.md`
-- `skills/patterns/llm-providers.md`
-- `skills/patterns/locking.md`
-- `skills/patterns/pindata-hygiene.md`
-- `skills/patterns/position-recalculation.md`
-- `skills/patterns/prompt-and-schema-conventions.md`
+- [skills/patterns/subworkflows.md](skills/patterns/subworkflows.md)
+- [skills/patterns/error-handling.md](skills/patterns/error-handling.md)
+- [skills/patterns/credential-refs.md](skills/patterns/credential-refs.md)
+- [skills/patterns/multi-env-uuid-collision.md](skills/patterns/multi-env-uuid-collision.md)
+- [skills/patterns/validate-deploy.md](skills/patterns/validate-deploy.md)
+- [skills/patterns/llm-providers.md](skills/patterns/llm-providers.md)
+- [skills/patterns/locking.md](skills/patterns/locking.md)
+- [skills/patterns/pindata-hygiene.md](skills/patterns/pindata-hygiene.md)
+- [skills/patterns/position-recalculation.md](skills/patterns/position-recalculation.md)
+- [skills/patterns/prompt-and-schema-conventions.md](skills/patterns/prompt-and-schema-conventions.md)
 
 ## Integration skills (per-service quirks)
 
-- `skills/integrations/<service>/...md` for `microsoft-365`, `gmail`, `redis`, `slack`, `google-drive`, `notion`, `airtable`, `webhooks`.
+- [skills/integrations/microsoft-365/excel-and-sharepoint.md](skills/integrations/microsoft-365/excel-and-sharepoint.md)
+- [skills/integrations/gmail/sending-email.md](skills/integrations/gmail/sending-email.md)
+- [skills/integrations/redis/lock-pattern.md](skills/integrations/redis/lock-pattern.md)
+- [skills/integrations/slack/README.md](skills/integrations/slack/README.md)
+- [skills/integrations/google-drive/README.md](skills/integrations/google-drive/README.md)
+- [skills/integrations/notion/README.md](skills/integrations/notion/README.md)
+- [skills/integrations/airtable/README.md](skills/integrations/airtable/README.md)
+- [skills/integrations/webhooks/README.md](skills/integrations/webhooks/README.md)
 
 ## Placeholder syntax (workflow templates)
 
