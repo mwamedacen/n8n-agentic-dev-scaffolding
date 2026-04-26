@@ -36,7 +36,7 @@ For `dev`: automatically deactivates all workflows after deploy (safety — prev
 tiers:
   - name: "Tier 1: Leaf subworkflows"
     workflows:
-      - lock_acquiring
+      - lock_acquisition
       - data_extraction
   - name: "Tier 2: Pipelines that call them"
     workflows:

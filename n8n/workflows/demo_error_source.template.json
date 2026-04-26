@@ -34,7 +34,7 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "value": "={{HYDRATE:env:workflows.lock_acquiring.id}}",
+          "value": "={{HYDRATE:env:workflows.lock_acquisition.id}}",
           "mode": "id"
         },
         "workflowInputs": {
@@ -77,7 +77,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Lock acquired (via lock_acquiring sub-workflow) and lock_id persisted to\n// Redis under a deterministic meta key. Now intentionally throw to demonstrate\n// what happens when a critical-section workflow fails between acquire and\n// release: the lock would leak forever WITHOUT the Error Trigger handler\n// pattern. settings.errorWorkflow (below) routes this failure to\n// demo_error_handler, which reads the meta key, recovers the lock_id, and\n// calls lock_releasing — so the lock never leaks.\nthrow new Error('Intentional failure to demonstrate lock-leak-on-error pattern');"
+        "jsCode": "// Lock acquired (via lock_acquisition sub-workflow) and lock_id persisted to\n// Redis under a deterministic meta key. Now intentionally throw to demonstrate\n// what happens when a critical-section workflow fails between acquire and\n// release: the lock would leak forever WITHOUT the Error Trigger handler\n// pattern. settings.errorWorkflow (below) routes this failure to\n// demo_error_handler, which reads the meta key, recovers the lock_id, and\n// calls lock_release — so the lock never leaks.\nthrow new Error('Intentional failure to demonstrate lock-leak-on-error pattern');"
       },
       "id": "demo-error-source-throw",
       "name": "Throw",

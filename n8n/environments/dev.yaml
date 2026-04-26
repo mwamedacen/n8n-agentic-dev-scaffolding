@@ -75,11 +75,11 @@ workflows:
   periodic_excel_report:
     id: "your-workflow-id"
     name: "Periodic Excel Report"
-  lock_acquiring:
-    id: "your-lock-acquiring-id"
+  lock_acquisition:
+    id: "your-lock-acquisition-id"
     name: "Acquire Lock"
-  lock_releasing:
-    id: "your-lock-releasing-id"
+  lock_release:
+    id: "your-lock-release-id"
     name: "Release Lock"
   error_handler_lock_cleanup:
     id: "your-error-handler-id"

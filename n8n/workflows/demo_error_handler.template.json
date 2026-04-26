@@ -50,7 +50,7 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "value": "={{HYDRATE:env:workflows.lock_releasing.id}}",
+          "value": "={{HYDRATE:env:workflows.lock_release.id}}",
           "mode": "id"
         },
         "workflowInputs": {

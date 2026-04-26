@@ -6,11 +6,11 @@ tiers:
   - name: "Tier 0a: Subworkflow leaves (callees + lock primitives)"
     workflows:
       - demo_subworkflow_callee
-      - lock_acquiring
-      - lock_releasing
+      - lock_acquisition
+      - lock_release
       - error_handler_lock_cleanup
 
-  - name: "Tier 0b: Error handler (depends on lock_releasing)"
+  - name: "Tier 0b: Error handler (depends on lock_release)"
     workflows:
       - demo_error_handler
 

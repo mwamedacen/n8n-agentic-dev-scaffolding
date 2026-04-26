@@ -151,7 +151,7 @@ The `demo_*` templates split into two classes (canonical lists in `helpers.RUNNA
 | Demo | Trigger class | Why structural-only |
 |---|---|---|
 | `demo_subworkflow_callee` | Execute Workflow Trigger callee | Fires only when invoked from a parent workflow |
-| `demo_locked_pipeline` | Manual + Execute Workflow → lock_acquiring/releasing | References sub-workflows that need real Redis credentials; placeholder IDs in YAML |
+| `demo_locked_pipeline` | Manual + Execute Workflow → lock_acquisition/releasing | References sub-workflows that need real Redis credentials; placeholder IDs in YAML |
 | `demo_integrations_showcase` | Manual + Microsoft 365 + Gmail + Redis | Needs real credentials (placeholder IDs in YAML) |
 
 Plan-level §5 carve-out: every runnable demo reaches its expected terminal status; structural-only demos verify deploy + GET round-trip only. See plan §6 for the rationale.
@@ -166,23 +166,23 @@ n8n's Error Trigger workflows can't be fired directly via REST — they fire onl
 
 The current pair (`demo_error_source` + `demo_error_handler`) demonstrates n8n's canonical **lock-leak-on-error** handling — the most common reason to wire up an Error Trigger workflow:
 
-1. **`demo_error_source`** (Webhook → Set "Derive Lock Key" → Execute Workflow `lock_acquiring` → Redis "Store Lock Meta" → Code "Throw"):
+1. **`demo_error_source`** (Webhook → Set "Derive Lock Key" → Execute Workflow `lock_acquisition` → Redis "Store Lock Meta" → Code "Throw"):
    - Derives a deterministic lock key from `$execution.id`: `demo-error-source-lock-<exec_id>`.
-   - Acquires the lock via `lock_acquiring` sub-workflow (returns `{lock_id, scope}`).
+   - Acquires the lock via `lock_acquisition` sub-workflow (returns `{lock_id, scope}`).
    - Stores the `lock_id` in Redis under a meta key `demo-error-source-lockmeta-<exec_id>` (TTL 60s) so the handler can recover it.
    - Throws. Lock would normally leak forever without the handler.
-2. **`demo_error_handler`** (Error Trigger → Set "Derive Lock Key" → Redis "Recover Lock ID" → Execute Workflow `lock_releasing` → Set "Capture Error"):
+2. **`demo_error_handler`** (Error Trigger → Set "Derive Lock Key" → Redis "Recover Lock ID" → Execute Workflow `lock_release` → Set "Capture Error"):
    - Derives the same lock key + meta key from `$json.execution.id` (the failed source's exec id).
    - GETs the meta key from Redis to recover the original `lock_id`.
-   - Releases the lock via `lock_releasing` (which validates ownership before deleting — the recovered `lock_id` matches the stored one, so DEL fires).
+   - Releases the lock via `lock_release` (which validates ownership before deleting — the recovered `lock_id` matches the stored one, so DEL fires).
    - Final Set node emits `{handled: true, lock_released: true, source_workflow_name, source_workflow_id, error_message, error_node, source_execution_id, released_lock_scope, handled_at}`.
 
 End-to-end chain (4 executions, all visible in n8n UI):
 ```
 demo_error_source(error)
-  → lock_acquiring(success)
+  → lock_acquisition(success)
   → demo_error_handler(success)
-      → lock_releasing(success)
+      → lock_release(success)
 ```
 
 Tier order in `deployment_order.yaml`: handlers + lock primitives come first (they're callees), then sources (which reference handler IDs in `settings.errorWorkflow`).

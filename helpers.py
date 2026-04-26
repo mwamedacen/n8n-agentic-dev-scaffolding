@@ -66,7 +66,7 @@ RUNNABLE_DEMOS: Dict[str, str] = {
 # carve-out and §6 for the reasoning.
 STRUCTURAL_ONLY_DEMOS: Dict[str, str] = {
     "demo_subworkflow_callee":    "Execute Workflow Trigger callee — fires only when invoked from a parent",
-    "demo_locked_pipeline":       "References lock_acquiring/releasing sub-workflows that need real Redis credentials",
+    "demo_locked_pipeline":       "References lock_acquisition/releasing sub-workflows that need real Redis credentials",
     "demo_integrations_showcase": "Microsoft 365 + Gmail + Redis nodes need real credentials to execute",
 }
 
@@ -1037,13 +1037,13 @@ def _suite_coverage() -> Dict[str, Any]:
             tgt = type_to_target.get(t)
             if tgt:
                 targets[tgt] += 1
-            # Locking: Execute Workflow targeting lock_acquiring/releasing
+            # Locking: Execute Workflow targeting lock_acquisition/releasing
             params = node.get("parameters") or {}
             wid = params.get("workflowId")
             wid_str = str(wid)
             if isinstance(wid, dict):
                 wid_str = str(wid.get("value", ""))
-            if "lock_acquiring" in wid_str or "lock_releasing" in wid_str:
+            if "lock_acquisition" in wid_str or "lock_release" in wid_str:
                 targets["locking"] += 1
             # Inline JS code via parameters.jsCode
             if t == "n8n-nodes-base.code":

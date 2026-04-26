@@ -46,23 +46,23 @@ When you fire `demo_X_source`'s webhook:
 
 The harness ships the canonical example: `demo_error_source` + `demo_error_handler`, demonstrating the **lock-leak-on-error** pattern end-to-end:
 
-1. `demo_error_source` (Webhook → Set → Execute Workflow `lock_acquiring` → Redis Set "Store Lock Meta" → Code "Throw") acquires a real Redis lock, persists the `lock_id` under a deterministic meta key derived from `$execution.id`, then throws.
-2. `demo_error_handler` (Error Trigger → Set → Redis Get "Recover Lock ID" → Execute Workflow `lock_releasing` → Set "Capture Error") derives the same meta key from `$json.execution.id`, recovers the `lock_id`, and calls `lock_releasing` (which validates ownership before DEL).
+1. `demo_error_source` (Webhook → Set → Execute Workflow `lock_acquisition` → Redis Set "Store Lock Meta" → Code "Throw") acquires a real Redis lock, persists the `lock_id` under a deterministic meta key derived from `$execution.id`, then throws.
+2. `demo_error_handler` (Error Trigger → Set → Redis Get "Recover Lock ID" → Execute Workflow `lock_release` → Set "Capture Error") derives the same meta key from `$json.execution.id`, recovers the `lock_id`, and calls `lock_release` (which validates ownership before DEL).
 
 End-to-end chain (4 visible executions in the n8n UI):
 ```
 demo_error_source(error)
-  → lock_acquiring(success)
+  → lock_acquisition(success)
   → demo_error_handler(success)
-      → lock_releasing(success)
+      → lock_release(success)
 ```
 
 `helpers.run_workflow("demo_error_handler")` is special-cased via `_INDIRECT_VIA_ERROR_SOURCE` to do all this transparently — fire the source, poll the handler. See `n8n/workflows/AGENTS.md` for the full table.
 
 ### Lock primitive caveats (discovered during the demo wiring)
 
-- **n8n cloud's Code node sandbox doesn't expose `crypto.randomUUID()`**. The original `lock_acquiring.template.json` used it, which silently broke on cloud. The fixed version uses `Math.random()` + `Date.now()` chunks to build a UUID-like string. Documented at the top of the `Generate Lock ID` Code node.
-- **Redis Get returns the value under `propertyName` (n8n cloud) or `data` (legacy)**. The `lock_releasing.template.json`'s `Validate Ownership` Code node accepts either; the `lock_acquiring.template.json`'s `If Lock Exists` check uses `$json.propertyName ?? $json.data ?? ''` for the same robustness.
+- **n8n cloud's Code node sandbox doesn't expose `crypto.randomUUID()`**. The original `lock_acquisition.template.json` used it, which silently broke on cloud. The fixed version uses `Math.random()` + `Date.now()` chunks to build a UUID-like string. Documented at the top of the `Generate Lock ID` Code node.
+- **Redis Get returns the value under `propertyName` (n8n cloud) or `data` (legacy)**. The `lock_release.template.json`'s `Validate Ownership` Code node accepts either; the `lock_acquisition.template.json`'s `If Lock Exists` check uses `$json.propertyName ?? $json.data ?? ''` for the same robustness.
 
 ## Worked example: existing `error_handler_lock_cleanup`
 

@@ -32,12 +32,12 @@ When a workflow needs to call another workflow as a subroutine — the canonical
          - main_pipeline
    ```
 
-## Worked example: existing `lock_acquiring` / `lock_releasing`
+## Worked example: existing `lock_acquisition` / `lock_release`
 
 `n8n/environments/dev.yaml` has these sub-workflows. They're called by pipelines that need critical-section semantics. Each is a full `*.template.json`; the pipelines reference them via:
 
 ```json
-"workflowId": "={{HYDRATE:env:workflows.lock_acquiring.id}}"
+"workflowId": "={{HYDRATE:env:workflows.lock_acquisition.id}}"
 ```
 
 Tier 1 contains all three lock-related workflows; pipelines that use them sit in tier 2+.

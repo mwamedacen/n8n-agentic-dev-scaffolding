@@ -17,14 +17,14 @@
 
 ## Lock acquire/release pattern
 
-The existing `lock_acquiring`, `lock_releasing`, and `error_handler_lock_cleanup` workflows in `dev.yaml` implement this. Caller flow:
+The existing `lock_acquisition`, `lock_release`, and `error_handler_lock_cleanup` workflows in `dev.yaml` implement this. Caller flow:
 
-1. Execute Workflow → `lock_acquiring` (with key, ttl)
+1. Execute Workflow → `lock_acquisition` (with key, ttl)
 2. Critical section (do the work)
-3. Execute Workflow → `lock_releasing` (with same key)
+3. Execute Workflow → `lock_release` (with same key)
 4. Set `errorWorkflow` to `error_handler_lock_cleanup` so a crash still releases the lock.
 
-`lock_acquiring` does:
+`lock_acquisition` does:
 
 ```json
 {
