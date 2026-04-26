@@ -13,25 +13,95 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "err-handled", "name": "handled", "value": "true", "type": "boolean" },
-            { "id": "err-from-name", "name": "from_workflow_name", "value": "={{ $json.workflow.name }}", "type": "string" },
-            { "id": "err-from-id", "name": "from_workflow_id", "value": "={{ $json.workflow.id }}", "type": "string" },
-            { "id": "err-message", "name": "error_message", "value": "={{ $json.execution.error.message ?? 'unknown' }}", "type": "string" },
-            { "id": "err-node", "name": "error_node", "value": "={{ $json.execution.error.node?.name ?? 'unknown' }}", "type": "string" },
-            { "id": "err-execution-id", "name": "source_execution_id", "value": "={{ $json.execution.id }}", "type": "string" },
-            { "id": "err-handled-at", "name": "handled_at", "value": "={{ $now }}", "type": "string" }
+            { "id": "h-source-exec", "name": "source_execution_id", "value": "={{ $json.execution.id }}", "type": "string" },
+            { "id": "h-source-name", "name": "source_workflow_name", "value": "={{ $json.workflow.name }}", "type": "string" },
+            { "id": "h-source-id", "name": "source_workflow_id", "value": "={{ $json.workflow.id }}", "type": "string" },
+            { "id": "h-error-msg", "name": "error_message", "value": "={{ $json.execution.error.message ?? 'unknown' }}", "type": "string" },
+            { "id": "h-error-node", "name": "error_node", "value": "={{ $json.execution.error.node?.name ?? 'unknown' }}", "type": "string" },
+            { "id": "h-scope", "name": "scope", "value": "=demo-error-source-lock-{{ $json.execution.id }}", "type": "string" },
+            { "id": "h-meta-key", "name": "meta_key", "value": "=demo-error-source-lockmeta-{{ $json.execution.id }}", "type": "string" }
           ]
         }
       },
-      "id": "demo-error-set",
+      "id": "demo-error-handler-derive",
+      "name": "Derive Lock Key",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "={{ $json.meta_key }}"
+      },
+      "id": "demo-error-handler-getmeta",
+      "name": "Recover Lock ID",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [600, 300],
+      "credentials": {
+        "redis": {
+          "id": "{{HYDRATE:env:credentials.redis.id}}",
+          "name": "{{HYDRATE:env:credentials.redis.name}}"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "={{HYDRATE:env:workflows.lock_releasing.id}}",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "value": {
+            "lock_id": "={{ $json.propertyName }}",
+            "scope": "={{ $('Derive Lock Key').item.json.scope }}"
+          },
+          "mappingMode": "defineBelow"
+        },
+        "options": {}
+      },
+      "id": "demo-error-handler-release",
+      "name": "Release Lock",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "fin-handled", "name": "handled", "value": "true", "type": "boolean" },
+            { "id": "fin-released", "name": "lock_released", "value": "true", "type": "boolean" },
+            { "id": "fin-from-name", "name": "from_workflow_name", "value": "={{ $('Derive Lock Key').item.json.source_workflow_name }}", "type": "string" },
+            { "id": "fin-from-id", "name": "from_workflow_id", "value": "={{ $('Derive Lock Key').item.json.source_workflow_id }}", "type": "string" },
+            { "id": "fin-msg", "name": "error_message", "value": "={{ $('Derive Lock Key').item.json.error_message }}", "type": "string" },
+            { "id": "fin-node", "name": "error_node", "value": "={{ $('Derive Lock Key').item.json.error_node }}", "type": "string" },
+            { "id": "fin-exec", "name": "source_execution_id", "value": "={{ $('Derive Lock Key').item.json.source_execution_id }}", "type": "string" },
+            { "id": "fin-scope", "name": "released_lock_scope", "value": "={{ $('Derive Lock Key').item.json.scope }}", "type": "string" },
+            { "id": "fin-handled-at", "name": "handled_at", "value": "={{ $now }}", "type": "string" }
+          ]
+        }
+      },
+      "id": "demo-error-handler-final",
       "name": "Capture Error",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [420, 300]
+      "position": [1000, 300]
     }
   ],
   "connections": {
     "On Workflow Error": {
+      "main": [[{ "node": "Derive Lock Key", "type": "main", "index": 0 }]]
+    },
+    "Derive Lock Key": {
+      "main": [[{ "node": "Recover Lock ID", "type": "main", "index": 0 }]]
+    },
+    "Recover Lock ID": {
+      "main": [[{ "node": "Release Lock", "type": "main", "index": 0 }]]
+    },
+    "Release Lock": {
       "main": [[{ "node": "Capture Error", "type": "main", "index": 0 }]]
     }
   },

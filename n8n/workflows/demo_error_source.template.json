@@ -17,17 +17,86 @@
     },
     {
       "parameters": {
-        "jsCode": "// Intentional failure: this workflow exists to demonstrate Error Trigger\n// routing. settings.errorWorkflow (below) points at demo_error_handler;\n// when this throws, n8n invokes the handler with error context as input.\n// Open the n8n UI to see the chain: source ran with status=error, handler\n// ran with status=success.\nthrow new Error('Intentional failure to demonstrate Error Trigger handler routing');"
+        "assignments": {
+          "assignments": [
+            { "id": "src-scope", "name": "scope", "value": "=demo-error-source-lock-{{ $execution.id }}", "type": "string" },
+            { "id": "src-meta-key", "name": "meta_key", "value": "=demo-error-source-lockmeta-{{ $execution.id }}", "type": "string" }
+          ]
+        }
+      },
+      "id": "demo-error-source-derive",
+      "name": "Derive Lock Key",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "={{HYDRATE:env:workflows.lock_acquiring.id}}",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "value": {
+            "scope": "={{ $json.scope }}",
+            "workflow_id": "={{ $workflow.id }}",
+            "workflow_name": "={{ $workflow.name }}",
+            "wait_till_lock_released": false,
+            "execution_id": "={{ $execution.id }}"
+          },
+          "mappingMode": "defineBelow"
+        },
+        "options": {}
+      },
+      "id": "demo-error-source-acquire",
+      "name": "Acquire Lock",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $('Derive Lock Key').item.json.meta_key }}",
+        "value": "={{ $json.lock_id }}",
+        "expire": true,
+        "ttl": 60
+      },
+      "id": "demo-error-source-storemeta",
+      "name": "Store Lock Meta",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [800, 300],
+      "credentials": {
+        "redis": {
+          "id": "{{HYDRATE:env:credentials.redis.id}}",
+          "name": "{{HYDRATE:env:credentials.redis.name}}"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lock acquired (via lock_acquiring sub-workflow) and lock_id persisted to\n// Redis under a deterministic meta key. Now intentionally throw to demonstrate\n// what happens when a critical-section workflow fails between acquire and\n// release: the lock would leak forever WITHOUT the Error Trigger handler\n// pattern. settings.errorWorkflow (below) routes this failure to\n// demo_error_handler, which reads the meta key, recovers the lock_id, and\n// calls lock_releasing — so the lock never leaks.\nthrow new Error('Intentional failure to demonstrate lock-leak-on-error pattern');"
       },
       "id": "demo-error-source-throw",
       "name": "Throw",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [420, 300]
+      "position": [1000, 300]
     }
   ],
   "connections": {
     "Webhook": {
+      "main": [[{ "node": "Derive Lock Key", "type": "main", "index": 0 }]]
+    },
+    "Derive Lock Key": {
+      "main": [[{ "node": "Acquire Lock", "type": "main", "index": 0 }]]
+    },
+    "Acquire Lock": {
+      "main": [[{ "node": "Store Lock Meta", "type": "main", "index": 0 }]]
+    },
+    "Store Lock Meta": {
       "main": [[{ "node": "Throw", "type": "main", "index": 0 }]]
     }
   },

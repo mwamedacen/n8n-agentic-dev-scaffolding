@@ -45,7 +45,7 @@
       "typeVersion": 2,
       "position": [220, 0],
       "parameters": {
-        "jsCode": "const lockId = crypto.randomUUID();\nreturn [{json: {...$input.first().json, lock_id: lockId}}];"
+        "jsCode": "// n8n cloud's Code node sandbox doesn't expose `crypto.randomUUID`.\n// Use a deterministic-but-unique-per-call UUID-like id built from\n// timestamp + Math.random() chunks.\nconst hex = (n) => Math.floor(Math.random() * 16 ** n).toString(16).padStart(n, '0');\nconst lockId = `${hex(8)}-${hex(4)}-4${hex(3)}-${hex(4)}-${Date.now().toString(16).padStart(12, '0').slice(-12)}`;\nreturn [{json: {...$input.first().json, lock_id: lockId}}];"
       }
     },
     {
@@ -81,7 +81,7 @@
           "conditions": [
             {
               "id": "lock-exists-condition",
-              "leftValue": "={{ $json.data }}",
+              "leftValue": "={{ $json.propertyName ?? $json.data ?? '' }}",
               "rightValue": "",
               "operator": {
                 "type": "string",

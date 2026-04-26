@@ -50,7 +50,7 @@
       "typeVersion": 2,
       "position": [440, 0],
       "parameters": {
-        "jsCode": "const lockValue = $input.first().json.data;\nconst providedLockId = $('Execute Workflow Trigger').first().json.lock_id;\n\nlet storedLockId;\ntry {\n  const parsed = JSON.parse(lockValue);\n  storedLockId = parsed.lock_id;\n} catch {\n  storedLockId = lockValue;\n}\n\nconst isOwner = storedLockId === providedLockId;\nreturn [{json: { is_owner: isOwner, stored_lock_id: storedLockId, provided_lock_id: providedLockId }}];"
+        "jsCode": "// n8n's Redis Get returns the value under `propertyName` (cloud) or `data`\n// (legacy); accept either to be robust across versions.\nconst input = $input.first().json;\nconst lockValue = input.propertyName ?? input.data ?? '';\nconst providedLockId = $('Execute Workflow Trigger').first().json.lock_id;\n\nlet storedLockId;\ntry {\n  const parsed = JSON.parse(lockValue);\n  storedLockId = parsed.lock_id;\n} catch {\n  storedLockId = lockValue;\n}\n\nconst isOwner = storedLockId === providedLockId;\nreturn [{json: { is_owner: isOwner, stored_lock_id: storedLockId, provided_lock_id: providedLockId }}];"
       }
     },
     {
