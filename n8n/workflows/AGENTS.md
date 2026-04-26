@@ -49,9 +49,9 @@ Inlines JavaScript file contents for n8n Code nodes. Files can include `// DEHYD
 {{HYDRATE:uuid:schedule-trigger-id}}
 {{HYDRATE:uuid:schedule-trigger-webhookId}}
 ```
-Generates a fresh UUID v4 on each hydration. Used for trigger node IDs and webhook IDs.
+Generates a fresh UUID v4 on each hydration. Used for trigger-node `id` and `webhookId` fields.
 
-**Why this matters for multi-environment:** n8n uses trigger node IDs (especially `webhookId`) to register webhook and schedule listeners. If two environments (dev and prod) on the same n8n instance share identical trigger IDs, they collide -- one webhook overwrites the other, causing only one environment's workflow to fire. By generating fresh UUIDs per environment during hydration, each environment gets unique trigger registrations that don't interfere with each other. During dehydration (resync), these UUIDs are replaced back with `{{HYDRATE:uuid:...}}` placeholders to keep templates portable.
+> **Why per-env UUIDs matter** — see `pattern-skills/multi-env-uuid-collision.md`. (Content migrated out of this AGENTS.md per Phase 2 step 5.)
 
 ## Naming Convention
 
@@ -120,37 +120,35 @@ Position nodes on a grid for readability:
 
 ### Recalculate positions after changes
 
-**When you add, remove, or reorder nodes, you MUST recalculate all downstream positions.** This is the most common source of overlapping or unreadable workflow layouts in the n8n UI.
+When you add, remove, or reorder nodes, recalculate all downstream positions — n8n does NOT auto-layout. Full rules and worked examples live in `pattern-skills/multi-env-uuid-collision.md` (positioning section). (Content migrated out of this AGENTS.md per Phase 2 step 5.)
 
-Rules:
-1. **Adding a node mid-flow**: Shift all subsequent nodes right by 220px
-2. **Removing a node**: Shift all subsequent nodes left by 220px to close the gap
-3. **Adding a branch (If/Switch)**: Place the true branch at current Y, false branch at Y+200. Merge node goes at the max X of both branches + 220px
-4. **Inserting before a branch**: Shift the entire branch subtree (both paths) right
+## Sub-workflows
 
-Example — inserting "Validate" between nodes at positions [440, 0] and [660, 0]:
-- "Validate" gets [660, 0]
-- The old [660, 0] node moves to [880, 0]
-- All nodes after it shift right by 220px
+Parent workflows reference callees via `"workflowId": "={{HYDRATE:env:workflows.<callee_key>.id}}"` (note the `=` prefix for n8n expression mode). Place callees in earlier tiers in `deployment_order.yaml`. Full pattern + worked examples: `pattern-skills/subworkflows.md`.
 
-n8n will render whatever positions you set — it does NOT auto-layout. Incorrect positions cause nodes to stack on top of each other, making the workflow unreadable in the UI.
+## Demo suite — runnable vs structural-only
 
-## Advanced: Variant Workflows
+The `demo_*` templates split into two classes (canonical lists in `helpers.RUNNABLE_DEMOS` / `helpers.STRUCTURAL_ONLY_DEMOS`):
 
-For complex AI workflows, you may need variant patterns:
+**Runnable** (Webhook trigger → invokable via `run_workflow()` → must reach `status == "success"`):
 
-### Chat + Subworkflow Pattern
+- `demo_smoke` — manual-equivalent + Set node
+- `demo_branching` — Switch + If + Merge + Code (inline JS)
+- `demo_batch_processor` — SplitInBatches + Code (process item)
+- `demo_subworkflow_caller` — Webhook + Execute Workflow → callee
+- `demo_external_js_code` — Webhook + Code with `{{HYDRATE:js:...}}`
+- `demo_http_call` — Webhook + HTTP Request to a public endpoint
+- `demo_ai_summary` — Webhook + Code that inlines `{{HYDRATE:txt:...}}` prompt + `{{HYDRATE:json:...}}` schema (mocks the LLM call; see template comment for why)
+- `demo_scheduled_report` — Schedule + Webhook (dual trigger; Schedule for coverage, Webhook for runnability)
+- `demo_chat_assistant` — Chat Trigger + Webhook (dual trigger; Chat for coverage, Webhook for runnability)
 
-A parent chat workflow triggers a subworkflow for processing:
+**Structural-only** (intrinsically non-webhook trigger → verify via deploy + `GET /workflows/{id}` round-trip identity, NOT runtime success):
 
-```
-chat_interface.template.json          (Tier 2 - depends on subworkflow)
-chat_processing_sub.template.json     (Tier 1 - leaf subworkflow)
-```
+| Demo | Trigger class | Why structural-only |
+|---|---|---|
+| `demo_subworkflow_callee` | Execute Workflow Trigger callee | Fires only when invoked from a parent workflow |
+| `demo_error_handler` | Error Trigger | Fires only on another workflow's failure |
+| `demo_locked_pipeline` | Manual + Execute Workflow → lock_acquiring/releasing | References sub-workflows that need real Redis credentials; placeholder IDs in YAML |
+| `demo_integrations_showcase` | Manual + Microsoft 365 + Gmail + Redis | Needs real credentials (placeholder IDs in YAML) |
 
-The parent references the subworkflow by ID using:
-```json
-"workflowId": "={{HYDRATE:env:workflows.chat_processing_sub.id}}"
-```
-
-This pattern is not in the sample template but is supported by the hydration system. Place subworkflows in earlier tiers in `deployment_order.yaml` so their IDs are available when the parent is deployed.
+The plan-level §5 carve-out: every runnable demo must reach `status == "success"`; structural-only demos verify deploy + GET round-trip only. See plan §6 deviation list for the rationale.

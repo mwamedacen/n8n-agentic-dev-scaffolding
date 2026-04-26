@@ -30,6 +30,45 @@ n8n:
   instanceName: "your-instance.app.n8n.cloud"
 
 workflows:
+  demo_smoke:
+    id: "your-demo-smoke-id"
+    name: "Demo Smoke"
+  demo_branching:
+    id: "your-demo-branching-id"
+    name: "Demo Branching"
+  demo_batch_processor:
+    id: "your-demo-batch-id"
+    name: "Demo Batch Processor"
+  demo_subworkflow_callee:
+    id: "your-demo-callee-id"
+    name: "Demo Subworkflow Callee"
+  demo_subworkflow_caller:
+    id: "your-demo-caller-id"
+    name: "Demo Subworkflow Caller"
+  demo_external_js_code:
+    id: "your-demo-extjs-id"
+    name: "Demo External JS Code"
+  demo_http_call:
+    id: "your-demo-http-id"
+    name: "Demo HTTP Call"
+  demo_ai_summary:
+    id: "your-demo-ai-id"
+    name: "Demo AI Summary"
+  demo_scheduled_report:
+    id: "your-demo-sched-id"
+    name: "Demo Scheduled Report"
+  demo_integrations_showcase:
+    id: "your-demo-integrations-id"
+    name: "Demo Integrations Showcase"
+  demo_error_handler:
+    id: "your-demo-error-id"
+    name: "Demo Error Handler"
+  demo_locked_pipeline:
+    id: "your-demo-locked-id"
+    name: "Demo Locked Pipeline"
+  demo_chat_assistant:
+    id: "your-demo-chat-id"
+    name: "Demo Chat Assistant"
   periodic_excel_report:
     id: "your-workflow-id"
     name: "Periodic Excel Report"

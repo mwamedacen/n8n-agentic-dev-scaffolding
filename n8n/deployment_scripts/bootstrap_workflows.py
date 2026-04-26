@@ -131,28 +131,23 @@ def update_yaml_workflow_id(config_path: Path, workflow_key: str, new_id: str) -
         f.write(new_content)
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description='Bootstrap placeholder workflows in n8n for a new environment'
-    )
-    parser.add_argument(
-        'environment',
-        help='Environment name (e.g., dev, staging, prod)'
-    )
-    parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Show what would be created without actually creating workflows'
-    )
-    args = parser.parse_args()
+def bootstrap_env(env_name: str, dry_run: bool = False) -> int:
+    """Bootstrap placeholder workflows for `env_name`. Importable + CLI entry.
 
-    # Resolve paths
+    Returns exit code (0 ok, 1 fail). Stays compatible with the old CLI shape:
+    prints a banner + per-workflow lines + a summary block to stdout.
+    """
     script_dir = Path(__file__).parent
     project_dir = script_dir.parent.parent
-    config_path = project_dir / 'n8n' / 'environments' / f'{args.environment}.yaml'
-    env_file = project_dir / f'.env.{args.environment}'
+    config_path = project_dir / 'n8n' / 'environments' / f'{env_name}.yaml'
+    if not config_path.exists():
+        # Phase 3: also accept attached.<env_name>.yaml
+        alt = project_dir / 'n8n' / 'environments' / f'attached.{env_name}.yaml'
+        if alt.exists():
+            config_path = alt
+    root_env_file = project_dir / '.env'
+    env_file = project_dir / f'.env.{env_name}'
 
-    # Validate config exists
     if not config_path.exists():
         print(f"Error: Environment config not found: {config_path}")
         env_dir = project_dir / 'n8n' / 'environments'
@@ -160,41 +155,50 @@ def main():
             available = [f.stem for f in env_dir.glob('*.yaml')]
             if available:
                 print(f"Available environments: {', '.join(sorted(available))}")
-        sys.exit(1)
+        return 1
 
-    # Load config and secrets
+    # Load config + layered secrets:
+    #   1. root .env loads first (defaults)
+    #   2. .env.<env> overlays on top — env-specific values WIN.
     config = load_yaml_config(config_path)
-    env_vars = load_env_file(env_file)
-
-    # Set env vars from .env file
-    for key, value in env_vars.items():
+    layered_env = {}
+    layered_env.update(load_env_file(root_env_file))
+    layered_env.update(load_env_file(env_file))
+    for key, value in layered_env.items():
         os.environ[key] = value
 
-    api_base = get_api_base(config)
-    api_key = os.environ.get('N8N_API_KEY', env_vars.get('N8N_API_KEY', ''))
+    # Resolve instance: env var wins, YAML fallback.
+    instance = os.environ.get('N8N_INSTANCE_NAME', '').strip()
+    if not instance:
+        instance = config.get('n8n', {}).get('instanceName', '')
+    if instance.startswith(('http://', 'https://')):
+        api_base = instance.rstrip('/')
+    elif 'localhost' in instance or '127.0.0.1' in instance:
+        api_base = f'http://{instance.rstrip("/")}'
+    else:
+        api_base = f'https://{instance.rstrip("/")}'
 
+    api_key = os.environ.get('N8N_API_KEY', '')
     if not api_key:
-        print(f"Error: N8N_API_KEY not found in {env_file} or environment.")
-        sys.exit(1)
+        print(f"Error: N8N_API_KEY not found in {root_env_file}, {env_file}, or environment.")
+        return 1
 
-    display_name = config.get('displayName', args.environment)
+    display_name = config.get('displayName', env_name)
     postfix = config.get('workflowNamePostfix', '')
     workflows = config.get('workflows', {})
-
     if not workflows:
         print("No workflows defined in the environment config.")
-        sys.exit(1)
+        return 1
 
     print("=" * 60)
     print(f"Bootstrapping Workflows for [{display_name}]")
-    if args.dry_run:
+    if dry_run:
         print("  ** DRY RUN MODE **")
     print("=" * 60)
     print(f"  API Base: {api_base}")
     print(f"  Workflows to create: {len(workflows)}")
     print()
 
-    # Create each workflow
     created = []
     failed = []
 
@@ -203,26 +207,27 @@ def main():
         wf_name = wf_config.get('name', wf_key)
         full_name = f"{wf_name}{postfix}"
 
-        # Skip if already has an ID
-        if existing_id and str(existing_id) not in ('', 'null', "''", '""'):
+        existing_str = str(existing_id).strip()
+        is_placeholder = (
+            not existing_str
+            or existing_str in ('null', "''", '""', 'placeholder')
+            or existing_str.startswith('your-')
+        )
+        if not is_placeholder:
             print(f"  [{wf_key}] Already has ID: {existing_id} - skipping")
             continue
 
         try:
-            result = create_workflow(api_base, api_key, full_name, dry_run=args.dry_run)
+            result = create_workflow(api_base, api_key, full_name, dry_run=dry_run)
             new_id = str(result.get('id', ''))
-
-            if not args.dry_run and new_id:
+            if not dry_run and new_id:
                 update_yaml_workflow_id(config_path, wf_key, new_id)
-
             created.append((wf_key, full_name, new_id))
             print(f"  [{wf_key}] Created: {full_name} -> ID: {new_id}")
-
         except Exception as e:
             failed.append((wf_key, str(e)))
             print(f"  [{wf_key}] FAILED: {e}")
 
-    # Summary
     print()
     print("=" * 60)
     print("Summary")
@@ -231,11 +236,11 @@ def main():
     print(f"  Failed:  {len(failed)}")
     print(f"  Skipped: {len(workflows) - len(created) - len(failed)}")
 
-    if created and not args.dry_run:
+    if created and not dry_run:
         print()
         print("Next steps:")
         print(f"  1. Review updated config: {config_path}")
-        print(f"  2. Deploy workflows: ./deploy_all.sh {args.environment}")
+        print(f"  2. Deploy workflows: n8n-harness -c \"for k in <keys>: deploy(k)\" or ./deploy_all.sh {env_name}")
         print(f"  3. Verify in n8n UI: {api_base}")
 
     if failed:
@@ -243,7 +248,19 @@ def main():
         print("Failed workflows:")
         for wf_key, error in failed:
             print(f"  - {wf_key}: {error}")
-        sys.exit(1)
+        return 1
+
+    return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Bootstrap placeholder workflows in n8n for a new environment'
+    )
+    parser.add_argument('environment', help='Environment name (e.g., dev, staging, prod)')
+    parser.add_argument('--dry-run', action='store_true', help='Show what would be created')
+    args = parser.parse_args()
+    sys.exit(bootstrap_env(args.environment, dry_run=args.dry_run))
 
 
 if __name__ == '__main__':

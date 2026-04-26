@@ -1,119 +1,66 @@
 # n8n Deployment Scripts
 
-## Quick Start
+## Quick reference
 
 ```bash
-# Deploy everything to dev (auto-deactivates after)
-./deploy_all.sh dev
-
-# Deploy everything to dev and keep workflows active
-./deploy_all.sh dev --keep-active
-
-# Deploy a single workflow
-./deploy_workflow.sh dev periodic_excel_report
-
-# Deploy to production
-./deploy_all.sh prod
-
-# Bootstrap placeholder workflows for a new environment
-python3 bootstrap_workflows.py dev
-
-# Deactivate all workflows
-./deactivate_all.sh dev
+./deploy_all.sh dev                                # all, deactivates after (safety)
+./deploy_all.sh dev --keep-active                  # all, keep active
+./deploy_workflow.sh dev <workflow_key>            # single workflow
+./deploy_all.sh prod                               # all, keep active
+python3 bootstrap_workflows.py dev                 # mint placeholder workflow IDs
+./deactivate_all.sh dev                            # deactivate all in env
 ```
 
-## deploy_workflow.sh
+The Python equivalents (preferred for agents) are `helpers.deploy(key, env=None, activate=True)`, `helpers.deactivate(key, env=None)`, `helpers.bootstrap(env=None)`. The harness deliberately omits `deploy_all` / `deactivate_all` Python helpers — agents compose loops; bash scripts keep their role for non-agent ergonomics.
 
-Deploys a single workflow to an n8n environment. Handles hydration, upload, and activation in one step.
+## deploy_workflow.sh
 
 ```bash
 ./deploy_workflow.sh <env> <workflow_key>
 ```
 
-**What it does:**
-1. Loads the environment config and secrets
-2. Auto-discovers the template at `n8n/workflows/{workflow_key}.template.json`
-3. Runs hydration via `hydrate_workflow.py`
-4. Uploads the generated JSON to n8n via `PUT /api/v1/workflows/{id}`
-5. Activates the workflow via `POST /api/v1/workflows/{id}/activate`
+1. Loads the env config + secrets (root `.env` first, then `.env.<env>` overlay; env-specific WINS).
+2. Hydrates `n8n/workflows/<workflow_key>.template.json` via `hydrate_workflow.py`.
+3. PUTs the generated JSON to `/api/v1/workflows/{id}`.
+4. POSTs `/api/v1/workflows/{id}/activate`.
 
 ## deploy_all.sh
 
-Deploys all workflows in tier order as defined in `deployment_order.yaml`.
+Reads tiers from `n8n/deployment_order.yaml` and deploys each workflow in tier order. Tier 1 first, then tier 2, etc. Within a tier order is unspecified.
 
-```bash
-./deploy_all.sh <env> [--keep-active|-k]
-```
-
-**Behavior:**
-- Reads tiers from `n8n/deployment_order.yaml`
-- Deploys each workflow in tier order (tier 1 first, then tier 2, etc.)
-- For `dev` environment: automatically deactivates all workflows after deployment (safety measure)
-- Use `--keep-active` or `-k` to skip dev auto-deactivation
-- Non-dev environments always keep workflows active
+For `dev`: automatically deactivates all workflows after deploy (safety — prevents dev schedules/webhooks from firing while you set up). Override with `--keep-active`. Non-dev envs keep things active.
 
 ## deployment_order.yaml
 
-Defines the deployment order using tiers. Workflows within the same tier have no mutual dependencies.
-
 ```yaml
 tiers:
-  - name: "Tier 1: Leaf Subworkflows"
+  - name: "Tier 1: Leaf subworkflows"
     workflows:
       - lock_acquiring
       - data_extraction
-
-  - name: "Tier 2: Mid-level Workflows"
-    workflows:
-      - store_attachments
-
-  - name: "Tier 3: Top-level Orchestrators"
+  - name: "Tier 2: Pipelines that call them"
     workflows:
       - main_pipeline
 ```
 
-**Why tiers matter:** If workflow A calls subworkflow B via "Execute Workflow" node, B must be deployed first so its ID is available. Place B in an earlier tier than A.
-
-## Dev Auto-Deactivation
-
-When deploying to `dev`, `deploy_all.sh` automatically deactivates all workflows after deployment. This prevents dev workflows from running on schedules or webhooks while you are still setting up.
-
-To keep workflows active in dev:
-```bash
-./deploy_all.sh dev --keep-active
-```
+**Why tiers matter:** Execute Workflow nodes need the callee's ID. Place callees in earlier tiers. See `pattern-skills/subworkflows.md`.
 
 ## bootstrap_workflows.py
 
-Creates empty placeholder workflows in n8n via the API and records the assigned IDs in the environment YAML config.
+Creates empty placeholder workflows for every key in YAML that doesn't already have a real ID, and records the n8n-assigned IDs back into the YAML.
 
 ```bash
-python3 bootstrap_workflows.py dev
+python3 bootstrap_workflows.py dev          # real
 python3 bootstrap_workflows.py prod --dry-run
 ```
 
-**What it does:**
-1. Reads all workflow entries from the environment YAML
-2. Skips workflows that already have an ID
-3. Creates a minimal empty workflow in n8n for each entry
-4. Updates the YAML config with the new workflow IDs
+Skips entries whose `id` is empty, `null`, `placeholder`, or starts with `your-`. Run after adding new workflows to YAML.
 
-**When to use:**
-- Setting up a new environment for the first time
-- Adding a new workflow to the project
-- After adding workflow entries to the YAML with placeholder IDs
+## .env layering
 
-## deactivate_all.sh
+Both `_common.sh` and `bootstrap_workflows.py` source root `.env` first, then `.env.<env>` with overlay semantics — env-specific values WIN for shared keys. This matches `admin._load_env` so Python helpers and bash agree.
 
-Deactivates all workflows for an environment by reading workflow IDs from the YAML config.
-
-```bash
-./deactivate_all.sh <env>
-```
-
-## YAML Config Structure
-
-Each environment config in `n8n/environments/{env}.yaml`:
+## YAML structure
 
 ```yaml
 name: dev
@@ -124,42 +71,22 @@ n8n:
   instanceName: "your-instance.app.n8n.cloud"
 
 credentials:
-  msOauth:
-    id: "credential-id"
-    name: "dev_ms_oauth"
+  msOauth: { id: "...", name: "dev_ms_oauth" }
 
 workflows:
   periodic_excel_report:
-    id: "12345"          # Assigned by n8n during bootstrap
+    id: "12345"          # set by bootstrap
     name: "Periodic Excel Report"
 ```
 
-## .env Secrets Format
-
-Secrets are stored in `.env.{env}` files (gitignored):
-
-```
-N8N_API_KEY=your_api_key_here
-```
-
-The `_common.sh` helper loads these via `source .env.{env}` and checks that `N8N_API_KEY` is set.
-
 ## Troubleshooting
 
-### "N8N_API_KEY is not set"
-Create or check your `.env.{env}` file. Example: `.env.dev` should contain `N8N_API_KEY=...`.
-
-### "Environment config not found"
-Ensure `n8n/environments/{env}.yaml` exists. Run `ls n8n/environments/` to see available configs.
-
-### "Template file not found"
-Templates must follow the naming convention `n8n/workflows/{workflow_key}.template.json`. The key must match what you pass to the deploy script.
-
-### "Workflow key not found or has no id"
-The workflow key must exist in the environment YAML under `workflows:` with a valid `id`. Run `bootstrap_workflows.py` if you need to create placeholder workflows.
-
-### "Upload failed (HTTP 404)"
-The workflow ID in the YAML may be incorrect. Re-run `bootstrap_workflows.py` or manually check the workflow ID in the n8n UI.
-
-### "Upload failed (HTTP 401)"
-Your `N8N_API_KEY` is invalid or expired. Generate a new one in n8n under Settings > API.
+| Error | Likely cause |
+|---|---|
+| `N8N_API_KEY is not set` | Set in root `.env` or `.env.<env>`. |
+| `Environment config not found` | YAML missing — `ls n8n/environments/`. |
+| `Template file not found` | Naming: `n8n/workflows/<key>.template.json`. |
+| `Workflow key not found or has no id` | Add to YAML, then run `bootstrap_workflows.py`. |
+| `HTTP 404` on PUT | Stale ID; re-bootstrap or fix YAML. |
+| `HTTP 401` | Expired/invalid `N8N_API_KEY`; rotate in n8n UI. |
+| `Upload OK but activation failed` | Credential `name` in YAML doesn't match n8n's exact credential name. See `pattern-skills/credential-refs.md`. |

@@ -1,0 +1,37 @@
+{
+  "name": "{{HYDRATE:env:workflows.demo_external_js_code.name}}{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{HYDRATE:uuid:demo-extjs-webhook-path}}",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "{{HYDRATE:uuid:demo-extjs-webhook-id}}",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "{{HYDRATE:uuid:demo-extjs-webhook-uuid}}"
+    },
+    {
+      "parameters": {
+        "jsCode": "{{HYDRATE:js:common/functions/demo_process.js}}"
+      },
+      "id": "demo-extjs-process",
+      "name": "External JS Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "External JS Code", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

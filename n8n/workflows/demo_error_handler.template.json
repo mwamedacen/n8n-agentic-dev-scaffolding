@@ -1,0 +1,36 @@
+{
+  "name": "{{HYDRATE:env:workflows.demo_error_handler.name}}{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "{{HYDRATE:uuid:demo-error-trigger-id}}",
+      "name": "On Workflow Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "err-1", "name": "captured", "value": "true", "type": "boolean" },
+            { "id": "err-2", "name": "error_message", "value": "={{ $json.execution.error.message ?? 'unknown' }}", "type": "string" }
+          ]
+        }
+      },
+      "id": "demo-error-set",
+      "name": "Capture Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [420, 300]
+    }
+  ],
+  "connections": {
+    "On Workflow Error": {
+      "main": [[{ "node": "Capture Error", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

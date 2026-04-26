@@ -14,10 +14,11 @@ import dspy
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env from project root
+# Load .env from project root: root .env first, then env-specific overlay wins.
+# Layering matches admin._load_env: env-specific values WIN for shared keys.
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 load_dotenv(PROJECT_ROOT / '.env')
-load_dotenv(PROJECT_ROOT / '.env.dev')
+load_dotenv(PROJECT_ROOT / '.env.dev', override=True)
 
 # Default provider configurations
 PROVIDERS = {
@@ -41,7 +42,7 @@ PROVIDERS = {
     },
 }
 
-DEFAULT_PROVIDER = "openai"
+DEFAULT_PROVIDER = "openrouter"
 
 def configure_lm(provider: str = None, model: str = None, **kwargs):
     """

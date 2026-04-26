@@ -1,4 +1,4 @@
-# Scripts
+# Factory
 
 ## Test Scripts
 
@@ -11,7 +11,7 @@ Tests the `hello_world` cloud function running locally. Start the cloud function
 cd cloud_functions && python app.py
 
 # Terminal 2: Run tests
-python3 scripts/test_hello_world.py
+python3 factory/test_hello_world.py
 ```
 
 Tests:
@@ -33,7 +33,7 @@ The `prompt_engineering/` subdirectory provides a DSPy-based framework for evalu
 ### Usage
 
 ```bash
-cd scripts/prompt_engineering
+cd factory/prompt_engineering
 pip install -r requirements.txt
 
 # Define and test a signature
@@ -52,7 +52,7 @@ python3 example_signature.py
 
 ## How to Add New Test Scripts
 
-1. Create `scripts/test_my_function.py`
+1. Create `factory/test_my_function.py`
 2. Import `requests` and target `http://localhost:8000`
 3. Write test functions with assertions
 4. Add a `__main__` block that runs all tests

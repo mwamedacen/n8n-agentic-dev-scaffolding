@@ -1,0 +1,65 @@
+{
+  "name": "{{HYDRATE:env:workflows.demo_subworkflow_caller.name}}{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{HYDRATE:uuid:demo-caller-webhook-path}}",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "{{HYDRATE:uuid:demo-caller-webhook-id}}",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "{{HYDRATE:uuid:demo-caller-webhook-uuid}}"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "={{HYDRATE:env:workflows.demo_subworkflow_callee.id}}",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "value": {
+            "input": "from-caller"
+          },
+          "mappingMode": "defineBelow"
+        },
+        "options": {}
+      },
+      "id": "demo-caller-execute",
+      "name": "Execute Workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "caller-result", "name": "called", "value": "={{ $json.result }}", "type": "string" }
+          ]
+        }
+      },
+      "id": "demo-caller-set",
+      "name": "Capture Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [640, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Execute Workflow", "type": "main", "index": 0 }]]
+    },
+    "Execute Workflow": {
+      "main": [[{ "node": "Capture Result", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

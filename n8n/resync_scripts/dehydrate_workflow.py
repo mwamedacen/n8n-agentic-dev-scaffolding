@@ -33,7 +33,9 @@ from uuid_hydrator import dehydrate_trigger_uuids, dehydrate_uuids_from_template
 from env_config import load_env_config, flatten_config
 
 
-# n8n metadata keys to strip from the workflow
+# n8n metadata keys to strip from the workflow.
+# Aligned with helpers.workflow_semantic_diff's _DIFF_IGNORE list so resync
+# round-trips byte-stable on n8n cloud.
 METADATA_KEYS_TO_REMOVE = [
     'id',
     'versionId',
@@ -46,6 +48,15 @@ METADATA_KEYS_TO_REMOVE = [
     'shared',
     'homeProject',
     'usedCredentials',
+    'isArchived',
+    'description',
+    'activeVersion',
+    'activeVersionId',
+    'triggerCount',
+    'versionCounter',
+    'scopes',
+    'parentFolder',
+    'meta',
 ]
 
 # Trigger node types that can be optionally removed
@@ -270,15 +281,17 @@ def dehydrate_workflow(
         workflow = remove_trigger_nodes(workflow)
         print("    Removed trigger nodes")
 
-    # 2. Dehydrate trigger UUIDs
-    workflow, trigger_uuid_count = dehydrate_trigger_uuids_wrapper(workflow)
-    if trigger_uuid_count > 0:
-        print(f"    Dehydrated {trigger_uuid_count} trigger UUID(s)")
-
-    # 3. Restore template UUIDs from existing template
+    # 2. Restore template UUIDs FIRST — preserves original placeholder names for
+    #    nodes (including triggers) that already have a placeholder in the template.
     workflow, template_uuid_count = dehydrate_template_uuids(workflow, output_path)
     if template_uuid_count > 0:
         print(f"    Restored {template_uuid_count} template UUID(s)")
+
+    # 3. Auto-generate trigger UUID placeholders for any trigger node not already
+    #    covered by template restoration.
+    workflow, trigger_uuid_count = dehydrate_trigger_uuids_wrapper(workflow)
+    if trigger_uuid_count > 0:
+        print(f"    Dehydrated {trigger_uuid_count} trigger UUID(s)")
 
     # 4. Replace environment-specific values
     workflow = dehydrate_env_placeholders(workflow, env_config)

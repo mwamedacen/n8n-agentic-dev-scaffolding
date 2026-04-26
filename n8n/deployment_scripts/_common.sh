@@ -96,9 +96,18 @@ else:
     print('https://' + instance.rstrip('/'))
 ")
 
-    # Load .env secrets if available
+    # Load secrets: root .env first (defaults), then .env.<env> overlay.
+    # Env-specific values WIN for shared keys (matches admin._load_env).
+    local ROOT_ENV="$PROJECT_DIR/.env"
+    if [ -f "$ROOT_ENV" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        source "$ROOT_ENV"
+        set +a
+    fi
     if [ -f "$ENV_FILE" ]; then
         set -a
+        # shellcheck disable=SC1090
         source "$ENV_FILE"
         set +a
     fi
@@ -106,7 +115,7 @@ else:
     # Check N8N_API_KEY is set
     if [ -z "$N8N_API_KEY" ]; then
         echo -e "${RED}Error: N8N_API_KEY is not set.${NC}"
-        echo "Make sure it's defined in $ENV_FILE or exported in your environment."
+        echo "Define it in $ROOT_ENV or $ENV_FILE, or export it before running."
         exit 1
     fi
 

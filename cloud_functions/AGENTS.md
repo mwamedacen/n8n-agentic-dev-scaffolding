@@ -84,46 +84,12 @@ No route definitions needed -- `app.py` dynamically generates endpoints from the
 | `PORT` | Port for uvicorn to listen on | 8000 (local), set by Railway in production |
 | `RAILWAY_ENVIRONMENT` | Set automatically by Railway | Not set locally |
 
-## Adapting for Supabase Edge Functions
+## Adapting to other platforms
 
-Replace `cloud_functions/` with the Supabase directory structure:
+The pure-function pattern (JSON in, JSON out) ports to:
 
-```
-supabase/
-  functions/
-    my_function/
-      index.ts          # Deno/TypeScript handler
-    another_function/
-      index.ts
-    _shared/
-      utils.ts          # Shared utilities
-```
+- **Supabase Edge Functions** — one Deno function per file under `supabase/functions/<name>/index.ts`. Port Python to TypeScript; deploy with `supabase functions deploy <name>`.
+- **AWS Lambda** — wrap each function in a Lambda handler that JSON-decodes `event['body']` and JSON-encodes the result.
+- **Google Cloud Functions** — wrap each function in an HTTP handler that reads `request.get_json()` and returns `jsonify(result)`.
 
-Each function becomes a Deno edge function deployed with:
-```bash
-supabase functions deploy my_function
-```
-
-Port the Python logic to TypeScript. The pure-function pattern (JSON in, JSON out) maps directly.
-
-## Adapting for AWS Lambda or Google Cloud Functions
-
-The pure-function pattern maps to serverless handlers:
-
-**AWS Lambda**: Wrap each function with the Lambda handler signature:
-```python
-def lambda_handler(event, context):
-    params = json.loads(event['body'])
-    result = my_function(**params)
-    return {'statusCode': 200, 'body': json.dumps(result)}
-```
-
-**Google Cloud Functions**: Use the HTTP function signature:
-```python
-def my_function_handler(request):
-    params = request.get_json()
-    result = my_function(**params)
-    return jsonify(result)
-```
-
-In both cases, deploy each function independently rather than as a single service.
+In all three, deploy each function independently rather than as a single service.

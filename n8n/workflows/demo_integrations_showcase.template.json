@@ -1,0 +1,85 @@
+{
+  "name": "{{HYDRATE:env:workflows.demo_integrations_showcase.name}}{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "{{HYDRATE:uuid:demo-integrations-manual-id}}",
+      "name": "Run from UI",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "demo:placeholder",
+        "value": "showcase",
+        "expire": true,
+        "ttl": 60
+      },
+      "id": "demo-integrations-redis",
+      "name": "Redis Set (placeholder credential)",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [420, 200],
+      "credentials": {
+        "redis": {
+          "id": "{{HYDRATE:env:credentials.redis.id}}",
+          "name": "{{HYDRATE:env:credentials.redis.name}}"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getRows",
+        "workbook": "={{HYDRATE:env:sharepoint.driveId}}",
+        "worksheet": "Sheet1",
+        "filePath": "={{HYDRATE:env:sharepoint.paths.reportFile}}"
+      },
+      "id": "demo-integrations-excel",
+      "name": "Excel Read (placeholder credential)",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2,
+      "position": [640, 200],
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "{{HYDRATE:env:credentials.msOauth.id}}",
+          "name": "{{HYDRATE:env:credentials.msOauth.name}}"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "subject": "Showcase",
+        "message": "{{HYDRATE:html:common/templates/report_email.template.txt}}",
+        "options": {}
+      },
+      "id": "demo-integrations-gmail",
+      "name": "Gmail Send (placeholder credential)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [860, 200],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{HYDRATE:env:credentials.gmail.id}}",
+          "name": "{{HYDRATE:env:credentials.gmail.name}}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Run from UI": {
+      "main": [[{ "node": "Redis Set (placeholder credential)", "type": "main", "index": 0 }]]
+    },
+    "Redis Set (placeholder credential)": {
+      "main": [[{ "node": "Excel Read (placeholder credential)", "type": "main", "index": 0 }]]
+    },
+    "Excel Read (placeholder credential)": {
+      "main": [[{ "node": "Gmail Send (placeholder credential)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

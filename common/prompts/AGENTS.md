@@ -64,11 +64,11 @@ Key points:
 
 Every prompt change should be evaluated before deployment:
 
-1. Add test cases to evaluation datasets in `scripts/prompt_engineering/`
+1. Add test cases to evaluation datasets in `factory/prompt_engineering/`
 2. Run evaluation to measure prompt quality against expected outputs
 3. Optionally run DSPy optimization to find better prompt variants
 4. Deploy after validation: `cd n8n/deployment_scripts && ./deploy_all.sh dev`
 
-See `scripts/prompt_engineering/` for the full DSPy optimization workflow, including:
+See `factory/prompt_engineering/` for the full DSPy optimization workflow, including:
 - `example_signature.py` -- Define DSPy signatures matching your schemas
 - `config.py` -- Configure LM providers (OpenAI, OpenRouter, Anthropic)

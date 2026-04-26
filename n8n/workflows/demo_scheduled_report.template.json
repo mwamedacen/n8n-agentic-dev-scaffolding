@@ -1,0 +1,57 @@
+{
+  "name": "{{HYDRATE:env:workflows.demo_scheduled_report.name}}{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 24 }]
+        }
+      },
+      "id": "{{HYDRATE:uuid:demo-sched-trigger-id}}",
+      "name": "Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{HYDRATE:uuid:demo-sched-webhook-path}}",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "{{HYDRATE:uuid:demo-sched-webhook-id}}",
+      "name": "Webhook (manual run)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 400],
+      "webhookId": "{{HYDRATE:uuid:demo-sched-webhook-uuid}}"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "rep-1", "name": "report_html", "value": "{{HYDRATE:html:common/templates/report_email.template.txt}}", "type": "string" },
+            { "id": "rep-2", "name": "kind", "value": "scheduled-report", "type": "string" }
+          ]
+        }
+      },
+      "id": "demo-sched-build",
+      "name": "Build Report",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [440, 300]
+    }
+  ],
+  "connections": {
+    "Schedule": {
+      "main": [[{ "node": "Build Report", "type": "main", "index": 0 }]]
+    },
+    "Webhook (manual run)": {
+      "main": [[{ "node": "Build Report", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

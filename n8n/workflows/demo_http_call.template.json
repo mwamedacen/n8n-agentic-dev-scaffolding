@@ -1,0 +1,56 @@
+{
+  "name": "{{HYDRATE:env:workflows.demo_http_call.name}}{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{HYDRATE:uuid:demo-http-webhook-path}}",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "{{HYDRATE:uuid:demo-http-webhook-id}}",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "{{HYDRATE:uuid:demo-http-webhook-uuid}}"
+    },
+    {
+      "parameters": {
+        "url": "https://httpbin.org/get",
+        "options": { "timeout": 15000 }
+      },
+      "id": "demo-http-fetch",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "http-1", "name": "url", "value": "={{ $json.url }}", "type": "string" },
+            { "id": "http-2", "name": "ok", "value": "true", "type": "boolean" }
+          ]
+        }
+      },
+      "id": "demo-http-set",
+      "name": "Capture URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [640, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "HTTP Request", "type": "main", "index": 0 }]]
+    },
+    "HTTP Request": {
+      "main": [[{ "node": "Capture URL", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

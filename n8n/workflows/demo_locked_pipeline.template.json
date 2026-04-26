@@ -1,0 +1,72 @@
+{
+  "name": "{{HYDRATE:env:workflows.demo_locked_pipeline.name}}{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "{{HYDRATE:uuid:demo-locked-trigger-id}}",
+      "name": "Run from UI",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "={{HYDRATE:env:workflows.lock_acquiring.id}}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "demo-locked-acquire",
+      "name": "Execute lock_acquiring",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "crit-1", "name": "phase", "value": "critical-section", "type": "string" }
+          ]
+        }
+      },
+      "id": "demo-locked-critical",
+      "name": "Critical Section",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "={{HYDRATE:env:workflows.lock_releasing.id}}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "demo-locked-release",
+      "name": "Execute lock_releasing",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [860, 300]
+    }
+  ],
+  "connections": {
+    "Run from UI": {
+      "main": [[{ "node": "Execute lock_acquiring", "type": "main", "index": 0 }]]
+    },
+    "Execute lock_acquiring": {
+      "main": [[{ "node": "Critical Section", "type": "main", "index": 0 }]]
+    },
+    "Critical Section": {
+      "main": [[{ "node": "Execute lock_releasing", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "={{HYDRATE:env:workflows.error_handler_lock_cleanup.id}}"
+  }
+}

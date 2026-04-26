@@ -1,0 +1,70 @@
+{
+  "name": "{{HYDRATE:env:workflows.demo_batch_processor.name}}{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{HYDRATE:uuid:demo-batch-webhook-path}}",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "{{HYDRATE:uuid:demo-batch-webhook-id}}",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "{{HYDRATE:uuid:demo-batch-webhook-uuid}}"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = Array.from({length: 5}, (_, i) => ({ id: i + 1, value: (i + 1) * 10 }));\nreturn items.map(it => ({ json: it }));"
+      },
+      "id": "demo-batch-seed",
+      "name": "Seed Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 2,
+        "options": {}
+      },
+      "id": "demo-batch-split",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(it => ({ json: { ...it.json, processed: true, doubled: it.json.value * 2 } }));"
+      },
+      "id": "demo-batch-process",
+      "name": "Process Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Seed Items", "type": "main", "index": 0 }]]
+    },
+    "Seed Items": {
+      "main": [[{ "node": "Split In Batches", "type": "main", "index": 0 }]]
+    },
+    "Split In Batches": {
+      "main": [
+        [],
+        [{ "node": "Process Batch", "type": "main", "index": 0 }]
+      ]
+    },
+    "Process Batch": {
+      "main": [[{ "node": "Split In Batches", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

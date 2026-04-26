@@ -1,0 +1,140 @@
+{
+  "name": "{{HYDRATE:env:workflows.demo_branching.name}}{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{HYDRATE:uuid:demo-branching-webhook-path}}",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "{{HYDRATE:uuid:demo-branching-webhook-id}}",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "{{HYDRATE:uuid:demo-branching-webhook-uuid}}"
+    },
+    {
+      "parameters": {
+        "jsCode": "const value = $input.first().json.body?.value ?? 5;\nreturn [{ json: { value, doubled: value * 2 } }];"
+      },
+      "id": "demo-branching-code",
+      "name": "Compute",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.value }}",
+                    "rightValue": 10,
+                    "operator": { "type": "number", "operation": "gt" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "high"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.value }}",
+                    "rightValue": 0,
+                    "operator": { "type": "number", "operation": "lte" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "nonpositive"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "id": "demo-branching-switch",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.doubled }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gte" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "demo-branching-if",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "set-branch", "name": "branch", "value": "default-or-merged", "type": "string" }
+          ]
+        }
+      },
+      "id": "demo-branching-set-default",
+      "name": "Default Branch",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [800, 400]
+    },
+    {
+      "parameters": {},
+      "id": "demo-branching-merge",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Compute", "type": "main", "index": 0 }]]
+    },
+    "Compute": {
+      "main": [[{ "node": "Switch", "type": "main", "index": 0 }]]
+    },
+    "Switch": {
+      "main": [
+        [{ "node": "If", "type": "main", "index": 0 }],
+        [{ "node": "Default Branch", "type": "main", "index": 0 }],
+        [{ "node": "Default Branch", "type": "main", "index": 0 }]
+      ]
+    },
+    "If": {
+      "main": [
+        [{ "node": "Merge", "type": "main", "index": 0 }],
+        [{ "node": "Merge", "type": "main", "index": 1 }]
+      ]
+    },
+    "Default Branch": {
+      "main": [[{ "node": "Merge", "type": "main", "index": 1 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,4 +1,4 @@
-# n8n Agentic Dev Scaffolding
+# n8n harness
 
 ## Git Commit Policy
 
@@ -30,7 +30,7 @@ common/
   templates/          # Email/HTML templates
 cloud_functions/      # FastAPI service
   functions/          # Pure Python functions
-scripts/
+factory/
   prompt_engineering/ # DSPy optimization
 ```
 
@@ -88,7 +88,7 @@ Each major directory has its own AGENTS.md with detailed context:
 - `cloud_functions/AGENTS.md` -- FastAPI service, Railway setup
 - `cloud_functions/functions/AGENTS.md` -- Pure function guidelines
 - `common/prompts/AGENTS.md` -- Prompt and schema conventions
-- `scripts/AGENTS.md` -- Test scripts and prompt engineering
+- `factory/AGENTS.md` -- Test scripts and prompt engineering
 
 ## Recommended MCP Servers
 
@@ -103,7 +103,7 @@ Each major directory has its own AGENTS.md with detailed context:
 
 ## Prompt Engineering
 
-The `scripts/prompt_engineering/` directory uses DSPy for prompt optimization:
+The `factory/prompt_engineering/` directory uses DSPy for prompt optimization:
 
 1. Define **signatures** matching your `common/prompts/` schemas
 2. Build **evaluation datasets** with expected inputs/outputs

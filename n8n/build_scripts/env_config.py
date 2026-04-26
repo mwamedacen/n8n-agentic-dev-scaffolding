@@ -55,13 +55,17 @@ def load_env_config(env_name: str) -> Dict[str, Any]:
     """
     env_dir = get_environments_dir()
     config_path = env_dir / f'{env_name}.yaml'
-
     if not config_path.exists():
-        available = list_available_environments()
-        raise FileNotFoundError(
-            f"Environment config not found: {config_path}\n"
-            f"Available environments: {', '.join(available) if available else 'none'}"
-        )
+        # Phase 3: attached envs live at attached.<env>.yaml
+        alt = env_dir / f'attached.{env_name}.yaml'
+        if alt.exists():
+            config_path = alt
+        else:
+            available = list_available_environments()
+            raise FileNotFoundError(
+                f"Environment config not found: {config_path}\n"
+                f"Available environments: {', '.join(available) if available else 'none'}"
+            )
 
     with open(config_path, 'r') as f:
         try:

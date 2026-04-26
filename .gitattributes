@@ -1,0 +1,10 @@
+# Normalize line endings on checkout/checkin so workflows authored on Windows
+# round-trip cleanly through `resync()` on macOS / Linux.
+* text=auto
+
+# Shell scripts must stay LF for `bash` to parse them on macOS / Linux.
+*.sh text eol=lf
+
+# n8n template JSON: keep LF so JSON parsers don't choke on \r\n in strings.
+*.template.json text eol=lf
+*.generated.json text eol=lf

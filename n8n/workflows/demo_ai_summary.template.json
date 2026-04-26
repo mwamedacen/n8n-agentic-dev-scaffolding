@@ -1,0 +1,50 @@
+{
+  "name": "{{HYDRATE:env:workflows.demo_ai_summary.name}}{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{HYDRATE:uuid:demo-ai-webhook-path}}",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "{{HYDRATE:uuid:demo-ai-webhook-id}}",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "{{HYDRATE:uuid:demo-ai-webhook-uuid}}"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst numbers = Array.isArray(body.numbers) ? body.numbers : [4, 7, 9, 12];\n// Inline the prompt (txt placeholder) and schema (json placeholder).\nconst systemPrompt = `{{HYDRATE:txt:common/prompts/demo_summary_prompt.txt}}`;\nconst schema = {{HYDRATE:json:common/prompts/demo_summary_schema.json}};\nconst payload = {\n  model: 'openai/gpt-4o-mini',\n  messages: [\n    { role: 'system', content: systemPrompt },\n    { role: 'user', content: 'Numbers: ' + JSON.stringify(numbers) }\n  ],\n  temperature: 0,\n  response_format: { type: 'json_schema', json_schema: { name: 'summary', strict: true, schema } }\n};\nreturn [{ json: { payload_built: true, numbers, schema_keys: Object.keys(schema.properties) } }];"
+      },
+      "id": "demo-ai-build",
+      "name": "Build Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const numbers = $input.first().json.numbers;\nconst sum = numbers.reduce((a, b) => a + b, 0);\nconst avg = numbers.length ? sum / numbers.length : 0;\nlet mood = 'balanced';\nif (avg < 3) mood = 'low';\nelse if (avg > 8) mood = 'high';\n// Mock response shape — same schema the LLM would emit. Demonstrates the\n// structured-output contract (txt prompt + json schema placeholders) without\n// hitting OpenRouter at runtime. Why mock instead of a real HTTP Request:\n// the Code node above already inlines both placeholders, which is the\n// pattern proof; making the actual HTTP call would require a per-tenant\n// httpHeaderAuth credential that we cannot template (credentials.openRouter\n// would need to be added to YAML, and templates would lose portability).\n// To convert this to a real OpenRouter call: (1) create an httpHeaderAuth\n// credential in n8n with `Authorization: Bearer $OPENROUTER_API_KEY`, (2)\n// add `credentials: { openRouter: { id, name } }` to the env YAML, (3)\n// replace this Code node with an HTTP Request node referencing that\n// credential. See plan §4b 'demo_ai_summary' note + pattern-skills/llm-providers.md.\nreturn [{ json: { ai: { count: numbers.length, sum, avg, mood } } }];"
+      },
+      "id": "demo-ai-stub",
+      "name": "Mock AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Build Payload", "type": "main", "index": 0 }]]
+    },
+    "Build Payload": {
+      "main": [[{ "node": "Mock AI Response", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

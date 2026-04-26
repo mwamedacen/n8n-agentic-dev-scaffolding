@@ -3,6 +3,25 @@
 # Workflows within the same tier have no mutual dependencies.
 
 tiers:
+  - name: "Tier 0a: Demo subworkflow callees"
+    workflows:
+      - demo_subworkflow_callee
+
+  - name: "Tier 0b: Demo workflows (smoke + suite)"
+    workflows:
+      - demo_smoke
+      - demo_branching
+      - demo_batch_processor
+      - demo_subworkflow_caller
+      - demo_external_js_code
+      - demo_http_call
+      - demo_ai_summary
+      - demo_scheduled_report
+      - demo_integrations_showcase
+      - demo_error_handler
+      - demo_locked_pipeline
+      - demo_chat_assistant
+
   - name: "Tier 1: Infrastructure Subworkflows"
     workflows:
       - lock_acquiring

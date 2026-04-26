@@ -21,5 +21,21 @@ build/
 n8n/workflows/generated/
 
 # DSPy optimization artifacts
-scripts/prompt_engineering/*.dspy
-scripts/prompt_engineering/optimized_programs/
+factory/prompt_engineering/*.dspy
+factory/prompt_engineering/optimized_programs/
+
+# n8n-harness attached envs (Phase 3)
+.env.attached.*
+n8n/environments/attached.*.yaml
+
+# n8n-harness debug deploys
+.cache/n8n-harness/
+
+# Python build/install artifacts
+*.lock
+*.egg-info
+__pycache__
+
+# Reference inputs for the implementation phase — kept locally, never committed.
+n8n-harness-plan.md
+browser-harness-study.md

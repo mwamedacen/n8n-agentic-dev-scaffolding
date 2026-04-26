@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "properties": {
+    "count": { "type": "integer" },
+    "sum": { "type": "number" },
+    "avg": { "type": "number" },
+    "mood": { "type": "string", "enum": ["low", "balanced", "high"] }
+  },
+  "required": ["count", "sum", "avg", "mood"],
+  "additionalProperties": false
+}

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains a DSPy-based prompt engineering framework for systematically evaluating and optimizing prompts used in the n8n-scaffolder-for-coding-agents project.
+This directory contains a DSPy-based prompt engineering framework for systematically evaluating and optimizing prompts used in the n8n-harness project.
 
 **DSPy** is a framework for algorithmically optimizing LM prompts and weights. Instead of manually tweaking prompts, DSPy lets you define what you want (via typed signatures and metrics) and automatically finds the best prompt formulation through optimization.
 
@@ -82,7 +82,7 @@ Datasets live in `datasets/` as JSON files. Each example has an `input` and `exp
 ## Running Evaluation
 
 ```bash
-cd scripts/prompt_engineering
+cd factory/prompt_engineering
 pip install -r requirements.txt
 
 # Run evaluation against sample dataset
@@ -181,7 +181,7 @@ configure_lm(temperature=0.7, max_tokens=1000)
 
 ```bash
 # Setup
-cd scripts/prompt_engineering
+cd factory/prompt_engineering
 pip install -r requirements.txt
 
 # Run signature demo (shows how to load prompts/schemas)
@@ -203,7 +203,7 @@ python3 example_optimize.py --export
 ## File Structure
 
 ```
-scripts/prompt_engineering/
+factory/prompt_engineering/
   requirements.txt          # Python dependencies
   config.py                 # LM provider configuration
   example_signature.py      # Signature definitions + demo

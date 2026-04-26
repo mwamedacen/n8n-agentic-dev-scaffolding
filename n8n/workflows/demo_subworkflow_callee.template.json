@@ -1,0 +1,36 @@
+{
+  "name": "{{HYDRATE:env:workflows.demo_subworkflow_callee.name}}{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "{{HYDRATE:uuid:demo-callee-trigger-id}}",
+      "name": "When called by another workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "callee-1", "name": "result", "value": "ok", "type": "string" },
+            { "id": "callee-2", "name": "echo", "value": "={{ $json.input ?? 'no-input' }}", "type": "string" }
+          ]
+        }
+      },
+      "id": "demo-callee-set",
+      "name": "Build response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 300]
+    }
+  ],
+  "connections": {
+    "When called by another workflow": {
+      "main": [[{ "node": "Build response", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
