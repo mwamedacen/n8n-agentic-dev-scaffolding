@@ -1,0 +1,55 @@
+{
+  "name": "{{HYDRATE:env:displayName}} __NAME__{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "id": "{{HYDRATE:uuid:webhook}}",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "__PATH__",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "{{HYDRATE:uuid:webhook-public}}"
+    },
+    {
+      "id": "{{HYDRATE:uuid:set}}",
+      "name": "Hello",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "{{HYDRATE:uuid:assign}}",
+              "name": "message",
+              "value": "Hello from n8n-harness",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Hello",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

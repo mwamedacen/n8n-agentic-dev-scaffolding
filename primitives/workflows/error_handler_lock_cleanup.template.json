@@ -1,0 +1,49 @@
+{
+  "name": "{{HYDRATE:env:displayName}} Error Handler Lock Cleanup{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "id": "{{HYDRATE:uuid:err-trigger}}",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {}
+    },
+    {
+      "id": "{{HYDRATE:uuid:err-set}}",
+      "name": "Cleanup",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "{{HYDRATE:uuid:err-assign-msg}}",
+              "name": "cleanup",
+              "value": "lock released after error",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

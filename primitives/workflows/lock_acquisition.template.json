@@ -1,0 +1,57 @@
+{
+  "name": "{{HYDRATE:env:displayName}} Lock Acquisition{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "id": "{{HYDRATE:uuid:lock-acq-trigger}}",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "{{HYDRATE:uuid:lock-acq-set}}",
+      "name": "Acquired",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "{{HYDRATE:uuid:lock-acq-assign-acquired}}",
+              "name": "acquired",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "{{HYDRATE:uuid:lock-acq-assign-scope}}",
+              "name": "scope",
+              "value": "={{ $json.scope || 'default' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Acquired",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

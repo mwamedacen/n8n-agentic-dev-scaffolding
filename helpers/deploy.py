@@ -16,10 +16,34 @@ from helpers.n8n_client import ensure_client, redact_for_debug
 
 _PUT_FIELDS = ("name", "nodes", "connections", "settings", "staticData")
 
+# Triggers that can stand alone (and thus support the /activate endpoint).
+# Sub-workflow triggers (executeWorkflowTrigger, errorTrigger) cannot be activated alone.
+_ACTIVATABLE_TRIGGER_TYPES = (
+    "n8n-nodes-base.webhook",
+    "n8n-nodes-base.scheduleTrigger",
+    "n8n-nodes-base.cron",
+    "n8n-nodes-base.formTrigger",
+    "n8n-nodes-base.emailReadImap",
+    "n8n-nodes-base.manualTrigger",
+    "n8n-nodes-base.errorTrigger",  # Error Trigger workflows DO need activation
+)
+
 
 def _filter_for_put(data: dict) -> dict:
     """n8n's PUT /workflows/{id} accepts only certain fields; drop the rest."""
     return {k: data[k] for k in _PUT_FIELDS if k in data}
+
+
+def _has_activatable_trigger(workflow: dict) -> bool:
+    """A workflow with only ExecuteWorkflowTrigger cannot be activated."""
+    for node in workflow.get("nodes", []):
+        ntype = node.get("type", "")
+        if ntype in _ACTIVATABLE_TRIGGER_TYPES:
+            return True
+        # Heuristic: any node whose type ends in 'Trigger' BUT isn't a sub-workflow trigger
+        if ntype.endswith("Trigger") and ntype != "n8n-nodes-base.executeWorkflowTrigger":
+            return True
+    return False
 
 
 def _resolve_workflow_id(env_name: str, workflow_key: str, workspace: Path) -> str:
@@ -98,7 +122,7 @@ def main() -> None:
                 _write_debug(args.env, args.workflow_key, {}, act_resp, "activate")
             print(f"Activated workflow '{args.workflow_key}'")
         except Exception as e:
-            print(f"WARNING: activate failed: {e}", file=sys.stderr)
+            print(f"WARNING: activate failed for '{args.workflow_key}': {e}", file=sys.stderr)
             sys.exit(1)
 
 
