@@ -63,6 +63,9 @@ workflows:
   demo_error_handler:
     id: "your-demo-error-id"
     name: "Demo Error Handler"
+  demo_error_source:
+    id: "your-demo-error-source-id"
+    name: "Demo Error Source"
   demo_locked_pipeline:
     id: "your-demo-locked-id"
     name: "Demo Locked Pipeline"

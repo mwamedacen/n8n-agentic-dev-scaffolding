@@ -19,6 +19,7 @@ tiers:
       - demo_scheduled_report
       - demo_integrations_showcase
       - demo_error_handler
+      - demo_error_source
       - demo_locked_pipeline
       - demo_chat_assistant
 

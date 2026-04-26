@@ -39,3 +39,4 @@ __pycache__
 # Reference inputs for the implementation phase — kept locally, never committed.
 n8n-harness-plan.md
 browser-harness-study.md
+review-issues-log.md

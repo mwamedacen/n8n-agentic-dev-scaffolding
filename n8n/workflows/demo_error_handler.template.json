@@ -13,8 +13,13 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "err-1", "name": "captured", "value": "true", "type": "boolean" },
-            { "id": "err-2", "name": "error_message", "value": "={{ $json.execution.error.message ?? 'unknown' }}", "type": "string" }
+            { "id": "err-handled", "name": "handled", "value": "true", "type": "boolean" },
+            { "id": "err-from-name", "name": "from_workflow_name", "value": "={{ $json.workflow.name }}", "type": "string" },
+            { "id": "err-from-id", "name": "from_workflow_id", "value": "={{ $json.workflow.id }}", "type": "string" },
+            { "id": "err-message", "name": "error_message", "value": "={{ $json.execution.error.message ?? 'unknown' }}", "type": "string" },
+            { "id": "err-node", "name": "error_node", "value": "={{ $json.execution.error.node?.name ?? 'unknown' }}", "type": "string" },
+            { "id": "err-execution-id", "name": "source_execution_id", "value": "={{ $json.execution.id }}", "type": "string" },
+            { "id": "err-handled-at", "name": "handled_at", "value": "={{ $now }}", "type": "string" }
           ]
         }
       },

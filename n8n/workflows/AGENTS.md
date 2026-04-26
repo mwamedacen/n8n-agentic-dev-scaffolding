@@ -130,25 +130,40 @@ Parent workflows reference callees via `"workflowId": "={{HYDRATE:env:workflows.
 
 The `demo_*` templates split into two classes (canonical lists in `helpers.RUNNABLE_DEMOS` / `helpers.STRUCTURAL_ONLY_DEMOS`):
 
-**Runnable** (Webhook trigger → invokable via `run_workflow()` → must reach `status == "success"`):
+**Runnable** (programmatically firable → must reach a known terminal status):
 
-- `demo_smoke` — manual-equivalent + Set node
-- `demo_branching` — Switch + If + Merge + Code (inline JS)
-- `demo_batch_processor` — SplitInBatches + Code (process item)
-- `demo_subworkflow_caller` — Webhook + Execute Workflow → callee
-- `demo_external_js_code` — Webhook + Code with `{{HYDRATE:js:...}}`
-- `demo_http_call` — Webhook + HTTP Request to a public endpoint
-- `demo_ai_summary` — Webhook + Code that inlines `{{HYDRATE:txt:...}}` prompt + `{{HYDRATE:json:...}}` schema (mocks the LLM call; see template comment for why)
-- `demo_scheduled_report` — Schedule + Webhook (dual trigger; Schedule for coverage, Webhook for runnability)
-- `demo_chat_assistant` — Chat Trigger + Webhook (dual trigger; Chat for coverage, Webhook for runnability)
+| Demo | Trigger | Expected status | Notes |
+|---|---|---|---|
+| `demo_smoke` | Webhook | `success` | Set node |
+| `demo_branching` | Webhook | `success` | Switch + If + Merge + Code |
+| `demo_batch_processor` | Webhook | `success` | SplitInBatches + Code |
+| `demo_subworkflow_caller` | Webhook | `success` | Execute Workflow → demo_subworkflow_callee |
+| `demo_external_js_code` | Webhook | `success` | Code with `{{HYDRATE:js:...}}` |
+| `demo_http_call` | Webhook | `success` | HTTP Request to public endpoint |
+| `demo_ai_summary` | Webhook | `success` | Code that inlines `{{HYDRATE:txt:...}}` prompt + `{{HYDRATE:json:...}}` schema (mocks the LLM call; see template comment) |
+| `demo_scheduled_report` | Schedule + Webhook | `success` | Dual trigger; Schedule for coverage, Webhook for runnability |
+| `demo_chat_assistant` | Chat + Webhook | `success` | Dual trigger; Chat for coverage, Webhook for runnability |
+| `demo_error_source` | Webhook | **`error`** | Intentional failure — see "source/handler pair pattern" below |
+| `demo_error_handler` | Error Trigger | `success` | Fired indirectly: `run_workflow("demo_error_handler")` fires `demo_error_source`, n8n routes the error → handler executes |
 
-**Structural-only** (intrinsically non-webhook trigger → verify via deploy + `GET /workflows/{id}` round-trip identity, NOT runtime success):
+**Structural-only** (cannot be programmatically invoked → verified via deploy + `GET /workflows/{id}` round-trip identity, NOT runtime status):
 
 | Demo | Trigger class | Why structural-only |
 |---|---|---|
 | `demo_subworkflow_callee` | Execute Workflow Trigger callee | Fires only when invoked from a parent workflow |
-| `demo_error_handler` | Error Trigger | Fires only on another workflow's failure |
 | `demo_locked_pipeline` | Manual + Execute Workflow → lock_acquiring/releasing | References sub-workflows that need real Redis credentials; placeholder IDs in YAML |
 | `demo_integrations_showcase` | Manual + Microsoft 365 + Gmail + Redis | Needs real credentials (placeholder IDs in YAML) |
 
-The plan-level §5 carve-out: every runnable demo must reach `status == "success"`; structural-only demos verify deploy + GET round-trip only. See plan §6 deviation list for the rationale.
+Plan-level §5 carve-out: every runnable demo reaches its expected terminal status; structural-only demos verify deploy + GET round-trip only. See plan §6 for the rationale.
+
+### Source/handler pair pattern
+
+n8n's Error Trigger workflows can't be fired directly via REST — they fire only when another workflow whose `settings.errorWorkflow` points at them fails. The harness exercises this with **paired demos**:
+
+- **`demo_X_source`** — Webhook-triggered, *intentionally fails* (e.g., a Code node that throws).
+  Has `settings.errorWorkflow = "{{HYDRATE:env:workflows.demo_X_handler.id}}"` so n8n knows where to route the error context. `wait_for_execution(..., expect_status="error")` confirms the failure happened.
+- **`demo_X_handler`** — Error Trigger workflow. Fires automatically when n8n catches the source's failure. Captures error context (workflow name, error message, error node, source execution id) into a Set node and exits with `status="success"`.
+
+The current pair (`demo_error_source` + `demo_error_handler`) is the canonical example. Any future Error Trigger demo should follow the same naming + wiring convention so `helpers._INDIRECT_VIA_ERROR_SOURCE` can dispatch.
+
+Order of operations in `n8n/deployment_order.yaml`: handler must exist first (the source references its id), so handler comes BEFORE source in the tier list.

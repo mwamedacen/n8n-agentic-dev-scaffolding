@@ -1,0 +1,38 @@
+{
+  "name": "{{HYDRATE:env:workflows.demo_error_source.name}}{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{HYDRATE:uuid:demo-error-source-webhook-path}}",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "{{HYDRATE:uuid:demo-error-source-webhook-id}}",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "{{HYDRATE:uuid:demo-error-source-webhook-uuid}}"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Intentional failure: this workflow exists to demonstrate Error Trigger\n// routing. settings.errorWorkflow (below) points at demo_error_handler;\n// when this throws, n8n invokes the handler with error context as input.\n// Open the n8n UI to see the chain: source ran with status=error, handler\n// ran with status=success.\nthrow new Error('Intentional failure to demonstrate Error Trigger handler routing');"
+      },
+      "id": "demo-error-source-throw",
+      "name": "Throw",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Throw", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "{{HYDRATE:env:workflows.demo_error_handler.id}}"
+  }
+}

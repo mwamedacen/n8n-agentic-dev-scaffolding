@@ -41,27 +41,32 @@ for _d in (_BUILD_DIR, _RESYNC_DIR, _DEPLOY_DIR):
 _TEST_WORKFLOW_KEY = "demo_smoke"
 TEST_WORKFLOW_KEY = _TEST_WORKFLOW_KEY  # Public alias for star-import.
 
-# Demos with a programmatically-runnable trigger (Webhook). plan-level §5
-# requires every one of these to deploy → run → status == "success".
-RUNNABLE_DEMOS: List[str] = [
-    "demo_smoke",
-    "demo_branching",
-    "demo_batch_processor",
-    "demo_subworkflow_caller",
-    "demo_external_js_code",
-    "demo_http_call",
-    "demo_ai_summary",
-    "demo_scheduled_report",
-    "demo_chat_assistant",  # Chat trigger + Webhook (manual run) → runnable
-]
+# Demos with a programmatically-runnable trigger. plan-level §5 requires each
+# of these to deploy → run → reach the expected terminal status.
+#
+# Most demos expect status="success". `demo_error_source` is the canonical
+# "intentionally fails" partner of `demo_error_handler` — it expects "error"
+# (the failure is the point; n8n catches it and routes to the handler).
+RUNNABLE_DEMOS: Dict[str, str] = {
+    "demo_smoke":               "success",
+    "demo_branching":           "success",
+    "demo_batch_processor":     "success",
+    "demo_subworkflow_caller":  "success",
+    "demo_external_js_code":    "success",
+    "demo_http_call":           "success",
+    "demo_ai_summary":          "success",
+    "demo_scheduled_report":    "success",
+    "demo_chat_assistant":      "success",
+    "demo_error_handler":       "success",  # fired indirectly via demo_error_source's failure
+    "demo_error_source":        "error",    # intentional failure: throws to fire the handler
+}
 
 # Demos whose trigger is intrinsically structural — they cannot be invoked via
 # webhook and verify only via deploy + GET /workflows/{id}. See plan §5
 # carve-out and §6 for the reasoning.
 STRUCTURAL_ONLY_DEMOS: Dict[str, str] = {
-    "demo_subworkflow_callee": "Execute Workflow Trigger callee — fires only when invoked from a parent",
-    "demo_error_handler": "Error Trigger — fires only on another workflow's failure",
-    "demo_locked_pipeline": "References lock_acquiring/releasing sub-workflows that need real Redis credentials",
+    "demo_subworkflow_callee":    "Execute Workflow Trigger callee — fires only when invoked from a parent",
+    "demo_locked_pipeline":       "References lock_acquiring/releasing sub-workflows that need real Redis credentials",
     "demo_integrations_showcase": "Microsoft 365 + Gmail + Redis nodes need real credentials to execute",
 }
 
@@ -305,24 +310,46 @@ def dehydrate(json_text: str, env: Optional[str] = None) -> str:
     return json.dumps(out, indent=2)
 
 
-def run_workflow(key: str, env: Optional[str] = None, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Trigger a workflow run.
+# Demos that fire indirectly via a "source" partner whose failure routes the
+# error to this demo via settings.errorWorkflow. Map of error-handler-key →
+# error-source-key. See pattern-skills/error-handling.md for the full pattern.
+_INDIRECT_VIA_ERROR_SOURCE: Dict[str, str] = {
+    "demo_error_handler": "demo_error_source",
+}
+
+
+def run_workflow(
+    key: str,
+    env: Optional[str] = None,
+    payload: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Trigger a workflow run; return the resulting execution row.
 
     n8n's public REST API does NOT expose a "run-this-workflow" endpoint
-    (`POST /workflows/{id}/run` returns 405). The agent-facing pattern that
-    actually works on a hosted instance is:
+    (`POST /workflows/{id}/run` returns 405 on n8n cloud). The agent-facing
+    pattern that actually works:
 
-      1. Authoring side: every demo workflow uses a Webhook trigger.
-      2. We pull the live workflow JSON, find the Webhook node's `path`, and
-         POST to `<base>/webhook/<path>` (active) or `<base>/webhook-test/<path>`.
-      3. We poll `/executions?workflowId=<id>` to find the resulting execution
-         and return the most recent one.
+      - Direct: workflow has a Webhook trigger. We POST to `<base>/webhook/<path>`
+        (or `/webhook-test/<path>`) and poll `/executions?workflowId=<id>`.
+      - Indirect (Error Trigger workflows): can't be invoked directly; instead
+        we fire a paired "source" workflow that intentionally throws and has
+        `settings.errorWorkflow` set to this handler's id. n8n routes the
+        error → handler executes. We poll the handler's executions.
+        Mapping lives in `_INDIRECT_VIA_ERROR_SOURCE`.
 
-    For workflows without a webhook trigger, we raise a clear error rather than
-    pretending the API call worked.
+    Returns the execution row from `/api/v1/executions/<id>`. Use
+    `wait_for_execution(row["id"])` to assert terminal status, or pass
+    `expect_status="error"` (which `demo_error_source` does because it's
+    *supposed* to fail).
     """
     import time as _time
     env_name = _env(env)
+
+    # Indirect path: fire the paired source, poll the handler's executions.
+    if key in _INDIRECT_VIA_ERROR_SOURCE:
+        source_key = _INDIRECT_VIA_ERROR_SOURCE[key]
+        return _fire_via_error_source(handler_key=key, source_key=source_key, env_name=env_name, payload=payload)
+
     wf_id = str((_yaml_workflows(env_name).get(key) or {}).get("id", ""))
     if not wf_id:
         raise KeyError(f"workflow key '{key}' not in {env_name}.yaml")
@@ -336,24 +363,28 @@ def run_workflow(key: str, env: Optional[str] = None, payload: Optional[Dict[str
         None,
     )
     if webhook_node is None:
-        # Fall back to attempting the (typically unsupported) public-API run,
-        # so the error surface is honest and includes the original failure.
         r = client.post(f"/api/v1/workflows/{wf_id}/run", json=(payload or {}))
         if r.status_code >= 300:
             raise RuntimeError(
                 f"workflow '{key}' has no Webhook trigger and n8n's public REST API "
                 f"does not support /workflows/{{id}}/run (HTTP {r.status_code}). "
-                f"Add a webhook trigger to make it agent-runnable."
+                f"Add a webhook trigger to make it agent-runnable, or pair it with "
+                f"a source workflow whose failure routes here via settings.errorWorkflow."
             )
         return r.json()
 
+    return _fire_webhook_and_poll(client, key, wf_id, live_wf, webhook_node, payload)
+
+
+def _fire_webhook_and_poll(client, key: str, wf_id: str, live_wf: dict, webhook_node: dict, payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """POST to a workflow's Webhook trigger and return its execution row."""
+    import time as _time
     path = (webhook_node.get("parameters") or {}).get("path", "")
     method = ((webhook_node.get("parameters") or {}).get("httpMethod") or "POST").upper()
     if not path:
         raise RuntimeError(f"workflow '{key}' webhook has no path field")
 
     before = _time.time()
-    # Try active webhook first; fall back to test webhook (n8n cloud uses both).
     base = client.base_url
     body = payload or {"trigger": "n8n-harness"}
     import requests as _req
@@ -364,16 +395,61 @@ def run_workflow(key: str, env: Optional[str] = None, payload: Optional[Dict[str
         except Exception as e:
             last_resp = (url, "exception", str(e))
             continue
-        if r.status_code < 300:
-            last_resp = (url, r.status_code, r.text[:200])
-            break
+        # Any HTTP response (success OR failure) means the webhook was registered;
+        # the workflow ran and may have errored. We poll executions either way.
         last_resp = (url, r.status_code, r.text[:200])
-    if last_resp and isinstance(last_resp[1], int) and last_resp[1] >= 300:
-        raise RuntimeError(f"webhook trigger failed: {last_resp}")
+        if r.status_code < 300 or r.status_code == 500:
+            # 500 is what n8n returns when the workflow throws — we still want
+            # the execution row so the caller can see status="error".
+            break
+    # Only "webhook not registered" (404) is fatal here.
+    if last_resp and isinstance(last_resp[1], int) and last_resp[1] == 404:
+        raise RuntimeError(f"webhook trigger failed (not registered): {last_resp}")
 
-    # Poll /executions to find the one this trigger created.
-    # 30s matches plan §3a/§5 (wait_for_execution default).
-    deadline = _time.time() + 30
+    return _poll_for_execution(client, wf_id, started_after=before, timeout=30.0)
+
+
+def _fire_via_error_source(handler_key: str, source_key: str, env_name: str, payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Fire the source workflow (which throws) and return the handler's execution row."""
+    import time as _time
+    handler_wf_id = str((_yaml_workflows(env_name).get(handler_key) or {}).get("id", ""))
+    source_wf_id = str((_yaml_workflows(env_name).get(source_key) or {}).get("id", ""))
+    if not handler_wf_id:
+        raise KeyError(f"handler key '{handler_key}' not in {env_name}.yaml")
+    if not source_wf_id:
+        raise KeyError(f"source key '{source_key}' not in {env_name}.yaml — needed to fire {handler_key}")
+    client = ensure_client(env_name)
+    # Fire the source via its webhook. We don't care about the source's response
+    # (it throws by design); we just need n8n to have started the run so the
+    # error router can fire the handler.
+    source_wf = client.get(f"/api/v1/workflows/{source_wf_id}").json()
+    webhook_node = next(
+        (n for n in source_wf.get("nodes", []) if n.get("type") == "n8n-nodes-base.webhook"),
+        None,
+    )
+    if webhook_node is None:
+        raise RuntimeError(f"source workflow '{source_key}' has no Webhook trigger to fire")
+    path = (webhook_node.get("parameters") or {}).get("path", "")
+    if not path:
+        raise RuntimeError(f"source workflow '{source_key}' Webhook has no path field")
+    before = _time.time()
+    import requests as _req
+    body = payload or {"trigger": "n8n-harness-error-source"}
+    for url in (f"{client.base_url}/webhook/{path}", f"{client.base_url}/webhook-test/{path}"):
+        try:
+            _req.post(url, json=body, timeout=30)
+        except Exception:
+            continue
+        # We expect HTTP 500 (source throws); any response means the workflow ran.
+        break
+    # Poll the handler's executions for a fresh row.
+    return _poll_for_execution(client, handler_wf_id, started_after=before, timeout=30.0)
+
+
+def _poll_for_execution(client, wf_id: str, started_after: float, timeout: float = 30.0) -> Dict[str, Any]:
+    """Poll /executions until a row started after `started_after` appears, or timeout."""
+    import time as _time
+    deadline = _time.time() + timeout
     while _time.time() < deadline:
         ex = client.get("/api/v1/executions", params={"workflowId": wf_id, "limit": 5})
         ex.raise_for_status()
@@ -383,10 +459,10 @@ def run_workflow(key: str, env: Optional[str] = None, payload: Optional[Dict[str
             if started_str:
                 from datetime import datetime
                 started = datetime.fromisoformat(started_str.replace("Z", "+00:00")).timestamp()
-                if started >= before - 2.0:
+                if started >= started_after - 2.0:
                     return item
         _time.sleep(0.5)
-    raise RuntimeError(f"webhook posted ok but no matching execution found within 15s for workflow {wf_id}")
+    raise RuntimeError(f"no execution row found for workflow {wf_id} within {timeout}s")
 
 
 def get_execution(execution_id: str | int, env: Optional[str] = None) -> Dict[str, Any]:
@@ -401,17 +477,26 @@ def get_execution(execution_id: str | int, env: Optional[str] = None) -> Dict[st
 _TERMINAL_FAILURE_STATUSES = {"error", "crashed", "canceled", "failed"}
 
 
-def wait_for_execution(execution_id: str | int, timeout: int = 30, env: Optional[str] = None) -> Dict[str, Any]:
-    """Poll get_execution until terminal, asserts status == 'success'.
+def wait_for_execution(
+    execution_id: str | int,
+    timeout: int = 30,
+    env: Optional[str] = None,
+    expect_status: str = "success",
+) -> Dict[str, Any]:
+    """Poll get_execution until terminal; asserts status == `expect_status`.
 
     Per plan §3a: never accept `running` / `waiting` as terminal — a forever-stuck
     workflow MUST raise. Terminal conditions:
-      - finished == true AND status == "success" → return the dict
-      - finished == true AND status != "success" → raise RuntimeError
+      - finished == true → check status against `expect_status`. Match → return
+        the dict; mismatch → raise RuntimeError.
       - status in {"error", "crashed", "canceled", "failed"} (even with
         finished == false; n8n cloud sometimes leaves finished=false for a
-        while after status flips to "error") → raise RuntimeError
-      - timeout exceeded → raise TimeoutError
+        while after status flips). If `expect_status` matches, return the dict;
+        otherwise raise RuntimeError.
+      - timeout exceeded → raise TimeoutError.
+
+    `expect_status="error"` is what `demo_error_source` uses — it's *supposed*
+    to fail, and the failure is the proof. Default remains "success".
     """
     import time as _time
     env_name = _env(env)
@@ -421,16 +506,19 @@ def wait_for_execution(execution_id: str | int, timeout: int = 30, env: Optional
         last = get_execution(execution_id, env=env_name)
         status = last.get("status")
         if last.get("finished") is True:
-            if status == "success":
+            if status == expect_status:
                 return last
             raise RuntimeError(
-                f"execution {execution_id} finished with non-success status "
-                f"{status!r}; full execution: {last}"
+                f"execution {execution_id} finished with status {status!r}, "
+                f"expected {expect_status!r}; full execution: {last}"
             )
         if status in _TERMINAL_FAILURE_STATUSES:
+            if status == expect_status:
+                return last
             raise RuntimeError(
                 f"execution {execution_id} reached terminal failure status "
-                f"{status!r} (n8n hasn't flipped finished=true yet, but it won't recover)"
+                f"{status!r}, expected {expect_status!r} "
+                f"(n8n hasn't flipped finished=true yet, but it won't recover)"
             )
         _time.sleep(1.0)
     raise TimeoutError(
