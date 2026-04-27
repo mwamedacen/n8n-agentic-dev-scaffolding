@@ -30,3 +30,7 @@ Idempotent: skips entries that already have a non-placeholder ID; n8n POST is sk
 - Edit the new template at `n8n-workflows-template/<key>.template.json` to add the actual nodes.
 - `validate-workflow.md` to sanity-check.
 - `deploy-single-workflow-in-env.md` to ship it.
+
+### Code nodes
+
+Any `n8n-nodes-base.code` node must follow `skills/patterns/code-node-discipline.md` — extract the pure function to `n8n-functions/{js,py}/<name>.{js,py}`, inject it via `{{HYDRATE:js:...}}` or `{{HYDRATE:py:...}}` in the Code-node body, and add a paired test under `n8n-functions-tests/`. The validator rejects inlined logic, missing tests, and the deprecated `n8n-nodes-base.function` type.

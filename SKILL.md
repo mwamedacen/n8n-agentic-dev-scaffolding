@@ -50,6 +50,7 @@ These are reference docs, not action triggers. Read them while authoring.
 - [skills/patterns/credential-refs.md](skills/patterns/credential-refs.md)
 - [skills/patterns/multi-env-uuid-collision.md](skills/patterns/multi-env-uuid-collision.md)
 - [skills/patterns/validate-deploy.md](skills/patterns/validate-deploy.md)
+- [skills/patterns/code-node-discipline.md](skills/patterns/code-node-discipline.md)
 - [skills/patterns/llm-providers.md](skills/patterns/llm-providers.md)
 - [skills/patterns/locking.md](skills/patterns/locking.md)
 - [skills/patterns/pindata-hygiene.md](skills/patterns/pindata-hygiene.md)
@@ -76,4 +77,5 @@ These are reference docs, not action triggers. Read them while authoring.
 | `json` | `{{HYDRATE:json:relative/path.json}}` | JSON file (stringified) |
 | `html` | `{{HYDRATE:html:relative/path.html}}` | HTML file |
 | `js` | `{{HYDRATE:js:relative/path.js}}` | JavaScript file |
+| `py` | `{{HYDRATE:py:relative/path.py}}` | Python file (Code-node `language: python`) |
 | `uuid` | `{{HYDRATE:uuid:identifier}}` | Fresh UUID v4 (consistent within one hydration) |

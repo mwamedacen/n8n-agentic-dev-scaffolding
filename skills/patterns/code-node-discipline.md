@@ -1,0 +1,237 @@
+---
+name: pattern-code-node-discipline
+description: Pure-function-plus-glue convention for n8n Code nodes — extract logic to n8n-functions/, inject via {{HYDRATE:js|py:...}}, pair with a test. Validator hard-fails otherwise.
+---
+
+# Pattern: Code-node discipline
+
+n8n Code-node logic must be extracted to a pure function under `n8n-functions/{js,py}/<name>.{js,py}` and paired with a test under `n8n-functions-tests/`. The Code-node body keeps only the placeholder + thin n8n glue (`$input` / `items` / `return [{json:...}]`).
+
+`validate.py` enforces this for any `n8n-nodes-base.code` node in a template. Inlined Code-node logic is rejected. The deprecated `n8n-nodes-base.function` node type is forbidden entirely.
+
+## Why
+
+- **Testable**: the pure function takes plain values and returns plain values, so `node --test` (JS) or `pytest` (Py) can exercise it without an n8n runtime.
+- **Re-usable**: the same function file can be referenced from multiple workflows.
+- **Reviewable**: diffs show real logic changes, not whitespace inside JSON-escaped strings.
+- **Round-trippable**: `js_resolver` / `py_resolver` wrap the injected content in `DEHYDRATE` markers; `resync.py` collapses those markers back to placeholders so live edits in n8n's UI never leak duplicated function bodies into templates.
+
+## Layout
+
+```
+<workspace>/
+├── n8n-functions/
+│   ├── js/<camelCaseName>.js
+│   └── py/<snake_case_name>.py
+├── n8n-functions-tests/
+│   ├── conftest.py            (scaffolded by init.py — adds n8n-functions/py to sys.path)
+│   ├── <camelCaseName>.test.js
+│   └── test_<snake_case_name>.py
+└── n8n-workflows-template/<key>.template.json
+```
+
+Naming:
+- **JS**: `camelCase` for the function name, file matches: `calculateStatsByCategory.js` ↔ `calculateStatsByCategory.test.js`.
+- **Python**: `snake_case` for the function name, file matches: `calculate_stats_by_category.py` ↔ `test_calculate_stats_by_category.py`.
+
+Test files are required and the validator errors if missing. The directory names `n8n-functions/` and `n8n-functions-tests/` are convention, not configurable.
+
+---
+
+## JavaScript example
+
+### Pure function — `n8n-functions/js/calculateStatsByCategory.js`
+
+```js
+function calculateStatsByCategory(articles) {
+  const stats = {};
+  for (const article of articles) {
+    const cat = article.category || "uncategorized";
+    stats[cat] = (stats[cat] || 0) + 1;
+  }
+  return stats;
+}
+if (typeof module !== "undefined") module.exports = { calculateStatsByCategory };
+```
+
+The `if (typeof module !== "undefined")` trailer:
+- **No-op in n8n's vm sandbox** — `module` is undefined, the condition is false, the line is skipped.
+- **Active under `node --test`** — `module` is defined, the function is exported, the test can `require` it.
+
+The trailer is **mandatory**. The validator errors if it's missing.
+
+### Code-node body (before hydrate)
+
+`parameters.jsCode`:
+
+```
+{{HYDRATE:js:n8n-functions/js/calculateStatsByCategory.js}}
+
+const body = $input.body || {};
+const articles = Array.isArray(body.articles) ? body.articles : [];
+const stats = calculateStatsByCategory(articles);
+
+try {
+  return { json: { stats } };
+} catch(e) {
+  return { error: e.message };
+}
+```
+
+### Code-node body (after hydrate)
+
+```
+/* DEHYDRATE:js:n8n-functions/js/calculateStatsByCategory.js */
+function calculateStatsByCategory(articles) {
+  const stats = {};
+  for (const article of articles) {
+    const cat = article.category || "uncategorized";
+    stats[cat] = (stats[cat] || 0) + 1;
+  }
+  return stats;
+}
+if (typeof module !== "undefined") module.exports = { calculateStatsByCategory };
+/* /DEHYDRATE:js:n8n-functions/js/calculateStatsByCategory.js */
+
+const body = $input.body || {};
+const articles = Array.isArray(body.articles) ? body.articles : [];
+const stats = calculateStatsByCategory(articles);
+
+try {
+  return { json: { stats } };
+} catch(e) {
+  return { error: e.message };
+}
+```
+
+### Test — `n8n-functions-tests/calculateStatsByCategory.test.js`
+
+```js
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const { calculateStatsByCategory } = require("../n8n-functions/js/calculateStatsByCategory.js");
+
+test("groups articles by category", () => {
+  const result = calculateStatsByCategory([
+    { category: "sports" }, { category: "sports" }, { category: "tech" }
+  ]);
+  assert.deepEqual(result, { sports: 2, tech: 1 });
+});
+```
+
+Pure CommonJS (`require` throughout). Don't add `package.json` `"type": "module"` — `node --test` runs these as CJS scripts.
+
+---
+
+## Python example
+
+### Pure function — `n8n-functions/py/calculate_stats_by_category.py`
+
+```python
+def calculate_stats_by_category(articles):
+    stats = {}
+    for article in articles:
+        cat = article.get("category", "uncategorized")
+        stats[cat] = stats.get(cat, 0) + 1
+    return stats
+```
+
+No guards, no exports — Python files are always importable as modules.
+
+### Code-node body (before hydrate)
+
+`parameters.pythonCode` (with `parameters.language == "python"`):
+
+```
+{{HYDRATE:py:n8n-functions/py/calculate_stats_by_category.py}}
+
+body = items[0]["json"]
+articles = body.get("articles", [])
+stats = calculate_stats_by_category(articles)
+return [{"json": {"stats": stats}}]
+```
+
+### Code-node body (after hydrate)
+
+```
+# DEHYDRATE:py:n8n-functions/py/calculate_stats_by_category.py
+def calculate_stats_by_category(articles):
+    stats = {}
+    for article in articles:
+        cat = article.get("category", "uncategorized")
+        stats[cat] = stats.get(cat, 0) + 1
+    return stats
+# /DEHYDRATE:py:n8n-functions/py/calculate_stats_by_category.py
+
+body = items[0]["json"]
+articles = body.get("articles", [])
+stats = calculate_stats_by_category(articles)
+return [{"json": {"stats": stats}}]
+```
+
+### Test — `n8n-functions-tests/test_calculate_stats_by_category.py`
+
+```python
+from calculate_stats_by_category import calculate_stats_by_category
+
+def test_groups_by_category():
+    result = calculate_stats_by_category([
+        {"category": "sports"}, {"category": "sports"}, {"category": "tech"}
+    ])
+    assert result == {"sports": 2, "tech": 1}
+```
+
+No `sys.path` manipulation here — `init.py` scaffolds `n8n-functions-tests/conftest.py` once with:
+
+```python
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent / "n8n-functions" / "py"))
+```
+
+The hyphenated dir name `n8n-functions` cannot be imported as a Python package (hyphens are forbidden in module names), so pytest's `conftest.py` is where the `sys.path` insert lives.
+
+The Python source file must **not** contain the substring `# DEHYDRATE:py:` or `# /DEHYDRATE:py:` — those would corrupt the round-trip. `py_resolver.resolve()` raises `ValueError` on encounter.
+
+---
+
+## Validator checks (template only)
+
+`validate.py` runs these against every `n8n-nodes-base.code` node in a template. All checks are **errors**, no warnings. Built JSON skips these checks (placeholders are already replaced post-hydrate).
+
+| Rule | Error |
+|---|---|
+| Node type is `n8n-nodes-base.function` | Deprecated; switch to `n8n-nodes-base.code`. |
+| `jsCode` (or `pythonCode` when `language == "python"`) is empty | Cannot validate without code. |
+| No `{{HYDRATE:js:...}}` (or `{{HYDRATE:py:...}}`) placeholder in the code field | Inlined logic is rejected — extract to `n8n-functions/{js,py}/`. |
+| Placeholder points to a file that doesn't exist | Bad path — fix or remove. |
+| JS file is missing `if (typeof module !== "undefined")` trailer | Tests cannot `require` the function. |
+| No paired test file at `n8n-functions-tests/<stem>.test.js` (JS) or `test_<stem>.py` (Py) | Pure function ships untested. |
+
+There is **no opt-out** for trivial Code nodes.
+
+## Running the tests
+
+```bash
+python3 <harness>/helpers/test_functions.py --target n8n
+```
+
+Runs both `node --test` (over `*.test.js`) and `pytest` (over `test_*.py`) under `n8n-functions-tests/`.
+
+`pytest` must be available — `pip install pytest` if it isn't. The runner reports the failure cleanly via subprocess exit code.
+
+---
+
+## Migration: existing inlined-JS workflows
+
+If a Code node still has its function body inlined inside `jsCode`, `validate.py` will reject the template after this pattern lands. Surgery (manual, one-time):
+
+1. Open `n8n-workflows-template/<key>.template.json`.
+2. Cut the function body out of `parameters.jsCode` into a new file at `n8n-functions/js/<name>.js`. Preserve the `function <name>(...) { ... }` declaration; add `if (typeof module !== "undefined") module.exports = { <name> };` as the last line.
+3. Replace the cut text in `jsCode` with `{{HYDRATE:js:n8n-functions/js/<name>.js}}\n\n` followed by the n8n-glue (the `$input` / `return [{json:...}]` lines).
+4. Write `n8n-functions-tests/<name>.test.js` with at least one assertion against the function.
+5. Re-run `validate.py` then `deploy.py`.
+
+For a Python equivalent, swap `js` → `py`, `<camelCaseName>` → `<snake_case_name>`, and skip the trailer step.
+
+There is no helper script — this is a per-workflow migration done by hand.
