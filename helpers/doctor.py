@@ -98,7 +98,7 @@ def _check_templates(ws: Path) -> list:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--workspace", default=None, help="Workspace path (default: ${PWD}/n8n-harness-workspace)")
+    parser.add_argument("--workspace", default=None, help="Workspace path. Default: ${PWD}/n8n-harness-workspace, or ${PWD} if its basename is already n8n-harness-workspace.")
     parser.add_argument("--env", default=None, help="Check a specific env (default: all configured envs)")
     args = parser.parse_args()
 

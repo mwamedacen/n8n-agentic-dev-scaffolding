@@ -11,6 +11,18 @@ def test_workspace_root_default(tmp_path):
     assert result == tmp_path / "n8n-harness-workspace"
 
 
+def test_workspace_root_when_cwd_is_workspace(tmp_path):
+    """When cwd basename is n8n-harness-workspace, use cwd in place (no nesting)."""
+    ws = tmp_path / "n8n-harness-workspace"
+    ws.mkdir()
+    with patch("os.getcwd", return_value=str(ws)):
+        from helpers.workspace import workspace_root
+        result = workspace_root()
+    assert result == ws.resolve()
+    assert result.name == "n8n-harness-workspace"
+    assert not (result / "n8n-harness-workspace").exists()
+
+
 def test_workspace_root_override(tmp_path):
     from helpers.workspace import workspace_root
     custom = tmp_path / "custom-ws"

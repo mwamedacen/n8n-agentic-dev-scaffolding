@@ -1,11 +1,35 @@
+import sys
 from pathlib import Path
+
+_DEFAULT_WS_NAME = "n8n-harness-workspace"
+_announced = False
 
 
 def workspace_root(override=None) -> Path:
-    """Return workspace root: ${PWD}/n8n-harness-workspace, or override."""
+    """Resolve the workspace root.
+
+    Resolution order:
+      1. ``--workspace`` override (explicit; honored as-is).
+      2. ``cwd`` if its basename is ``n8n-harness-workspace`` — you're already inside.
+      3. ``cwd/n8n-harness-workspace`` if it exists as a child directory.
+      4. ``cwd/n8n-harness-workspace`` (default; ``init.py`` will create it here).
+
+    Prints the resolved path to stderr once per process.
+    """
+    global _announced
     if override:
-        return Path(override).resolve()
-    return Path.cwd() / "n8n-harness-workspace"
+        path = Path(override).resolve()
+    else:
+        cwd = Path.cwd()
+        if cwd.name == _DEFAULT_WS_NAME:
+            path = cwd
+        else:
+            path = cwd / _DEFAULT_WS_NAME
+        path = path.resolve()
+    if not _announced:
+        print(f"[n8n-harness] workspace: {path}", file=sys.stderr)
+        _announced = True
+    return path
 
 
 def harness_root() -> Path:

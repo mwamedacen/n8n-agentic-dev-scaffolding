@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Scaffold an n8n-harness workspace at ${PWD}/n8n-harness-workspace (default)."""
+"""Scaffold an n8n-harness workspace.
+
+Default location is ``${PWD}/n8n-harness-workspace``. If you run from inside an
+existing workspace directory (basename ``n8n-harness-workspace``), the existing
+workspace is used in place. Pass ``--workspace <path>`` to override.
+"""
 import argparse
 import shutil
 import sys
@@ -69,7 +74,7 @@ def _scaffold(ws: Path, force: bool) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--workspace", default=None, help="Workspace path (default: ${PWD}/n8n-harness-workspace)")
+    parser.add_argument("--workspace", default=None, help="Workspace path. Default: ${PWD}/n8n-harness-workspace, or ${PWD} if its basename is already n8n-harness-workspace.")
     parser.add_argument("--force", action="store_true", help="Recreate workspace if it already exists (DESTRUCTIVE)")
     args = parser.parse_args()
     _scaffold(workspace_root(args.workspace), args.force)
