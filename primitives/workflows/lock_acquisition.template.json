@@ -12,29 +12,20 @@
       }
     },
     {
-      "id": "{{HYDRATE:uuid:lock-acq-set}}",
-      "name": "Acquired",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "id": "{{HYDRATE:uuid:lock-acq-code}}",
+      "name": "Acquire Lock",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [460, 300],
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "{{HYDRATE:uuid:lock-acq-assign-acquired}}",
-              "name": "acquired",
-              "value": true,
-              "type": "boolean"
-            },
-            {
-              "id": "{{HYDRATE:uuid:lock-acq-assign-scope}}",
-              "name": "scope",
-              "value": "={{ $json.scope || 'default' }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
+        "language": "javascript",
+        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\nconst scope = $json.scope || 'default';\nconst maxWaitMs = typeof $json.maxWaitMs === 'number' ? $json.maxWaitMs : 0;\nconst pollMs = typeof $json.pollIntervalMs === 'number' ? $json.pollIntervalMs : 200;\nconst ttl = typeof $json.ttlSeconds === 'number' ? $json.ttlSeconds : 60;\nconst lockKey = `lock-${scope}`;\nconst ownerKey = `lock-owner-${$execution.id}`;\nconst ownerId = $execution.id;\n\nconst attempt = async () => {\n  const result = await this.helpers.redis.call('SET', lockKey, ownerId, 'NX', 'EX', String(ttl));\n  return result === 'OK';\n};\n\nconst start = Date.now();\nlet acquired = await attempt();\nwhile (!acquired && maxWaitMs > 0 && (Date.now() - start) < maxWaitMs) {\n  await new Promise(r => setTimeout(r, pollMs));\n  acquired = await attempt();\n}\n\nif (acquired) {\n  // Write owner pointer so error_handler_lock_cleanup can resolve the scope\n  await this.helpers.redis.call('SET', ownerKey, scope, 'EX', String(ttl));\n}\n\nconst waitedMs = Date.now() - start;\nreturn [{ json: { acquired, scope, waitedMs } }];\n"
+      },
+      "credentials": {
+        "redis": {
+          "id": "{{HYDRATE:env:credentials.redis.id}}",
+          "name": "{{HYDRATE:env:credentials.redis.name}}"
+        }
       }
     }
   ],
@@ -43,7 +34,7 @@
       "main": [
         [
           {
-            "node": "Acquired",
+            "node": "Acquire Lock",
             "type": "main",
             "index": 0
           }
