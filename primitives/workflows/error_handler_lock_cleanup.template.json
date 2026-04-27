@@ -16,7 +16,7 @@
       "typeVersion": 2,
       "position": [460, 300],
       "parameters": {
-        "language": "javascript",
+        "language": "javaScript",
         "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\n// NOTE: $workflow.errorData.execution.id path must be verified against the live n8n version.\n// If wrong, executionId falls back to $execution.id, GET returns null, cleanup silently no-ops.\nconst executionId = $workflow.errorData?.execution?.id || $execution.id;\nconst ownerKey = `lock-owner-${executionId}`;\n\nconst scope = await this.helpers.redis.call('GET', ownerKey);\nif (scope) {\n  const lockKey = `lock-${scope}`;\n  await this.helpers.redis.call('DEL', lockKey);\n  await this.helpers.redis.call('DEL', ownerKey);\n}\n\nreturn [{ json: { cleaned: !!scope, executionId, scope: scope || null } }];\n"
       },
       "credentials": {

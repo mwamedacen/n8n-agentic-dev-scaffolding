@@ -18,7 +18,7 @@
       "typeVersion": 2,
       "position": [460, 300],
       "parameters": {
-        "language": "javascript",
+        "language": "javaScript",
         "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\nconst scope = $json.scope || 'default';\nconst limit = typeof $json.limit === 'number' ? $json.limit : 10;\nconst windowSeconds = typeof $json.windowSeconds === 'number' ? $json.windowSeconds : 60;\nconst key = `ratelimit-${scope}-${Math.floor(Date.now() / (windowSeconds * 1000))}`;\n\nconst count = await this.helpers.redis.call('INCR', key);\nif (count === 1) {\n  await this.helpers.redis.call('EXPIRE', key, String(windowSeconds));\n}\nconst allowed = count <= limit;\nreturn [{ json: { allowed, scope, count, limit } }];\n"
       },
       "credentials": {

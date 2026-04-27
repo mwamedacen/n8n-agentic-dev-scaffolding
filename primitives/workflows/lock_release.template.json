@@ -18,7 +18,7 @@
       "typeVersion": 2,
       "position": [460, 300],
       "parameters": {
-        "language": "javascript",
+        "language": "javaScript",
         "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\nconst scope = $json.scope || 'default';\nconst lockKey = `lock-${scope}`;\nconst ownerKey = `lock-owner-${$execution.id}`;\nawait this.helpers.redis.call('DEL', lockKey);\nawait this.helpers.redis.call('DEL', ownerKey);\nreturn [{ json: { released: true, scope } }];\n"
       },
       "credentials": {

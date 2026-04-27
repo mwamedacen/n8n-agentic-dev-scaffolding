@@ -1,7 +1,13 @@
 """Tests for the primitive-marker exemption in helpers/validate.py."""
 import json
+from pathlib import Path
+
+import pytest
 
 from helpers.validate import validate_workflow_json
+
+
+_PRIMITIVES_DIR = Path(__file__).parent.parent / "primitives" / "workflows"
 
 
 def _wrap(node: dict) -> str:
@@ -108,3 +114,30 @@ def test_python_primitive_marker_passes(tmp_path):
     })
     valid, errors = validate_workflow_json(text, source="template", workspace=tmp_path)
     assert valid, errors
+
+
+# ---------- Code-node `language` casing regression ----------
+#
+# n8n's Code v2 schema enum is `'javaScript' | 'pythonNative'` (capital S in javaScript).
+# The lowercase `"javascript"` is silently coerced to the default but is NOT valid input —
+# templates that ship with the wrong casing fail to load correctly in the n8n UI.
+# This regression locks every shipped Code node to the correct enum literal.
+
+@pytest.mark.parametrize("primitive", [
+    "lock_acquisition",
+    "lock_release",
+    "error_handler_lock_cleanup",
+    "rate_limit_check",
+])
+def test_primitive_code_nodes_use_javascript_capital_s(primitive):
+    """Every Code node in every shipped primitive must use `language: \"javaScript\"` (capital S)."""
+    path = _PRIMITIVES_DIR / f"{primitive}.template.json"
+    data = json.loads(path.read_text())
+    code_nodes = [n for n in data.get("nodes", []) if n.get("type") == "n8n-nodes-base.code"]
+    assert code_nodes, f"{primitive}: no Code nodes found — test fixture is stale"
+    for node in code_nodes:
+        lang = node.get("parameters", {}).get("language")
+        assert lang == "javaScript", (
+            f"{primitive}: Code node {node.get('name')!r} has language={lang!r}, "
+            "expected 'javaScript' (capital S — n8n schema is `'javaScript' | 'pythonNative'`)"
+        )
