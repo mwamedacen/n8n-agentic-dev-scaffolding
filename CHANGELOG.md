@@ -33,6 +33,7 @@ Integrations (per-service quirks): `microsoft-365`, `gmail`, `redis`, `slack`, `
 ### New workspace contracts
 
 `n8n-config/common.yml` — workspace-shared config:
+
 - `error_source_to_handler:` map (source-key → handler-key) used by `run.py` for indirect dispatch.
 - `workspace_layout:` overrides for non-default directory placement.
 

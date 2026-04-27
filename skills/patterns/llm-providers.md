@@ -10,6 +10,7 @@ description: LLM provider notes — OpenRouter via openAiApi, Anthropic token-co
 OpenRouter's REST API is OpenAI-API-compatible. n8n's `openAiApi` credential type, OpenAI node, and AI Agent / Chat Model nodes all consume OpenRouter transparently — you just point the credential's `Base URL` at OpenRouter.
 
 To set up an OpenRouter credential:
+
 1. Set `OPENROUTER_API_KEY=...` in `<workspace>/n8n-config/.env.<env>`.
 2. Run `manage-credentials.md` (Path A):
 

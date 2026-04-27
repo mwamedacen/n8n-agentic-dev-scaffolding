@@ -16,12 +16,14 @@ python3 <harness>/helpers/init.py
 ```
 
 Optional flags:
+
 - `--workspace <path>`: override default `${PWD}/n8n-harness-workspace`
 - `--force`: clobber existing workspace (DESTRUCTIVE — confirm with the user)
 
 ## Side effects
 
 Creates the workspace tree:
+
 - `n8n-config/` — env YAML + `.env.<env>` files (initially with `.env.example`)
 - `n8n-workflows-template/` — `*.template.json` (canonical, version-controlled)
 - `n8n-build/` — hydrated outputs (gitignored)

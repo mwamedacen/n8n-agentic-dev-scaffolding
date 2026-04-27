@@ -18,6 +18,7 @@ python3 <harness>/helpers/doctor.py [--env <name>]
 ## Side effects
 
 Prints a 3-state (✓/⚠/✗) report:
+
 - workspace tree presence
 - per-env YAML parses + workflow-IDs not placeholder
 - per-env n8n API reachable

@@ -18,6 +18,7 @@ For setup, see [`skills/manage-credentials.md`](../../manage-credentials.md). Pa
 ## Database / page IDs
 
 Notion URLs encode IDs without dashes; the API expects dashes. Example:
+
 - URL: `https://www.notion.so/Workspace/MyDB-abc123def456789012345678901234`
 - API: `abc123de-f456-7890-1234-5678901234`
 

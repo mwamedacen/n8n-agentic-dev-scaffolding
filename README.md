@@ -45,7 +45,7 @@ After that, you author workflows via `create-new-workflow.md`, deploy via `deplo
 
 ## What's in here
 
-```
+```text
 n8n-harness/
   SKILL.md                  # router — first thing the agent reads
   install.md                # install + prerequisites

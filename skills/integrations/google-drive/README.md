@@ -15,6 +15,7 @@ description: Google Drive + Sheets nodes. OAuth scopes, folder-vs-file IDs.
 `googleApi` (single credential covers Drive + Sheets if scopes include both).
 
 For setup, see [`skills/manage-credentials.md`](../../manage-credentials.md). OAuth scopes minimum:
+
 - Drive: `https://www.googleapis.com/auth/drive`
 - Sheets: `https://www.googleapis.com/auth/spreadsheets`
 

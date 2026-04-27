@@ -9,7 +9,7 @@ The harness centralizes LLM prompt + structured-output schema files under `<work
 
 ## File layout
 
-```
+```text
 n8n-prompts/
   prompts/
     <name>_prompt.txt              # the prompt body

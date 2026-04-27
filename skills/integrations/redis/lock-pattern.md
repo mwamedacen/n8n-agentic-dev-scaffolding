@@ -19,7 +19,7 @@ For the actual setup flow, see [`skills/manage-credentials.md`](../../manage-cre
 
 The harness ships generic placeholder lock primitives at `<harness>/primitives/workflows/{lock_acquisition,lock_release}.template.json`. They use a Set node as a no-op placeholder. Replace with real Redis ops to get distributed mutex semantics:
 
-### `lock_acquisition` body (replace the placeholder Set node):
+### `lock_acquisition` body (replace the placeholder Set node)
 
 ```json
 {
@@ -48,7 +48,7 @@ const result = await this.helpers.redis.set(`lock-${scope}`, executionId, 'NX', 
 return [{ json: { acquired: result === 'OK' } }];
 ```
 
-### `lock_release` body:
+### `lock_release` body
 
 ```json
 {

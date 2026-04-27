@@ -35,6 +35,7 @@ pip install dspy litellm
 ## What the harness expects on disk
 
 The skill package is a directory containing:
+
 - `SKILL.md` — entry point
 - `skills/*.md` and `skills/{patterns,integrations}/...md` — sub-skills
 - `helpers/*.py` — the executable surface

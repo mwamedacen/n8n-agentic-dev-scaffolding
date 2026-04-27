@@ -18,6 +18,7 @@ python3 <harness>/helpers/deploy_run_assert.py --env <env> --workflow-key <key> 
 ## Side effects
 
 Orchestrates four subprocesses in sequence:
+
 1. `hydrate.py`
 2. `validate.py --source built`
 3. `deploy.py`

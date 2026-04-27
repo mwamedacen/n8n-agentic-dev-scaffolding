@@ -37,14 +37,18 @@ This guide maps the legacy single-repo layout (where the harness checkout WAS th
 ## Migrating an existing project
 
 1. **Clone the harness** somewhere outside your project:
+
    ```bash
    cd ~/.claude/skills && git clone https://github.com/<user>/n8n-harness.git
    ```
+
 2. **From your project root**, run `init`:
+
    ```bash
    cd /path/to/your/project
    python3 ~/.claude/skills/n8n-harness/helpers/init.py
    ```
+
 3. **Move templates** from old `n8n/workflows/*.template.json` to `n8n-harness-workspace/n8n-workflows-template/`.
 4. **Move env configs** from old `n8n/environments/{env}.yaml` to `n8n-harness-workspace/n8n-config/{env}.yml`. Update the file extension `.yaml → .yml`.
 5. **Move secrets** from old root `.env.<env>` to `n8n-harness-workspace/n8n-config/.env.<env>`.

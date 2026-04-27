@@ -22,6 +22,7 @@ Default source is `built` if `--env` given, else `template`.
 Prints a JSON report `{valid, source, path, errors}`. Exit 0 if valid, 1 otherwise.
 
 Checks:
+
 - top-level `nodes` (list) + `connections` (object keyed by node name)
 - every node has `name` / `type` / `parameters`
 - no `pinData` in templates
