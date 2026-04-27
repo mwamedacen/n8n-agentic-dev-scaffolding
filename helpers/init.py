@@ -68,6 +68,11 @@ def _scaffold(ws: Path, force: bool) -> None:
         "# Document secret env-var names here (no values).\n"
         "# Copy relevant entries into .env.<env> with real values.\n"
     )
+    (ws / "n8n-functions-tests" / "conftest.py").write_text(
+        "import sys\n"
+        "from pathlib import Path\n"
+        'sys.path.insert(0, str(Path(__file__).parent.parent / "n8n-functions" / "py"))\n'
+    )
 
     print(f"Workspace created at {ws}")
 

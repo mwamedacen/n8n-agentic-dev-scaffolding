@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from helpers.workspace import workspace_root, ensure_workspace
-from helpers.placeholder import env_resolver, file_resolver, js_resolver, uuid_resolver, validator
+from helpers.placeholder import env_resolver, file_resolver, js_resolver, py_resolver, uuid_resolver, validator
 
 
 def hydrate(env_name: str, workflow_key: str, workspace: Path, strict: bool = False) -> Path:
@@ -26,6 +26,7 @@ def hydrate(env_name: str, workflow_key: str, workspace: Path, strict: bool = Fa
     text = env_resolver.resolve(text, env_name, workspace)
     text = file_resolver.resolve(text, workspace)
     text = js_resolver.resolve(text, workspace)
+    text = py_resolver.resolve(text, workspace)
     text = uuid_resolver.resolve(text)
 
     # Validate no residuals

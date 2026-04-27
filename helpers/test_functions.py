@@ -62,6 +62,21 @@ def _run_pytest_tests(tests_dir: Path, name_filter: str | None) -> tuple[int, st
     return (r.returncode, f"cloud: ran {len(tests)} test file(s) (exit={r.returncode})")
 
 
+def _run_pytest_n8n_tests(tests_dir: Path, name_filter: str | None) -> tuple[int, str]:
+    """Run pytest over test_*.py files in n8n-functions-tests/ (Python pure-function tests)."""
+    if not tests_dir.is_dir():
+        return (0, "n8n-py: no tests dir")
+    tests = sorted(tests_dir.glob("test_*.py"))
+    if name_filter:
+        tests = [t for t in tests if name_filter in t.stem]
+    if not tests:
+        return (0, "n8n-py: no tests")
+
+    cmd = [sys.executable, "-m", "pytest", "-v", *[str(t) for t in tests]]
+    r = subprocess.run(cmd, cwd=tests_dir)
+    return (r.returncode, f"n8n-py: ran {len(tests)} test file(s) (exit={r.returncode})")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace", default=None)
@@ -76,6 +91,7 @@ def main() -> None:
     summaries: list[tuple[int, str]] = []
     if args.target in ("n8n", "all"):
         summaries.append(_run_node_tests(n8n_tests, args.name_filter))
+        summaries.append(_run_pytest_n8n_tests(n8n_tests, args.name_filter))
     if args.target in ("cloud", "all"):
         summaries.append(_run_pytest_tests(cloud_tests, args.name_filter))
 

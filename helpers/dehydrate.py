@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from helpers.workspace import workspace_root
 from helpers.config import load_yaml, flatten_config
-from helpers.placeholder import js_resolver
+from helpers.placeholder import js_resolver, py_resolver
 
 # Volatile / runtime-only fields that must not appear in templates.
 _METADATA_FIELDS = frozenset({
@@ -101,8 +101,9 @@ def dehydrate_data(
     except Exception:
         pass  # if env YAML missing, skip reverse-substitution
 
-    # Restore JS placeholders from DEHYDRATE markers
+    # Restore JS / Python placeholders from DEHYDRATE markers
     text = js_resolver.dehydrate(text)
+    text = py_resolver.dehydrate(text)
 
     return text
 

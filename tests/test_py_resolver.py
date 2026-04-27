@@ -159,3 +159,73 @@ def test_resolve_raises_on_missing_file(tmp_path):
     raw = _workflow_json("{{HYDRATE:py:n8n-functions/py/missing.py}}")
     with pytest.raises(FileNotFoundError):
         py_resolver.resolve(raw, tmp_path)
+
+
+def test_hydrate_dehydrate_full_round_trip(tmp_path):
+    """End-to-end: helpers.hydrate.hydrate() then helpers.dehydrate.dehydrate_data() restores the placeholder."""
+    import yaml
+
+    ws = tmp_path / "ws"
+    (ws / "n8n-config").mkdir(parents=True)
+    (ws / "n8n-workflows-template").mkdir()
+    (ws / "n8n-functions" / "py").mkdir(parents=True)
+
+    (ws / "n8n-functions" / "py" / "calculate_stats_by_category.py").write_text(CALC_STATS_PY)
+
+    yaml_data = {
+        "name": "dev",
+        "displayName": "Development",
+        "n8n": {"instanceName": "localhost:8080"},
+        "credentials": {},
+        "workflows": {"smoke": {"id": "wf-1", "name": "Smoke"}},
+    }
+    (ws / "n8n-config" / "dev.yml").write_text(yaml.dump(yaml_data))
+    (ws / "n8n-config" / ".env.dev").write_text("N8N_API_KEY=fake\n")
+
+    glue = (
+        "{{HYDRATE:py:n8n-functions/py/calculate_stats_by_category.py}}\n"
+        "\n"
+        'body = items[0]["json"]\n'
+        'articles = body.get("articles", [])\n'
+        "stats = calculate_stats_by_category(articles)\n"
+        'return [{"json": {"stats": stats}}]\n'
+    )
+    template = {
+        "name": "Smoke",
+        "nodes": [
+            {
+                "id": "{{HYDRATE:uuid:code-id}}",
+                "name": "Code",
+                "type": "n8n-nodes-base.code",
+                "parameters": {"language": "python", "pythonCode": glue},
+            }
+        ],
+        "connections": {},
+        "settings": {},
+    }
+    template_path = ws / "n8n-workflows-template" / "smoke.template.json"
+    template_path.write_text(json.dumps(template, indent=2))
+
+    from helpers.hydrate import hydrate
+    from helpers.dehydrate import dehydrate_data
+
+    built_path = hydrate("dev", "smoke", ws)
+    built = json.loads(built_path.read_text())
+
+    code_after_hydrate = built["nodes"][0]["parameters"]["pythonCode"]
+    assert "def calculate_stats_by_category(articles):" in code_after_hydrate
+    assert "{{HYDRATE" not in json.dumps(built), "no residual placeholders after hydrate"
+
+    live_returned = dict(built)
+    live_returned["id"] = "wf-1"
+    live_returned["active"] = True
+    live_returned["versionId"] = "v1"
+    live_returned["tags"] = []
+
+    dehydrated_text = dehydrate_data(live_returned, "dev", ws, "smoke")
+    round_tripped = json.loads(dehydrated_text)
+    code_after_dehydrate = round_tripped["nodes"][0]["parameters"]["pythonCode"]
+
+    assert "{{HYDRATE:py:n8n-functions/py/calculate_stats_by_category.py}}" in code_after_dehydrate
+    assert 'body = items[0]["json"]' in code_after_dehydrate
+    assert "# DEHYDRATE:py:" not in code_after_dehydrate
