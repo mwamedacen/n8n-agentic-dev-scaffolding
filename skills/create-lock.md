@@ -34,7 +34,14 @@ After this skill, the user owns the primitives in their workspace. The harness's
 
 ## What you're actually deploying
 
-The four primitives are sub-workflows that wrap the n8n `n8n-nodes-base.redis` node with token-fencing logic. For their internal node graphs and the lock-value JSON shape, see [`skills/integrations/redis/lock-pattern.md`](integrations/redis/lock-pattern.md). For the architectural rationale (why token fencing + client-side TTL instead of SETNX-EX) and when this pattern is NOT safe enough, see [`skills/patterns/locking.md`](patterns/locking.md).
+The four primitives are sub-workflows that wrap the dedicated `n8n-nodes-base.redis` node:
+
+- `lock_acquisition` uses Redis-native atomic INCR + EXPIRE for acquire, with a GET-poll wait loop for retry-on-contention. 13 nodes total.
+- `lock_release` does a plain Redis DEL. 4 nodes.
+- `error_handler_lock_cleanup` is a no-op stub — orphans self-heal via Redis-side EXPIRE.
+- `rate_limit_check` is a fixed-window INCR counter, 4 nodes.
+
+For node-graph diagrams + the Redis key namespace, see [`skills/integrations/redis/lock-pattern.md`](integrations/redis/lock-pattern.md). For the safety model (atomic INCR prevents race-on-acquire) and when this pattern is NOT safe enough (multi-region Redis, fairness-required), see [`skills/patterns/locking.md`](patterns/locking.md).
 
 | Primitive | Used by |
 |---|---|

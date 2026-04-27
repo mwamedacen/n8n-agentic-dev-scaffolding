@@ -1,6 +1,6 @@
 ---
 name: pattern-locking
-description: Distributed coordination via Redis sub-workflows — token-fencing lock with TTL + fixed-window rate-limit. Architectural rationale, safety model, when NOT to use.
+description: Distributed coordination via Redis sub-workflows — atomic INCR lock + GET-poll wait + fixed-window rate-limit. Safety model, scope expressions, when NOT to use.
 ---
 
 # Pattern: locking + rate-limit
@@ -9,74 +9,82 @@ A workflow that mutates a shared resource (a Sharepoint Excel file, a database r
 
 | Mode | Primitive | Caller payload | Returns |
 |---|---|---|---|
-| Lock — wait-with-retry (default) | `lock_acquisition` | `{ scope, workflow_id, workflow_name, wait_till_lock_released: true, execution_id, ttl_seconds }` | `{ lock_id }` |
-| Lock — fail-fast | `lock_acquisition` | `{ scope, workflow_id, workflow_name, wait_till_lock_released: false, execution_id, ttl_seconds }` | `{ lock_id }` OR Stop and Error |
+| Lock — wait-with-retry (default) | `lock_acquisition` | `{ scope, ttl_seconds, execution_id, wait_till_lock_released: true, max_wait_seconds }` | `{ acquired, count, scope, lock_id, key }` |
+| Lock — fail-fast | `lock_acquisition` | `{ scope, ttl_seconds, execution_id, wait_till_lock_released: false, max_wait_seconds }` | `{ acquired, count, scope, lock_id, key }` OR Stop and Error |
 | Rate limit | `rate_limit_check` | `{ scope, limit, windowSeconds }` | `{ allowed, scope, count, limit }` |
 
-`lock_release` is the partner to `lock_acquisition` (always called once per acquire). `error_handler_lock_cleanup` is a no-op stub — orphan locks self-heal via TTL (see below).
+`lock_release` is the partner to `lock_acquisition` (always called once per acquire). `error_handler_lock_cleanup` is a no-op stub — orphan locks self-heal via Redis-side EXPIRE.
 
-For node-graph diagrams + the lock-value JSON shape + the Redis key namespace, see [`skills/integrations/redis/lock-pattern.md`](../integrations/redis/lock-pattern.md).
+For node-graph diagrams + the Redis key namespace, see [`skills/integrations/redis/lock-pattern.md`](../integrations/redis/lock-pattern.md).
 
 ## Architectural rationale
 
-The straightforward way to build a distributed mutex is `SET key value NX EX ttl` — atomic set-if-not-exists with TTL. n8n provides this neither way:
+The shipped pattern is **Redis-native atomic INCR + EXPIRE**. INCR is a single server-side atomic op that returns the post-increment count: the first caller gets 1, concurrent callers get 2, 3, … Whoever sees `count === 1` holds the lock. EXPIRE applied at the same time gives Redis-enforced TTL.
 
-1. **Code nodes don't expose `this.helpers.redis`**. That API is only available inside custom-node `execute()` methods, not in the user-facing sandbox.
-2. **The dedicated `n8n-nodes-base.redis` SET op has no NX flag and no EX param**. Confirmed via the official TS types: `set` accepts only `key | value | keyType | valueIsJSON`.
+Wait-mode polls with **GET (read-only)** instead of re-INCR — because re-INCR would re-EXTEND the EXPIRE TTL on every poll, breaking the holder's TTL backstop. When GET returns null (lock released or expired), the waiter re-INCRs to attempt acquire.
 
-So a "real" SETNX-EX mutex isn't available without writing a custom n8n node. The harness uses a **token-fencing** pattern instead, with TTL enforced **client-side**. This trades atomic prevention for atomic detection, which is acceptable for the use cases the harness targets but not for everything (see "When NOT to use" below).
+This is materially better than the B-9 token-fencing pattern it replaces:
+- Race-on-acquire is **prevented** at acquire time, not detected at release time.
+- TTL is enforced **server-side** by Redis, not client-side by every reader.
+- Lock value is a plain integer counter — no JSON metadata to parse, no schema drift.
+- Total node count: 13 (acquire) + 4 (release) vs. earlier 10 + 6.
 
-## Safety model: token fencing
+## Safety model
 
-Each acquire mints a fresh `lock_id` (UUID) and stores it inside the lock value alongside the workflow/execution metadata. The contract is:
+**INCR is atomic.** Redis serializes increments. Two concurrent callers get distinct post-increment values; only one sees `count === 1` and holds the lock. There is no race-on-acquire window.
 
-- **Acquire**: GET → If absent OR stale → SET with new lock_id → return that lock_id.
-- **Release**: GET → JSON.parse → check stored lock_id == caller's lock_id → DEL if match, else Stop and Error.
+**Wasted INCRs on re-race are harmless.** If 5 waiters all see GET=null and all simultaneously re-INCR, only the first gets `count === 1` (holds); the others see counts 2–5 and re-enter wait. The inflated counter is cleared when the holder DELs on release.
 
-What this gives:
-
-- **Detectable double-acquire.** If two callers both see "no active lock" simultaneously, both SET. The second writer overwrites the first. Both get a `lock_id`. When they release: the first caller's lock_id no longer matches the stored value → its release fires `LOGIC ERROR: Lock held by <other workflow>` → its workflow stops. The second caller's release matches → DEL succeeds.
-- **No silent corruption.** A wrong holder cannot silently DEL someone else's lock. The Stop and Error surfaces the conflict immediately.
-
-What it does NOT give:
-
-- **Prevention of double-execution of the critical section.** Both callers' work runs to the point of release. If your critical section (between acquire and release) does irreversible side effects (e.g. charging a card, sending an email), token fencing alone is insufficient — either side may have already committed before the release-time error.
+**Release does no ownership check.** The wrapper flow guarantees only the holder reaches release (failed acquires Stop and Error before the critical section). A defensive `lock_id` ownership check would add complexity for a failure mode that doesn't occur in normal use. If you need defense-in-depth (caller passes the wrong scope to release, etc.), add a Code node before `Lock Release` in your wrapped workflow that asserts `acquired === true` first.
 
 ## When NOT to use this
 
-Use a stronger primitive (Postgres advisory locks, a dedicated coordination service, or a custom n8n node that exposes SETNX-EX) for:
+The atomic-INCR pattern eliminates the race-on-acquire that the earlier token-fencing model could only detect. The remaining caveats are different:
 
-- **Financial transactions** where double-execution is unacceptable (e.g. `charge customer`, `transfer funds`).
-- **Idempotent-only-by-design APIs** that have no built-in deduplication (no idempotency keys, no upsert).
-- **Hard real-time constraints** where the wait-mode polling adds unacceptable latency.
+- **Single-instance Redis assumed.** Multi-region / multi-master Redis topologies have eventual-consistency behaviors that can re-introduce races. Use a stronger primitive for cross-region coordination.
+- **Holder must release.** A workflow that crashes between acquire and release leaves the lock held until `ttl_seconds` expires. For long-running workflows, set `--ttl-seconds` larger than your worst-case critical-section runtime.
+- **No fairness.** Waiters are not queued in arrival order. Whichever waiter wins the next re-INCR race after the holder releases gets the lock. Could be unfair under heavy contention.
+- **Wait-mode polls Redis.** Default `max_wait_seconds=86400` (24h) with 1-second poll interval = up to 86400 GETs to Redis per stuck waiter. Redis handles it without sweat, but it's worth knowing if you're cost-conscious or want to bound traffic.
 
-For everything else (cron-driven Excel updaters, scheduled CMS syncs, throttle-the-LLM-API workflows, etc.), the token-fencing + TTL pattern is the right shape.
+For use cases the INCR pattern still doesn't fit (sub-millisecond contention, queued fairness, multi-region), consider Postgres advisory locks via `n8n-nodes-base.postgres` — they're transaction-scoped and integrate with your application DB if you have one.
 
 ## TTL semantics
 
-The lock value carries `ttl_seconds` (default `86400` = 24h). Every caller's `parse_and_check_lock` Code node treats a lock as released if `(now - locked_at) > ttl_seconds * 1000` even though the Redis key itself is still there.
+`ttl_seconds` defaults to `86400` (24h). Set on Redis at acquire-time via the INCR node's `expire: true, ttl: <n>` parameter — **Redis-enforced**. A crashed holder's lock auto-expires after `ttl_seconds`; the next caller's INCR sees the key absent and starts fresh.
 
-What this gives:
+Tune per workflow:
+- A 5-minute payment workflow → `--ttl-seconds 600` (10 min, generous buffer).
+- A long batch job that may run for 6 hours → `--ttl-seconds 32400` (9h, also generous).
 
-- **Bounded leak on crash.** If a workflow acquires and crashes before reaching `lock_release`, the orphaned lock is automatically considered released after `ttl_seconds`. The next caller will overwrite it cleanly.
-- **No worker-pinning during wait.** The wait branch uses an n8n Wait node, which releases the worker between polls. A stuck holder doesn't pin a thread on every waiter.
+The TTL is NOT a wait timeout. It bounds how long an orphaned lock blocks the scope after a crash. The wait timeout is `--max-wait-seconds`.
 
-What it doesn't give:
+## `max_wait_seconds` semantics
 
-- **Server-side eviction.** The Redis key persists in storage until next contention or manual DEL. This is fine — quiet locks waste no compute, just a few bytes per scope.
-- **Sub-second crash recovery.** With the default `86400`s TTL, an orphan blocks the lock for up to 24h. Tune `--ttl-seconds` per workflow: 5 min for payment workflows, 7 days for long batch jobs.
+`max_wait_seconds` defaults to `86400` (24h) — effectively unbounded for typical use. The waiter polls every 1 second (hardcoded in the primitive) until either the lock is acquired or `max_wait_seconds` has elapsed since the original acquire attempt.
+
+Override per-workflow with `--max-wait-seconds <n>` if you need fail-fast-ish semantics for time-sensitive callers (webhooks, user-facing API endpoints):
+
+```bash
+# Webhook handler — give up after 30 seconds, let upstream retry / queue.
+python3 <harness>/helpers/add_lock_to_workflow.py \
+  --workflow-key webhook_handler \
+  --scope-expression "='user-' + $json.userId" \
+  --max-wait-seconds 30
+```
+
+Lower bounds catch "lock is genuinely contended" without dragging out user-facing latency. The default `86400` is the conservative choice — assume callers want to wait unless they explicitly say otherwise.
 
 ## Wait mode
 
-Default behavior (`wait_till_lock_released: true`): if the lock is held, the n8n Wait node fires for its configured duration (default in the primitive), then the flow loops back to `get_lock`. Repeat until acquired or until the workflow times out.
+Default behavior (`wait_till_lock_released: true`): if the lock is held, the n8n Wait node fires for 1 second, then the flow GETs the lock key. If still present, loop back to Wait. If absent, re-INCR. If `max_wait_seconds` elapsed at any point, Stop and Error with a timeout message.
 
-`--fail-fast` flips `wait_till_lock_released: false`: the primitive immediately stops with a descriptive error including the holding workflow's identity.
+`--fail-fast` flips `wait_till_lock_released: false`: the primitive immediately Stop-and-Errors with a descriptive message including the current count.
 
-The Wait node has a configurable duration; edit the primitive in your workspace to tune. The harness ships with the n8n default.
+The Wait node duration is hardcoded to 1 second. Edit the primitive in your workspace if you need a different cadence (most contention is sub-second; 1s is the right default).
 
 ## Scope expression
 
-Each primitive invocation passes a `scope` field that becomes the Redis key (or key suffix). Choose carefully:
+Each primitive invocation passes a `scope` field that becomes the Redis key suffix (`lock-<scope>`). Choose carefully:
 
 - `={{ $execution.id }}` — "one execution at a time" semantics. Useful for self-throttling.
 - `={{ 'excel-' + $json.fileId }}` — per-resource locking (one Excel file at a time).
@@ -85,16 +93,12 @@ Each primitive invocation passes a `scope` field that becomes the Redis key (or 
 
 Anything that produces a stable, per-protected-thing string works.
 
-## Owner-pointer mechanic (deferred)
-
-An earlier version of this plan used a separate `lock-owner-${executionId}` reverse pointer for error-handler cleanup. The current implementation drops it: TTL handles orphan cleanup, and the lock value's own `execution_id` field carries the owner identity for any future active-cleanup primitive. See `error_handler_lock_cleanup` in the integrations doc for the upgrade path if TTL-bounded cleanup proves insufficient.
-
 ## Rate-limit semantics
 
-`rate_limit_check` is **fixed-window INCR**:
+`rate_limit_check` is **fixed-window INCR** (different from the lock pattern even though both use INCR):
 
 - Bucket key: `ratelimit-<scope>-<floor(now_ms / (windowSeconds * 1000))>`.
-- INCR returns the new count; EXPIRE is set on every INCR (the dedicated Redis node always re-applies it). Practical impact is tiny — buckets that go inactive mid-window expire `windowSeconds` after their last call instead of after their first.
+- INCR returns the new count; EXPIRE is set on every INCR.
 - `allowed = count <= limit`.
 
 The boundary burst caveat: a caller can hit `limit` near the end of one window and `limit` again at the start of the next, so the worst-case observed throughput is `2 × limit` across the boundary. Token-bucket would smooth this but is deferred — fixed-window INCR is usually sufficient for "throttle obvious abuse" rather than "enforce a strict ceiling".
@@ -108,6 +112,7 @@ The boundary burst caveat: a caller can hit `limit` near the end of one window a
 | Wrap a workflow in lock acquire / release (default wait mode) | [`add-lock-to-workflow.md`](../add-lock-to-workflow.md) |
 | Wrap a workflow in lock acquire / release with fail-fast | [`add-lock-to-workflow.md`](../add-lock-to-workflow.md) — pass `--fail-fast` |
 | Tune the lock TTL | [`add-lock-to-workflow.md`](../add-lock-to-workflow.md) — pass `--ttl-seconds` |
+| Tune the wait timeout | [`add-lock-to-workflow.md`](../add-lock-to-workflow.md) — pass `--max-wait-seconds` |
 | Add error-handler cleanup hook (currently a TTL-bounded no-op) | [`add-lock-to-workflow.md`](../add-lock-to-workflow.md) — pass `--lock-on-error` (requires `--include-error-handler` at create-lock time) |
 | Gate a workflow with a rate-limit | [`add-rate-limit-to-workflow.md`](../add-rate-limit-to-workflow.md) — requires `--include-rate-limit` at create-lock time |
 
@@ -115,5 +120,4 @@ The boundary burst caveat: a caller can hit `limit` near the end of one window a
 
 - **Real Redis required.** All four primitives use `n8n-nodes-base.redis` — a Redis credential must be reachable from your n8n instance. See [`skills/integrations/redis/lock-pattern.md`](../integrations/redis/lock-pattern.md).
 - **Single-instance Redis assumed.** Multi-region coordination is out of scope.
-- **No automatic primitive migration.** Workspaces with old placeholder Set-node primitives are not auto-updated. Use `create_lock.py --force-overwrite` (or `copy_primitive.py --force-overwrite`) to opt in.
-- **Token-fencing is not SETNX**, see "Safety model" + "When NOT to use" above before deploying to high-stakes flows.
+- **No automatic primitive migration.** Workspaces with old (pre-INCR) primitives are not auto-updated. Use `create_lock.py --force-overwrite` (or `copy_primitive.py --force-overwrite`) to opt in.
