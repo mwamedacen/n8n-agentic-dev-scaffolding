@@ -64,6 +64,8 @@ These are reference docs, not action triggers. Read them while authoring.
 - [skills/integrations/microsoft-365/excel-and-sharepoint.md](skills/integrations/microsoft-365/excel-and-sharepoint.md)
 - [skills/integrations/gmail/sending-email.md](skills/integrations/gmail/sending-email.md)
 - [skills/integrations/redis/lock-pattern.md](skills/integrations/redis/lock-pattern.md)
+- [skills/integrations/sentry/README.md](skills/integrations/sentry/README.md)
+- [skills/integrations/datadog/README.md](skills/integrations/datadog/README.md)
 - [skills/integrations/slack/README.md](skills/integrations/slack/README.md)
 - [skills/integrations/google-drive/README.md](skills/integrations/google-drive/README.md)
 - [skills/integrations/notion/README.md](skills/integrations/notion/README.md)
