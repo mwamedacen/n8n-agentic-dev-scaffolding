@@ -2,45 +2,45 @@
   "name": "{{HYDRATE:env:displayName}} Lock Acquisition{{HYDRATE:env:workflowNamePostfix}}",
   "nodes": [
     {
-      "id": "{{HYDRATE:uuid:lock-acq-trigger}}",
+      "id": "{{HYDRATE:uuid:la-trigger}}",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
-      "position": [-16, -56],
+      "position": [-16, 0],
       "parameters": {
         "workflowInputs": {
           "values": [
             { "name": "scope" },
-            { "name": "workflow_id" },
-            { "name": "workflow_name" },
-            { "name": "wait_till_lock_released", "type": "boolean" },
+            { "name": "ttl_seconds", "type": "number" },
             { "name": "execution_id" },
-            { "name": "ttl_seconds", "type": "number" }
+            { "name": "wait_till_lock_released", "type": "boolean" },
+            { "name": "max_wait_seconds", "type": "number" }
           ]
         }
       }
     },
     {
-      "id": "{{HYDRATE:uuid:lock-acq-gen-id}}",
-      "name": "generate_lock_id",
+      "id": "{{HYDRATE:uuid:la-context}}",
+      "name": "Build Lock Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [208, -56],
+      "position": [208, 0],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\nconst crypto = require('crypto');\nreturn { json: { lock_id: crypto.randomUUID() } };\n"
+        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\n// Build a stable context object referenced throughout the acquire flow (including the\n// wait-loop, where node('Build Lock Context').first().json gives us deadline_ms even\n// after multiple loop iterations).\nconst scope = $json.scope || 'default';\nconst ttl = typeof $json.ttl_seconds === 'number' ? $json.ttl_seconds : 60;\nconst executionId = $json.execution_id || $execution.id;\nconst waitTillReleased = $json.wait_till_lock_released !== false;  // default true\nconst maxWaitSeconds = typeof $json.max_wait_seconds === 'number' ? $json.max_wait_seconds : 86400;\nconst key = `lock-${scope}`;\nreturn [{\n  json: {\n    scope,\n    ttl,\n    executionId,\n    wait_till_lock_released: waitTillReleased,\n    max_wait_seconds: maxWaitSeconds,\n    key,\n    lock_id: executionId,\n    deadline_ms: Date.now() + (maxWaitSeconds * 1000),\n  },\n}];\n"
       }
     },
     {
-      "id": "{{HYDRATE:uuid:lock-acq-get}}",
-      "name": "get_lock",
+      "id": "{{HYDRATE:uuid:la-incr}}",
+      "name": "INCR Acquire Attempt",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
-      "position": [432, -56],
+      "position": [432, 0],
       "parameters": {
-        "operation": "get",
-        "propertyName": "=SCOPE_LOCK",
-        "key": "={{ $('Execute Workflow Trigger').item.json.scope || \"SCOPE_LOCK\" }}",
+        "operation": "incr",
+        "key": "={{ $('Build Lock Context').first().json.key }}",
+        "expire": true,
+        "ttl": "={{ $('Build Lock Context').first().json.ttl }}",
         "options": {}
       },
       "credentials": {
@@ -51,22 +51,22 @@
       }
     },
     {
-      "id": "{{HYDRATE:uuid:lock-acq-parse}}",
-      "name": "parse_and_check_lock",
+      "id": "{{HYDRATE:uuid:la-evaluate}}",
+      "name": "Evaluate Acquired",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [560, -56],
+      "position": [656, 0],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\n// Parse the GET result and decide whether the lock is currently held.\n// A lock is \"held\" iff: the key exists, the value parses as JSON, AND the lock has not expired (locked_at + ttl_seconds > now).\n// Stale locks (older than their stored ttl_seconds) are treated as released so a new caller can overwrite.\nconst raw = $json.SCOPE_LOCK;\nlet hasActiveLock = false;\nlet parsed = null;\nif (raw !== null && raw !== undefined && raw !== '') {\n  try {\n    parsed = JSON.parse(raw);\n  } catch (e) {\n    // Legacy non-JSON value — treat as held with unknown ttl (don't auto-expire)\n    parsed = { lock_id: String(raw), workflow_id: 'unknown', workflow_name: 'unknown (legacy)', execution_id: 'unknown', locked_at: null, ttl_seconds: null };\n  }\n  if (parsed && typeof parsed === 'object') {\n    const lockedAtMs = parsed.locked_at ? new Date(parsed.locked_at).getTime() : null;\n    const ttlSeconds = typeof parsed.ttl_seconds === 'number' ? parsed.ttl_seconds : null;\n    if (lockedAtMs && ttlSeconds) {\n      hasActiveLock = (Date.now() - lockedAtMs) <= (ttlSeconds * 1000);\n    } else {\n      // Legacy / no-TTL value — treat as held (conservative: don't auto-overwrite)\n      hasActiveLock = true;\n    }\n  }\n}\nreturn [{ json: { has_active_lock: hasActiveLock, parsed_lock: parsed, raw_value: raw } }];\n"
+        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\n// Read the post-INCR count for our key and decide if this caller acquired the lock.\n// `count === 1` means our INCR was the one that created the key — we hold the lock.\n// Any other count means a concurrent caller got there first.\nconst ctx = $('Build Lock Context').first().json;\nconst incrOut = $json;\nconst count = typeof incrOut[ctx.key] === 'number' ? incrOut[ctx.key] : 0;\nconst acquired = count === 1;\nreturn [{ json: { acquired, count, scope: ctx.scope, lock_id: ctx.lock_id, key: ctx.key } }];\n"
       }
     },
     {
-      "id": "{{HYDRATE:uuid:lock-acq-if-held}}",
-      "name": "If_lock_held",
+      "id": "{{HYDRATE:uuid:la-if-acquired}}",
+      "name": "Acquired?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [800, -128],
+      "position": [880, 0],
       "parameters": {
         "conditions": {
           "options": {
@@ -77,79 +77,9 @@
           },
           "conditions": [
             {
-              "id": "{{HYDRATE:uuid:lock-acq-if-held-cond}}",
-              "leftValue": "={{ $json.has_active_lock }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "false",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "{{HYDRATE:uuid:lock-acq-set}}",
-      "name": "set_lock",
-      "type": "n8n-nodes-base.redis",
-      "typeVersion": 1,
-      "position": [1024, -224],
-      "parameters": {
-        "operation": "set",
-        "key": "={{ $('Execute Workflow Trigger').item.json.scope || \"SCOPE_LOCK\" }}",
-        "value": "={{ JSON.stringify({ lock_id: $('generate_lock_id').item.json.lock_id, workflow_id: $('Execute Workflow Trigger').item.json.workflow_id || 'unknown', workflow_name: $('Execute Workflow Trigger').item.json.workflow_name || 'unknown', execution_id: $('Execute Workflow Trigger').item.json.execution_id || 'unknown', locked_at: new Date().toISOString(), ttl_seconds: typeof $('Execute Workflow Trigger').item.json.ttl_seconds === 'number' ? $('Execute Workflow Trigger').item.json.ttl_seconds : 86400 }) }}",
-        "keyType": "string"
-      },
-      "credentials": {
-        "redis": {
-          "id": "{{HYDRATE:env:credentials.redis.id}}",
-          "name": "{{HYDRATE:env:credentials.redis.name}}"
-        }
-      }
-    },
-    {
-      "id": "{{HYDRATE:uuid:lock-acq-set-id}}",
-      "name": "set_lock_id",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1248, -224],
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "{{HYDRATE:uuid:lock-acq-set-id-assign}}",
-              "name": "lock_id",
-              "value": "={{ $('generate_lock_id').item.json.lock_id }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "{{HYDRATE:uuid:lock-acq-if-wait}}",
-      "name": "If_should_wait_or_fail",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [1024, -8],
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "{{HYDRATE:uuid:lock-acq-if-wait-cond}}",
-              "leftValue": "={{ $('Execute Workflow Trigger').item.json.wait_till_lock_released !== false }}",
-              "rightValue": "",
+              "id": "{{HYDRATE:uuid:la-cond-acq}}",
+              "leftValue": "={{ $json.acquired === true }}",
+              "rightValue": true,
               "operator": {
                 "type": "boolean",
                 "operation": "true",
@@ -163,55 +93,207 @@
       }
     },
     {
-      "id": "{{HYDRATE:uuid:lock-acq-wait}}",
-      "name": "wait_before_retry_lock_acquisition",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [1248, -8],
-      "parameters": {},
-      "webhookId": "{{HYDRATE:uuid:lock-acq-wait-webhook}}"
+      "id": "{{HYDRATE:uuid:la-if-wait}}",
+      "name": "Should Wait?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1104, 192],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "{{HYDRATE:uuid:la-cond-wait}}",
+              "leftValue": "={{ $('Build Lock Context').first().json.wait_till_lock_released === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
     },
     {
-      "id": "{{HYDRATE:uuid:lock-acq-fail}}",
-      "name": "fail_lock_held",
+      "id": "{{HYDRATE:uuid:la-fail-fast}}",
+      "name": "Fail Fast — Lock Held",
       "type": "n8n-nodes-base.stopAndError",
       "typeVersion": 1,
-      "position": [1248, 184],
+      "position": [1328, 320],
       "parameters": {
-        "errorMessage": "=Lock acquisition failed: scope '{{ $('Execute Workflow Trigger').item.json.scope }}' is already held by workflow '{{ $('parse_and_check_lock').item.json.parsed_lock ? $('parse_and_check_lock').item.json.parsed_lock.workflow_name : 'unknown' }}' (id: {{ $('parse_and_check_lock').item.json.parsed_lock ? $('parse_and_check_lock').item.json.parsed_lock.workflow_id : 'unknown' }}, execution: {{ $('parse_and_check_lock').item.json.parsed_lock ? $('parse_and_check_lock').item.json.parsed_lock.execution_id : 'unknown' }}, locked_at: {{ $('parse_and_check_lock').item.json.parsed_lock ? $('parse_and_check_lock').item.json.parsed_lock.locked_at : 'unknown' }})"
+        "errorMessage": "=Lock acquisition failed (fail-fast): scope '{{ $('Build Lock Context').first().json.scope }}' is held (count={{ $json.count }}). Caller passed wait_till_lock_released=false."
+      }
+    },
+    {
+      "id": "{{HYDRATE:uuid:la-wait-poll}}",
+      "name": "Wait Before Poll",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1328, 64],
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "webhookId": "{{HYDRATE:uuid:la-wait-poll-webhook}}"
+    },
+    {
+      "id": "{{HYDRATE:uuid:la-get}}",
+      "name": "GET Lock",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1552, 64],
+      "parameters": {
+        "operation": "get",
+        "propertyName": "=LOCK_VALUE",
+        "key": "={{ $('Build Lock Context').first().json.key }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "credentials": {
+        "redis": {
+          "id": "{{HYDRATE:env:credentials.redis.id}}",
+          "name": "{{HYDRATE:env:credentials.redis.name}}"
+        }
+      }
+    },
+    {
+      "id": "{{HYDRATE:uuid:la-check-wait}}",
+      "name": "Check Wait State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1776, 64],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\n// Decide what to do next in the wait loop:\n//   - 'timeout'       → max_wait_seconds elapsed; give up.\n//   - 'retry-incr'    → key is gone (released or expired); attempt a fresh INCR.\n//   - 'keep-waiting'  → key still present; loop back to Wait Before Poll.\nconst ctx = $('Build Lock Context').first().json;\nconst lockValue = $json.LOCK_VALUE;\nconst now = Date.now();\nconst remainingMs = ctx.deadline_ms - now;\nlet state;\nif (remainingMs <= 0) {\n  state = 'timeout';\n} else if (lockValue === null || lockValue === undefined || lockValue === '') {\n  state = 'retry-incr';\n} else {\n  state = 'keep-waiting';\n}\nreturn [{ json: { state, remaining_ms: remainingMs, current_value: lockValue, key: ctx.key, scope: ctx.scope } }];\n"
+      }
+    },
+    {
+      "id": "{{HYDRATE:uuid:la-if-timeout}}",
+      "name": "Timeout?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2000, 64],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "{{HYDRATE:uuid:la-cond-timeout}}",
+              "leftValue": "={{ $json.state === 'timeout' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "{{HYDRATE:uuid:la-fail-timeout}}",
+      "name": "Wait Timeout — Stop",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [2224, -64],
+      "parameters": {
+        "errorMessage": "=Lock acquisition timed out after {{ $('Build Lock Context').first().json.max_wait_seconds }}s waiting for scope '{{ $json.scope }}'."
+      }
+    },
+    {
+      "id": "{{HYDRATE:uuid:la-if-retry}}",
+      "name": "Retry INCR?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2224, 192],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "{{HYDRATE:uuid:la-cond-retry}}",
+              "leftValue": "={{ $json.state === 'retry-incr' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       }
     }
   ],
   "connections": {
     "Execute Workflow Trigger": {
-      "main": [[{ "node": "generate_lock_id", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Build Lock Context", "type": "main", "index": 0 }]]
     },
-    "generate_lock_id": {
-      "main": [[{ "node": "get_lock", "type": "main", "index": 0 }]]
+    "Build Lock Context": {
+      "main": [[{ "node": "INCR Acquire Attempt", "type": "main", "index": 0 }]]
     },
-    "get_lock": {
-      "main": [[{ "node": "parse_and_check_lock", "type": "main", "index": 0 }]]
+    "INCR Acquire Attempt": {
+      "main": [[{ "node": "Evaluate Acquired", "type": "main", "index": 0 }]]
     },
-    "parse_and_check_lock": {
-      "main": [[{ "node": "If_lock_held", "type": "main", "index": 0 }]]
+    "Evaluate Acquired": {
+      "main": [[{ "node": "Acquired?", "type": "main", "index": 0 }]]
     },
-    "If_lock_held": {
+    "Acquired?": {
       "main": [
-        [{ "node": "set_lock", "type": "main", "index": 0 }],
-        [{ "node": "If_should_wait_or_fail", "type": "main", "index": 0 }]
+        [],
+        [{ "node": "Should Wait?", "type": "main", "index": 0 }]
       ]
     },
-    "set_lock": {
-      "main": [[{ "node": "set_lock_id", "type": "main", "index": 0 }]]
-    },
-    "If_should_wait_or_fail": {
+    "Should Wait?": {
       "main": [
-        [{ "node": "wait_before_retry_lock_acquisition", "type": "main", "index": 0 }],
-        [{ "node": "fail_lock_held", "type": "main", "index": 0 }]
+        [{ "node": "Wait Before Poll", "type": "main", "index": 0 }],
+        [{ "node": "Fail Fast — Lock Held", "type": "main", "index": 0 }]
       ]
     },
-    "wait_before_retry_lock_acquisition": {
-      "main": [[{ "node": "get_lock", "type": "main", "index": 0 }]]
+    "Wait Before Poll": {
+      "main": [[{ "node": "GET Lock", "type": "main", "index": 0 }]]
+    },
+    "GET Lock": {
+      "main": [[{ "node": "Check Wait State", "type": "main", "index": 0 }]]
+    },
+    "Check Wait State": {
+      "main": [[{ "node": "Timeout?", "type": "main", "index": 0 }]]
+    },
+    "Timeout?": {
+      "main": [
+        [{ "node": "Wait Timeout — Stop", "type": "main", "index": 0 }],
+        [{ "node": "Retry INCR?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Retry INCR?": {
+      "main": [
+        [{ "node": "INCR Acquire Attempt", "type": "main", "index": 0 }],
+        [{ "node": "Wait Before Poll", "type": "main", "index": 0 }]
+      ]
     }
   },
   "settings": {
