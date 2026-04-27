@@ -1,136 +1,172 @@
 ---
 name: integration-redis
-description: Redis nodes — distributed lock + rate-limit recipes via Code-node + this.helpers.redis.
+description: Redis-backed coordination primitives — lock acquire/release node graphs, rate-limit, lock-value JSON shape, key namespace.
 ---
 
 # Redis (lock + rate-limit pattern)
 
-## Node type
+The harness ships four primitives backed by the dedicated `n8n-nodes-base.redis` node (NOT `this.helpers.redis.call(...)` from a Code node — that API is only exposed inside custom-node `INodeType.execute()` methods, not in user Code-node sandboxes).
 
-The harness ships its primitives as `n8n-nodes-base.code` nodes that call `this.helpers.redis.call(...)` directly. The dedicated `n8n-nodes-base.redis` node is fine for ad-hoc ops, but the primitives need atomic SETNX with TTL and conditional INCR — the Code-node surface is the correct place.
+## Credential
 
-## Credential type
+`redis` credential type. See [`skills/manage-credentials.md`](../../manage-credentials.md). The four primitives all reference it via `{{HYDRATE:env:credentials.redis.{id,name}}}` placeholders.
 
-`redis`.
+## Shipped primitives
 
-For the actual setup flow, see [`skills/manage-credentials.md`](../../manage-credentials.md). Path A works well — Redis credentials are usually a single host/port/password tuple in `.env.<env>`.
+| Primitive | Trigger | Output |
+|---|---|---|
+| `lock_acquisition` | `executeWorkflowTrigger` (inputs: `scope, workflow_id, workflow_name, wait_till_lock_released, execution_id, ttl_seconds`) | `{ lock_id }` |
+| `lock_release` | `executeWorkflowTrigger` (inputs: `lock_id, scope`) | `{}` (or fails with LOGIC ERROR) |
+| `error_handler_lock_cleanup` | `errorTrigger` | `{ cleaned: false, reason, executionId }` (no-op stub; TTL handles cleanup) |
+| `rate_limit_check` | `executeWorkflowTrigger` (inputs: `scope, limit, windowSeconds`) | `{ allowed, scope, count, limit }` |
 
-## Shipped primitives (real bodies)
+Every Code-node body inside these primitives starts with `// @n8n-harness:primitive` to bypass `validate.py`'s pure-function discipline. **Do not copy that marker into user Code nodes** — it silently disables validation.
 
-The harness ships four primitives at `<harness>/primitives/workflows/`:
+## Lock value JSON shape
 
-- `lock_acquisition.template.json` — fail-fast or wait-with-timeout mutex.
-- `lock_release.template.json` — release the lock + owner pointer.
-- `error_handler_lock_cleanup.template.json` — clean up after a crashed execution.
-- `rate_limit_check.template.json` — fixed-window INCR rate limiter.
+`lock_acquisition`'s `set_lock` Redis SET writes this JSON-stringified payload at `<scope>`:
 
-Each Code-node body opens with `// @n8n-harness:primitive` so `validate.py` skips its pure-function discipline checks. Do not copy that marker into user Code nodes.
-
-### `lock_acquisition` body
-
-```javascript
-// @n8n-harness:primitive — exempt from pure-function discipline
-const scope = $json.scope || 'default';
-const maxWaitMs = typeof $json.maxWaitMs === 'number' ? $json.maxWaitMs : 0;
-const pollMs = typeof $json.pollIntervalMs === 'number' ? $json.pollIntervalMs : 200;
-const ttl = typeof $json.ttlSeconds === 'number' ? $json.ttlSeconds : 60;
-const lockKey = `lock-${scope}`;
-const ownerKey = `lock-owner-${$execution.id}`;
-const ownerId = $execution.id;
-
-const attempt = async () => {
-  const result = await this.helpers.redis.call('SET', lockKey, ownerId, 'NX', 'EX', String(ttl));
-  return result === 'OK';
-};
-
-const start = Date.now();
-let acquired = await attempt();
-while (!acquired && maxWaitMs > 0 && (Date.now() - start) < maxWaitMs) {
-  await new Promise(r => setTimeout(r, pollMs));
-  acquired = await attempt();
+```json
+{
+  "lock_id": "<uuid>",                 // crypto.randomUUID() — caller's release token
+  "workflow_id": "<wf-id>",            // identity of the workflow that acquired
+  "workflow_name": "<wf-name>",        // human-readable
+  "execution_id": "<exec-id>",         // n8n execution that holds it
+  "locked_at": "<iso-8601>",           // when the SET happened
+  "ttl_seconds": 86400                 // how long this caller considers the lock valid
 }
-
-if (acquired) {
-  // Write owner pointer so error_handler_lock_cleanup can resolve the scope
-  await this.helpers.redis.call('SET', ownerKey, scope, 'EX', String(ttl));
-}
-
-const waitedMs = Date.now() - start;
-return [{ json: { acquired, scope, waitedMs } }];
 ```
 
-Output: `{ acquired, scope, waitedMs }`. With `maxWaitMs > 0`, the node polls every `pollIntervalMs` until either it acquires or the deadline passes — the worker is held for that whole window. Keep `maxWaitMs ≤ 2000` unless you have a deep worker pool.
+The `ttl_seconds` field travels in the value (not in a Redis-side EXPIRE) because n8n's Redis v1 `set` operation has no `expire` parameter (verified against the official TS types). TTL is enforced client-side: `parse_and_check_lock` in the acquire flow computes `(now - locked_at) > ttl_seconds * 1000` and treats stale locks as released.
 
-### `lock_release` body
+## `lock_acquisition` node graph (10 nodes)
 
-```javascript
-// @n8n-harness:primitive — exempt from pure-function discipline
-const scope = $json.scope || 'default';
-const lockKey = `lock-${scope}`;
-const ownerKey = `lock-owner-${$execution.id}`;
-await this.helpers.redis.call('DEL', lockKey);
-await this.helpers.redis.call('DEL', ownerKey);
-return [{ json: { released: true, scope } }];
+```
+Execute Workflow Trigger
+       │
+       ▼
+generate_lock_id (Code: crypto.randomUUID())
+       │
+       ▼
+get_lock (Redis GET, propertyName=SCOPE_LOCK)  ◄─────────┐
+       │                                                  │
+       ▼                                                  │
+parse_and_check_lock (Code: JSON.parse + stale-check)     │
+       │                                                  │
+       ▼                                                  │
+If_lock_held ─── false ──► set_lock (Redis SET)           │
+       │                       │                          │
+       │                       ▼                          │
+       │                  set_lock_id (Set: { lock_id })  │
+       │                       │                          │
+       │                       ▼ (output)                 │
+       │                                                  │
+       └─── true  ──► If_should_wait_or_fail              │
+                            │                             │
+                  ┌── true ─┴── false ─┐                  │
+                  │                    │                  │
+                  ▼                    ▼                  │
+       wait_before_retry…    fail_lock_held               │
+       (n8n Wait node:       (Stop and Error              │
+        releases the          with held-by details)       │
+        worker, then          │                           │
+        loops back)           ▼                           │
+              │             (terminal, errors out)        │
+              └─────────────────────────────────────────────┘  (back to get_lock)
 ```
 
-DEL on a non-existent key is a no-op — double-release is safe.
+Node-by-node:
 
-### `error_handler_lock_cleanup` body
+- **generate_lock_id**: Code node. Uses `require('crypto').randomUUID()` to mint the per-acquire token.
+- **get_lock**: Redis GET with `propertyName: SCOPE_LOCK`, key from `={{ $('Execute Workflow Trigger').item.json.scope || "SCOPE_LOCK" }}`. Returns `null` if absent.
+- **parse_and_check_lock**: Code node. Reads `$json.SCOPE_LOCK`. Parses JSON. Computes `has_active_lock = key_present && value_parses && (now - locked_at) <= ttl_seconds * 1000`. Legacy non-JSON values are treated as held (conservative). Output: `{ has_active_lock, parsed_lock, raw_value }`.
+- **If_lock_held**: tests `={{ $json.has_active_lock }}` with operator `boolean.false` → branch [0] is "no active lock" (false), branch [1] is "lock held" (true).
+- **set_lock**: Redis SET with the JSON value above. No NX, no EX (the node doesn't expose them).
+- **set_lock_id**: Set node returning `{ lock_id }` to the caller.
+- **If_should_wait_or_fail**: tests `={{ $('Execute Workflow Trigger').item.json.wait_till_lock_released !== false }}`. True (default) → wait branch. False → fail branch.
+- **wait_before_retry_lock_acquisition**: n8n Wait node (default duration). The Wait node releases the worker between checks (no worker-pinning), then resumes and loops back to `get_lock`.
+- **fail_lock_held**: Stop and Error with a message including the holding workflow's id/name/execution and `locked_at`.
 
-```javascript
-// @n8n-harness:primitive — exempt from pure-function discipline
-const executionId = $workflow.errorData?.execution?.id || $execution.id;
-const ownerKey = `lock-owner-${executionId}`;
+## `lock_release` node graph (6 nodes)
 
-const scope = await this.helpers.redis.call('GET', ownerKey);
-if (scope) {
-  const lockKey = `lock-${scope}`;
-  await this.helpers.redis.call('DEL', lockKey);
-  await this.helpers.redis.call('DEL', ownerKey);
-}
-
-return [{ json: { cleaned: !!scope, executionId, scope: scope || null } }];
+```
+Execute Workflow Trigger
+       │
+       ▼
+get_lock (Redis GET, propertyName=LOCK_VALUE)
+       │
+       ▼
+parse_lock_value (Code, runOnceForEachItem):
+   - absent key → is_match: true, already_released: true
+   - JSON value → parse + compare lock_id
+   - legacy string → coerce to legacy lock object
+       │
+       ▼
+If (tests $json.is_match):
+   ├── true  ──► delete_lock (Redis DEL)
+   └── false ──► Stop and Error
+                 (LOGIC ERROR: lock held by …, not by your lock_id)
 ```
 
-Resolves the failed execution's scope via the owner pointer (`lock-owner-<execId>` → `<scope>`). The `?.` chain plus `|| $execution.id` fallback prevent a crash if `$workflow.errorData` is missing — but if the execution-id path is wrong, GET returns null and cleanup silently no-ops. Verify against your live n8n version by running a workflow that throws after acquire and inspecting the cleanup output's `cleaned` field.
+Idempotent on absent key: a release-after-already-released succeeds silently. The LOGIC ERROR fires only when the key exists AND the stored `lock_id` doesn't match the caller's — i.e. the release came from the wrong holder.
 
-### `rate_limit_check` body
+## `rate_limit_check` node graph (4 nodes)
 
-```javascript
-// @n8n-harness:primitive — exempt from pure-function discipline
-const scope = $json.scope || 'default';
-const limit = typeof $json.limit === 'number' ? $json.limit : 10;
-const windowSeconds = typeof $json.windowSeconds === 'number' ? $json.windowSeconds : 60;
-const key = `ratelimit-${scope}-${Math.floor(Date.now() / (windowSeconds * 1000))}`;
-
-const count = await this.helpers.redis.call('INCR', key);
-if (count === 1) {
-  await this.helpers.redis.call('EXPIRE', key, String(windowSeconds));
-}
-const allowed = count <= limit;
-return [{ json: { allowed, scope, count, limit } }];
+```
+Execute Workflow Trigger
+       │
+       ▼
+Build Bucket Key (Code: scope/limit/windowSeconds + key = ratelimit-<scope>-<bucket>)
+       │
+       ▼
+Redis INCR (operation=incr, key=$json.key, expire=true, ttl=$json.windowSeconds)
+       │
+       ▼
+Build Result (Code: count = $json[prev.key]; allowed = count <= prev.limit)
+       │
+       ▼ output: { allowed, scope, count, limit }
 ```
 
-Fixed-window: bucket key includes `floor(now_ms / (windowSeconds * 1000))`. EXPIRE only on first INCR so within-window calls don't reset TTL. Boundary-burst caveat: a caller can hit `limit` near the end of one window and `limit` again at the start of the next (up to `2 × limit` across the edge). Token-bucket is deferred.
+Bucket key: `ratelimit-<scope>-<floor(now_ms / (windowSeconds * 1000))>`. The bucket integer rotates each window, so old buckets garbage-collect via their own EXPIRE TTL.
 
-## TTL discipline
+Boundary-burst caveat: a caller can hit `limit` near the end of one window and `limit` again at the start of the next, so observed throughput can reach `2 × limit` across the edge. Token-bucket would smooth this but is deferred.
 
-- Lock TTL defaults to 60 s; tune via `--ttl-seconds` per workload.
-- Owner pointer shares the lock TTL — both expire together if the execution crashes without releasing.
-- Rate-limit window TTL equals `windowSeconds`. The bucket key auto-rotates each window.
+## `error_handler_lock_cleanup` (no-op stub, 2 nodes)
+
+```
+Error Trigger ──► TTL Bounded Cleanup (Code: returns { cleaned: false, reason, executionId })
+```
+
+No Redis ops. Orphaned locks self-heal via the client-side TTL check in `lock_acquisition.parse_and_check_lock` — any new acquire on the same scope after `locked_at + ttl_seconds` will overwrite the stale value. Trade-off: between failure and next-contention there's a window of `ttl_seconds` where the lock key sits stale in Redis. Tune `--ttl-seconds` per workflow.
+
+To upgrade to active cleanup later, replace the stub with: GET the lock at the failed scope → JSON.parse → check `execution_id` matches `$workflow.errorData?.execution?.id` → DEL if match. Requires either iterating `lock-*` keys (Redis `keys` op) or maintaining an owner-pointer pattern.
 
 ## Key namespace
 
-| Key shape | Purpose | Owner |
-|---|---|---|
-| `lock-<scope>` | The mutex itself | `lock_acquisition` (SETNX), `lock_release` (DEL), `error_handler_lock_cleanup` (DEL) |
-| `lock-owner-<executionId>` | Reverse pointer for error-handler cleanup | `lock_acquisition` (SET on success) |
-| `ratelimit-<scope>-<bucket>` | Rate-limit counter for fixed window | `rate_limit_check` (INCR + EXPIRE) |
+| Key shape | Operation | Set by | Cleared by |
+|---|---|---|---|
+| `<scope>` (e.g. `excel-fileId-123`, or default `SCOPE_LOCK`) | Lock value (JSON-stringified) | `lock_acquisition.set_lock` (SET) | `lock_release.delete_lock` (DEL) OR overwritten by next acquire after TTL |
+| `ratelimit-<scope>-<bucket>` | Rate-limit counter | `rate_limit_check.Redis INCR` (INCR + EXPIRE) | EXPIRE TTL = `windowSeconds` |
 
-`<bucket>` is `floor(Date.now() / (windowSeconds * 1000))` — an integer that increments once per window.
+`<bucket>` for rate-limit is `floor(Date.now() / (windowSeconds * 1000))` — an integer that increments once per window.
+
+## TTL discipline
+
+- **Lock TTL** defaults to `86400` (24h). Override via `add-lock-to-workflow.py --ttl-seconds`. Pick a value larger than your worst-case critical-section runtime.
+- **Lock TTL is client-side**: stored in the lock JSON, evaluated in `parse_and_check_lock`. The Redis key itself never has a server-side EXPIRE on the lock (`set` op doesn't support it).
+- **Rate-limit TTL** equals `windowSeconds`, applied via the Redis INCR node's `expire: true, ttl: ...` parameters. Server-enforced.
+
+## Why `this.helpers.redis` is NOT used
+
+n8n Code nodes run inside a V8 isolate that exposes only `$json`, `$input`, `$()`, `$node`, `$execution`, `$workflow`, `$now`, `$today`. The `this.helpers.*` API surface (httpRequest, redis, etc.) is the **node-developer SDK** — accessible only from `INodeType.execute()` in custom-node code, NOT from the user-facing Code-node sandbox. n8n's docs hedge this: "Some methods and variables aren't available in the Code node. These aren't in the documentation."
+
+So all Redis I/O in the harness primitives goes through the dedicated `n8n-nodes-base.redis` node. The Code nodes only do pure JS work (UUID generation, JSON parse/stringify, stale-check arithmetic).
 
 ## See also
 
-- [`skills/patterns/locking.md`](../../patterns/locking.md) — fail-fast, wait, rate-limit modes; when to use each.
-- [`skills/manage-credentials.md`](../../manage-credentials.md) — credential setup.
-- [`skills/create-lock.md`](../../create-lock.md) — installing the primitives into a workspace.
+- [`skills/patterns/locking.md`](../../patterns/locking.md) — fail-fast vs wait modes, token-fencing safety model, when this pattern is NOT safe enough.
+- [`skills/manage-credentials.md`](../../manage-credentials.md) — Redis credential setup.
+- [`skills/create-lock.md`](../../create-lock.md) — installing the lock pair into a workspace.
+- [`skills/copy-primitive.md`](../../copy-primitive.md) — copy any single primitive without bundled registration.
+- [`skills/add-lock-to-workflow.md`](../../add-lock-to-workflow.md) — wrap an existing workflow with acquire/release.
+- [`skills/add-rate-limit-to-workflow.md`](../../add-rate-limit-to-workflow.md) — gate a workflow with rate-limit.
