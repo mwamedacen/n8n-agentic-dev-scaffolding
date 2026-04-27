@@ -6,20 +6,28 @@
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
-      "position": [240, 300],
+      "position": [-16, -80],
       "parameters": {
-        "inputSource": "passthrough"
+        "workflowInputs": {
+          "values": [
+            { "name": "lock_id" },
+            { "name": "scope" }
+          ]
+        }
       }
     },
     {
-      "id": "{{HYDRATE:uuid:lock-rel-code}}",
-      "name": "Release Lock",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [460, 300],
+      "id": "{{HYDRATE:uuid:lock-rel-get}}",
+      "name": "get_lock",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [208, -80],
       "parameters": {
-        "language": "javaScript",
-        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\nconst scope = $json.scope || 'default';\nconst lockKey = `lock-${scope}`;\nconst ownerKey = `lock-owner-${$execution.id}`;\nawait this.helpers.redis.call('DEL', lockKey);\nawait this.helpers.redis.call('DEL', ownerKey);\nreturn [{ json: { released: true, scope } }];\n"
+        "operation": "get",
+        "propertyName": "LOCK_VALUE",
+        "key": "={{ $('Execute Workflow Trigger').item.json.scope || \"SCOPE_LOCK\" }}",
+        "keyType": "string",
+        "options": {}
       },
       "credentials": {
         "redis": {
@@ -27,18 +35,92 @@
           "name": "{{HYDRATE:env:credentials.redis.name}}"
         }
       }
+    },
+    {
+      "id": "{{HYDRATE:uuid:lock-rel-parse}}",
+      "name": "parse_lock_value",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [432, -80],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\nconst lockValue = $json.LOCK_VALUE;\nconst providedLockId = $('Execute Workflow Trigger').item.json.lock_id;\n\n// Absent key (Redis GET miss) => lock already released. Treat as idempotent success.\nif (lockValue === null || lockValue === undefined || lockValue === '') {\n  return {\n    json: {\n      is_match: true,\n      already_released: true,\n      provided_lock_id: providedLockId,\n      stored_lock_id: null,\n      workflow_id: 'none',\n      workflow_name: 'none (key absent)',\n      execution_id: 'none',\n      locked_at: 'none'\n    }\n  };\n}\n\n// Try to parse as JSON (new format), fall back to string (old format)\nlet parsedLock;\ntry {\n  parsedLock = JSON.parse(lockValue);\n} catch (e) {\n  // Old format: lock value is just the UUID string\n  parsedLock = { lock_id: lockValue, workflow_id: 'unknown', workflow_name: 'unknown (legacy lock)', execution_id: 'unknown', locked_at: 'unknown' };\n}\n\n// Defensive: JSON.parse('null') or JSON.parse of a non-object returns a non-object value.\nif (parsedLock === null || typeof parsedLock !== 'object') {\n  parsedLock = { lock_id: String(lockValue), workflow_id: 'unknown', workflow_name: 'unknown (legacy lock)', execution_id: 'unknown', locked_at: 'unknown' };\n}\n\nconst isMatch = parsedLock.lock_id === providedLockId;\n\nreturn {\n  json: {\n    is_match: isMatch,\n    already_released: false,\n    provided_lock_id: providedLockId,\n    stored_lock_id: parsedLock.lock_id,\n    workflow_id: parsedLock.workflow_id,\n    workflow_name: parsedLock.workflow_name,\n    execution_id: parsedLock.execution_id || 'unknown',\n    locked_at: parsedLock.locked_at\n  }\n};\n"
+      }
+    },
+    {
+      "id": "{{HYDRATE:uuid:lock-rel-if}}",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [656, -80],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "{{HYDRATE:uuid:lock-rel-if-cond}}",
+              "leftValue": "={{ $json.is_match }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "{{HYDRATE:uuid:lock-rel-delete}}",
+      "name": "delete_lock",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [880, -176],
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ $('Execute Workflow Trigger').item.json.scope || \"SCOPE_LOCK\" }}"
+      },
+      "credentials": {
+        "redis": {
+          "id": "{{HYDRATE:env:credentials.redis.id}}",
+          "name": "{{HYDRATE:env:credentials.redis.name}}"
+        }
+      }
+    },
+    {
+      "id": "{{HYDRATE:uuid:lock-rel-fail}}",
+      "name": "Stop and Error",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [880, 16],
+      "parameters": {
+        "errorMessage": "=LOGIC ERROR: Lock held by {{ $json.workflow_name }} (id: {{ $json.workflow_id }}, execution: {{ $json.execution_id }}) since {{ $json.locked_at }}, not by lock_id={{ $json.provided_lock_id }}"
+      }
     }
   ],
   "connections": {
     "Execute Workflow Trigger": {
+      "main": [[{ "node": "get_lock", "type": "main", "index": 0 }]]
+    },
+    "get_lock": {
+      "main": [[{ "node": "parse_lock_value", "type": "main", "index": 0 }]]
+    },
+    "parse_lock_value": {
+      "main": [[{ "node": "If", "type": "main", "index": 0 }]]
+    },
+    "If": {
       "main": [
-        [
-          {
-            "node": "Release Lock",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "delete_lock", "type": "main", "index": 0 }],
+        [{ "node": "Stop and Error", "type": "main", "index": 0 }]
       ]
     }
   },
