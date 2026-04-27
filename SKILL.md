@@ -24,6 +24,7 @@ This is the entry point. When the user asks anything n8n-related, route to the m
 | [create-new-workflow.md](skills/create-new-workflow.md) | Author a brand-new workflow. |
 | [register-workflow-to-error-handler.md](skills/register-workflow-to-error-handler.md) | Wire `settings.errorWorkflow`. |
 | [create-lock.md](skills/create-lock.md) | First-time setup for distributed locking (Redis-backed primitives). |
+| [copy-primitive.md](skills/copy-primitive.md) | Copy a single primitive (any) into the workspace. General-purpose; doesn't register. |
 | [add-lock-to-workflow.md](skills/add-lock-to-workflow.md) | Wrap a workflow's main flow in lock acquire/release. |
 | [add-rate-limit-to-workflow.md](skills/add-rate-limit-to-workflow.md) | Gate a workflow's main flow with a Redis-backed fixed-window rate-limit check. |
 | [deploy-single-workflow-in-env.md](skills/deploy-single-workflow-in-env.md) | Deploy one workflow to one env. |
