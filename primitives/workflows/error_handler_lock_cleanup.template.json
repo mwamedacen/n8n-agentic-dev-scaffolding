@@ -10,34 +10,20 @@
       "parameters": {}
     },
     {
-      "id": "{{HYDRATE:uuid:err-code}}",
-      "name": "Cleanup Lock",
+      "id": "{{HYDRATE:uuid:err-noop}}",
+      "name": "TTL Bounded Cleanup",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [460, 300],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\n// NOTE: $workflow.errorData.execution.id path must be verified against the live n8n version.\n// If wrong, executionId falls back to $execution.id, GET returns null, cleanup silently no-ops.\nconst executionId = $workflow.errorData?.execution?.id || $execution.id;\nconst ownerKey = `lock-owner-${executionId}`;\n\nconst scope = await this.helpers.redis.call('GET', ownerKey);\nif (scope) {\n  const lockKey = `lock-${scope}`;\n  await this.helpers.redis.call('DEL', lockKey);\n  await this.helpers.redis.call('DEL', ownerKey);\n}\n\nreturn [{ json: { cleaned: !!scope, executionId, scope: scope || null } }];\n"
-      },
-      "credentials": {
-        "redis": {
-          "id": "{{HYDRATE:env:credentials.redis.id}}",
-          "name": "{{HYDRATE:env:credentials.redis.name}}"
-        }
+        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\n//\n// No-op stub. Orphaned locks self-heal via the client-side TTL check in\n// lock_acquisition's parse_and_check_lock node: any new acquire on the same\n// scope after locked_at + ttl_seconds will overwrite the stale value.\n//\n// Trade-off: between the failed execution and the next contention on the same\n// scope, the lock key sits in Redis with stale ownership info. Worst case is\n// `ttl_seconds` of unavailable lock + however long until the next caller tries\n// to acquire. With the default 86400s (24h) ttl this can be unacceptable for\n// hot scopes — override --ttl-seconds per-workflow when wrapping with\n// add-lock-to-workflow.\n//\n// To upgrade this stub to active cleanup later, replace it with: GET the lock\n// at the failed scope, JSON.parse the value, check if execution_id matches\n// the failed execution ($workflow.errorData?.execution?.id), DEL if match.\n// Requires scope-discovery: either iterate all `lock-*` keys in Redis (Redis\n// node `keys` operation) or maintain a `lock-by-execution-${executionId}`\n// owner pointer written at acquire time.\nconst executionId = $workflow.errorData?.execution?.id || $execution.id;\nreturn [{\n  json: {\n    cleaned: false,\n    reason: 'TTL-bounded cleanup — orphan locks self-heal via lock_acquisition stale-check',\n    executionId,\n  },\n}];\n"
       }
     }
   ],
   "connections": {
     "Error Trigger": {
-      "main": [
-        [
-          {
-            "node": "Cleanup Lock",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "TTL Bounded Cleanup", "type": "main", "index": 0 }]]
     }
   },
   "settings": {
