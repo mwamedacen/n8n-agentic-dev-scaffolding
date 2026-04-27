@@ -1,0 +1,48 @@
+{
+  "name": "{{HYDRATE:env:displayName}} Rate Limit Check{{HYDRATE:env:workflowNamePostfix}}",
+  "nodes": [
+    {
+      "id": "{{HYDRATE:uuid:rl-trigger}}",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "{{HYDRATE:uuid:rl-code}}",
+      "name": "Rate Limit Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "language": "javascript",
+        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\nconst scope = $json.scope || 'default';\nconst limit = typeof $json.limit === 'number' ? $json.limit : 10;\nconst windowSeconds = typeof $json.windowSeconds === 'number' ? $json.windowSeconds : 60;\nconst key = `ratelimit-${scope}-${Math.floor(Date.now() / (windowSeconds * 1000))}`;\n\nconst count = await this.helpers.redis.call('INCR', key);\nif (count === 1) {\n  await this.helpers.redis.call('EXPIRE', key, String(windowSeconds));\n}\nconst allowed = count <= limit;\nreturn [{ json: { allowed, scope, count, limit } }];\n"
+      },
+      "credentials": {
+        "redis": {
+          "id": "{{HYDRATE:env:credentials.redis.id}}",
+          "name": "{{HYDRATE:env:credentials.redis.name}}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Rate Limit Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
