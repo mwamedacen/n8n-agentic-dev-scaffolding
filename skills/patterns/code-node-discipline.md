@@ -195,6 +195,39 @@ The Python source file must **not** contain the substring `# DEHYDRATE:py:` or `
 
 ---
 
+## Structure rules
+
+Function files must contain only function declarations + (JS only) the conditional export trailer. Top-level code is rejected at validate time.
+
+**JavaScript** — at brace-depth 0, the only allowed line shapes are:
+- Blank lines.
+- Line comments (`//`) and block comments (`/* */`, including JSDoc above a function).
+- `function <name>(...)` and `async function <name>(...)` declarations (with the body indented inside `{ ... }`).
+- The conditional export trailer: `if (typeof module !== "undefined") module.exports = { ... };`.
+- Bare `module.exports = { ... };` / `exports.<name> = ...;` lines (allowed but not required if the trailer wraps them).
+
+Anything else at depth 0 — `const`/`let`/`var`, top-level `return`, top-level `for`/`if`/`while`, function calls, bare expressions — is a violation.
+
+**Python** — at column 0, the only allowed line shapes are:
+- Blank lines.
+- Comment lines (`#`).
+- `import ...` and `from ... import ...`.
+- `def <name>(...)` and `async def <name>(...)` (with the body indented).
+
+Anything else at column 0 — assignments, `for`/`if`/`while` blocks, bare expressions including module-level docstrings, top-level function calls — is a violation. (Docstrings belong **inside** the `def`, not at module level.)
+
+The error message includes the offending line number and an excerpt:
+
+```
+node 'Code': n8n-functions/js/aggregate.js contains top-level code outside function declarations
+(line 1: 'const articles = items[0].json.body || [];'). Pure-function files must declare functions
+only — n8n-glue belongs in the Code-node body, not the file.
+```
+
+The structural check makes "pure functions only" enforceable, not aspirational. An agent who tries to satisfy the trailer + test rules by pasting the n8n-glue into the function file will fail this check on the first non-`function` line.
+
+---
+
 ## Validator checks (template only)
 
 `validate.py` runs these against every `n8n-nodes-base.code` node in a template. All checks are **errors**, no warnings. Built JSON skips these checks (placeholders are already replaced post-hydrate).
@@ -206,6 +239,7 @@ The Python source file must **not** contain the substring `# DEHYDRATE:py:` or `
 | No `{{HYDRATE:js:...}}` (or `{{HYDRATE:py:...}}`) placeholder in the code field | Inlined logic is rejected — extract to `n8n-functions/{js,py}/`. |
 | Placeholder points to a file that doesn't exist | Bad path — fix or remove. |
 | JS file is missing `if (typeof module !== "undefined")` trailer | Tests cannot `require` the function. |
+| Function file contains top-level code outside function declarations | The file must be a pure-function library; n8n-glue belongs in the Code-node body. See **Structure rules** above. |
 | No paired test file at `n8n-functions-tests/<stem>.test.js` (JS) or `test_<stem>.py` (Py) | Pure function ships untested. |
 
 There is **no opt-out** for trivial Code nodes.

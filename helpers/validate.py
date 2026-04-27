@@ -16,6 +16,110 @@ _JS_PLACEHOLDER_RE = re.compile(r"\{\{HYDRATE:js:([^}]+)\}\}")
 _PY_PLACEHOLDER_RE = re.compile(r"\{\{HYDRATE:py:([^}]+)\}\}")
 _JS_TRAILER_REQUIRED = 'if (typeof module !== "undefined")'
 
+_JS_BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
+_JS_TOP_LEVEL_KEYWORDS = ("function", "async function", "module.exports", "exports.")
+_JS_TRAILER_PREFIX = 'if (typeof module !== "undefined")'
+
+_PY_TOP_LEVEL_KEYWORDS = ("def ", "async def ", "import ", "from ")
+
+
+def _walk_js_line(line: str, start_depth: int) -> int:
+    """Walk a JS line char-by-char, tracking brace depth while ignoring strings + // comments."""
+    depth = start_depth
+    i = 0
+    n = len(line)
+    in_string: str | None = None  # quote char that opened the active string
+    while i < n:
+        c = line[i]
+        if in_string:
+            if c == "\\":
+                i += 2
+                continue
+            if c == in_string:
+                in_string = None
+        else:
+            if c in ('"', "'", "`"):
+                in_string = c
+            elif c == "/" and i + 1 < n and line[i + 1] == "/":
+                break  # rest of the line is a // comment
+            elif c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+        i += 1
+    return depth
+
+
+def _js_top_level_allowed(stripped: str) -> bool:
+    """Is this stripped, non-blank, depth-0 JS line one of the allowed top-level shapes?"""
+    if stripped.startswith("//"):
+        return True
+    if stripped.startswith("*") or stripped.startswith("/*"):
+        # Block-comment fragments (after stripping); treat residual fragments as benign.
+        return True
+    if stripped.startswith(_JS_TRAILER_PREFIX):
+        return True
+    if stripped.startswith("function ") or stripped.startswith("function("):
+        return True
+    if stripped.startswith("async function "):
+        return True
+    if stripped.startswith("module.exports") or stripped.startswith("exports."):
+        return True
+    return False
+
+
+def _js_top_level_violations(text: str) -> list[tuple[int, str]]:
+    """Return [(line_no, excerpt), ...] for every JS line that introduces non-function code at depth 0."""
+    text = _JS_BLOCK_COMMENT_RE.sub("", text)
+    violations: list[tuple[int, str]] = []
+    depth = 0
+    for line_no, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if depth == 0 and stripped and not _js_top_level_allowed(stripped):
+            violations.append((line_no, stripped[:80]))
+        depth = _walk_js_line(line, depth)
+    return violations
+
+
+def _py_top_level_allowed(stripped: str) -> bool:
+    """Is this stripped, non-blank, column-0 Python line one of the allowed top-level shapes?"""
+    if stripped.startswith("#"):
+        return True
+    for kw in _PY_TOP_LEVEL_KEYWORDS:
+        if stripped.startswith(kw):
+            return True
+    return False
+
+
+def _py_top_level_violations(text: str) -> list[tuple[int, str]]:
+    """Return [(line_no, excerpt), ...] for every column-0 Python line that introduces code outside def/import."""
+    violations: list[tuple[int, str]] = []
+    in_triple: str | None = None  # '"""' or "'''" if currently inside a multi-line string, else None
+    for line_no, line in enumerate(text.splitlines(), start=1):
+        if in_triple is not None:
+            if in_triple in line:
+                in_triple = None
+            continue
+        stripped = line.strip()
+        if not stripped:
+            continue
+        # Detect a triple-quote opener that doesn't close on the same line.
+        for quote in ('"""', "'''"):
+            if stripped.startswith(quote):
+                rest = stripped[len(quote):]
+                if quote not in rest:
+                    in_triple = quote
+                # Either way, this line is a string expression at top level — reject it.
+                indent = len(line) - len(line.lstrip(" \t"))
+                if indent == 0:
+                    violations.append((line_no, stripped[:80]))
+                break
+        else:
+            indent = len(line) - len(line.lstrip(" \t"))
+            if indent == 0 and not _py_top_level_allowed(stripped):
+                violations.append((line_no, stripped[:80]))
+    return violations
+
 
 def _validate_code_node(
     node: dict,
@@ -63,13 +167,27 @@ def _validate_code_node(
 
     fn_stem = fn_file.stem
 
+    fn_text = fn_file.read_text(encoding="utf-8")
+
     if ext == "js":
-        js_text = fn_file.read_text(encoding="utf-8")
-        if _JS_TRAILER_REQUIRED not in js_text:
+        if _JS_TRAILER_REQUIRED not in fn_text:
             errors.append(
                 f"node '{name}': {rel_path} missing required export trailer "
                 f'`if (typeof module !== "undefined") module.exports = {{ <fnName> }};` — '
                 "without it, n8n-functions-tests/<name>.test.js cannot import the function."
+            )
+        for line_no, excerpt in _js_top_level_violations(fn_text):
+            errors.append(
+                f"node '{name}': {rel_path} contains top-level code outside function declarations "
+                f"(line {line_no}: {excerpt!r}). Pure-function files must declare functions only — "
+                "n8n-glue belongs in the Code-node body, not the file."
+            )
+    else:
+        for line_no, excerpt in _py_top_level_violations(fn_text):
+            errors.append(
+                f"node '{name}': {rel_path} contains top-level code outside function declarations "
+                f"(line {line_no}: {excerpt!r}). Pure-function files must declare functions only — "
+                "n8n-glue belongs in the Code-node body, not the file."
             )
 
     test_file = workspace / "n8n-functions-tests" / test_filename(fn_stem)
