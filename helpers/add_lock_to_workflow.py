@@ -12,18 +12,16 @@ from helpers.workspace import workspace_root
 
 _LOCK_ACQUIRE_NODE_NAME = "Lock Acquire"
 _LOCK_RELEASE_NODE_NAME = "Lock Release"
+_DEFAULT_TTL_SECONDS = 86400  # 24h — bounded leak on crash
 
 
 def _make_execute_workflow_node(
     name: str,
     target_workflow_placeholder: str,
     position: list,
-    scope_expr: str,
-    extra_inputs: dict | None = None,
+    inputs: dict,
 ) -> dict:
-    inputs: dict = {"scope": scope_expr}
-    if extra_inputs:
-        inputs.update(extra_inputs)
+    """Build an Execute Workflow node with `inputs` mapped into workflowInputs.value."""
     return {
         "id": "{{HYDRATE:uuid:" + name.lower().replace(" ", "-") + "}}",
         "name": name,
@@ -48,22 +46,13 @@ def _make_execute_workflow_node(
     }
 
 
-def _shift_nodes_right(nodes: list, by: int = 220) -> None:
-    """Shift every node's x position by `by` pixels."""
-    for n in nodes:
-        pos = n.get("position") or [0, 0]
-        if isinstance(pos, list) and len(pos) >= 2:
-            n["position"] = [pos[0] + by, pos[1]]
-
-
 def _insert_lock(
     template: dict,
     scope_expr: str,
-    max_wait_ms: int = 0,
-    poll_interval_ms: int = 200,
-    ttl_seconds: int = 60,
+    ttl_seconds: int = _DEFAULT_TTL_SECONDS,
+    fail_fast: bool = False,
 ) -> dict:
-    """Splice in two Execute Workflow nodes, one at start, one at end."""
+    """Splice in two Execute Workflow nodes, one before the main flow, one after."""
     nodes = template.setdefault("nodes", [])
     connections = template.setdefault("connections", {})
 
@@ -97,29 +86,38 @@ def _insert_lock(
         pos = n.get("position") or [0, 0]
         n["position"] = [pos[0] + 440, pos[1]]
 
-    # Wait-mode flags: only emit non-defaults so the primitive's own defaults apply.
-    acquire_extras: dict = {}
-    if max_wait_ms != 0:
-        acquire_extras["maxWaitMs"] = max_wait_ms
-    if poll_interval_ms != 200:
-        acquire_extras["pollIntervalMs"] = poll_interval_ms
-    if ttl_seconds != 60:
-        acquire_extras["ttlSeconds"] = ttl_seconds
-
+    # Acquire input contract — the lock_acquisition primitive expects six fields.
+    # workflow_id / workflow_name / execution_id are passed as n8n expressions so the
+    # primitive captures the CALLING workflow's identity (not the lock workflow's).
+    acquire_inputs = {
+        "scope": scope_expr,
+        "workflow_id": "={{ $workflow.id }}",
+        "workflow_name": "={{ $workflow.name }}",
+        "wait_till_lock_released": not fail_fast,
+        "execution_id": "={{ $execution.id }}",
+        "ttl_seconds": ttl_seconds,
+    }
     acquire = _make_execute_workflow_node(
         _LOCK_ACQUIRE_NODE_NAME,
         "{{HYDRATE:env:workflows.lock_acquisition.id}}",
         acquire_pos,
-        scope_expr,
-        extra_inputs=acquire_extras or None,
+        acquire_inputs,
     )
+
+    # Release input contract — capture the lock_id returned by the acquire node so the
+    # release call presents a matching token (token-fencing safety model).
     release_pos = [trigger_pos[0] + 880, trigger_pos[1]]
+    release_inputs = {
+        "lock_id": "={{ $('" + _LOCK_ACQUIRE_NODE_NAME + "').item.json.lock_id }}",
+        "scope": scope_expr,
+    }
     release = _make_execute_workflow_node(
         _LOCK_RELEASE_NODE_NAME,
         "{{HYDRATE:env:workflows.lock_release.id}}",
         release_pos,
-        scope_expr,
+        release_inputs,
     )
+
     nodes.append(acquire)
     nodes.append(release)
 
@@ -146,9 +144,19 @@ def main() -> None:
     parser.add_argument("--workflow-key", required=True, dest="workflow_key")
     parser.add_argument("--lock-on-error", action="store_true", dest="lock_on_error")
     parser.add_argument("--scope-expression", default="={{ $execution.id }}", dest="scope_expression")
-    parser.add_argument("--max-wait-ms", type=int, default=0, dest="max_wait_ms")
-    parser.add_argument("--poll-interval-ms", type=int, default=200, dest="poll_interval_ms")
-    parser.add_argument("--ttl-seconds", type=int, default=60, dest="ttl_seconds")
+    parser.add_argument(
+        "--ttl-seconds",
+        type=int,
+        default=_DEFAULT_TTL_SECONDS,
+        dest="ttl_seconds",
+        help="Lock TTL in seconds (default 86400 = 24h). Stale locks self-heal on next contention.",
+    )
+    parser.add_argument(
+        "--fail-fast",
+        action="store_true",
+        dest="fail_fast",
+        help="Pass wait_till_lock_released=false; fail immediately if lock is held instead of waiting.",
+    )
     args = parser.parse_args()
 
     ws = workspace_root(args.workspace)
@@ -168,9 +176,8 @@ def main() -> None:
     template = _insert_lock(
         template,
         args.scope_expression,
-        max_wait_ms=args.max_wait_ms,
-        poll_interval_ms=args.poll_interval_ms,
         ttl_seconds=args.ttl_seconds,
+        fail_fast=args.fail_fast,
     )
     template_path.write_text(json.dumps(template, indent=2))
     print(f"  Inserted lock acquire/release in {template_path}")
