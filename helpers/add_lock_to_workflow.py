@@ -14,7 +14,16 @@ _LOCK_ACQUIRE_NODE_NAME = "Lock Acquire"
 _LOCK_RELEASE_NODE_NAME = "Lock Release"
 
 
-def _make_execute_workflow_node(name: str, target_workflow_placeholder: str, position: list, scope_expr: str) -> dict:
+def _make_execute_workflow_node(
+    name: str,
+    target_workflow_placeholder: str,
+    position: list,
+    scope_expr: str,
+    extra_inputs: dict | None = None,
+) -> dict:
+    inputs: dict = {"scope": scope_expr}
+    if extra_inputs:
+        inputs.update(extra_inputs)
     return {
         "id": "{{HYDRATE:uuid:" + name.lower().replace(" ", "-") + "}}",
         "name": name,
@@ -30,9 +39,7 @@ def _make_execute_workflow_node(name: str, target_workflow_placeholder: str, pos
             },
             "workflowInputs": {
                 "mappingMode": "defineBelow",
-                "value": {
-                    "scope": scope_expr,
-                },
+                "value": inputs,
                 "matchingColumns": [],
                 "schema": [],
             },
@@ -49,7 +56,13 @@ def _shift_nodes_right(nodes: list, by: int = 220) -> None:
             n["position"] = [pos[0] + by, pos[1]]
 
 
-def _insert_lock(template: dict, scope_expr: str) -> dict:
+def _insert_lock(
+    template: dict,
+    scope_expr: str,
+    max_wait_ms: int = 0,
+    poll_interval_ms: int = 200,
+    ttl_seconds: int = 60,
+) -> dict:
     """Splice in two Execute Workflow nodes, one at start, one at end."""
     nodes = template.setdefault("nodes", [])
     connections = template.setdefault("connections", {})
@@ -84,11 +97,21 @@ def _insert_lock(template: dict, scope_expr: str) -> dict:
         pos = n.get("position") or [0, 0]
         n["position"] = [pos[0] + 440, pos[1]]
 
+    # Wait-mode flags: only emit non-defaults so the primitive's own defaults apply.
+    acquire_extras: dict = {}
+    if max_wait_ms != 0:
+        acquire_extras["maxWaitMs"] = max_wait_ms
+    if poll_interval_ms != 200:
+        acquire_extras["pollIntervalMs"] = poll_interval_ms
+    if ttl_seconds != 60:
+        acquire_extras["ttlSeconds"] = ttl_seconds
+
     acquire = _make_execute_workflow_node(
         _LOCK_ACQUIRE_NODE_NAME,
         "{{HYDRATE:env:workflows.lock_acquisition.id}}",
         acquire_pos,
         scope_expr,
+        extra_inputs=acquire_extras or None,
     )
     release_pos = [trigger_pos[0] + 880, trigger_pos[1]]
     release = _make_execute_workflow_node(
@@ -123,6 +146,9 @@ def main() -> None:
     parser.add_argument("--workflow-key", required=True, dest="workflow_key")
     parser.add_argument("--lock-on-error", action="store_true", dest="lock_on_error")
     parser.add_argument("--scope-expression", default="={{ $execution.id }}", dest="scope_expression")
+    parser.add_argument("--max-wait-ms", type=int, default=0, dest="max_wait_ms")
+    parser.add_argument("--poll-interval-ms", type=int, default=200, dest="poll_interval_ms")
+    parser.add_argument("--ttl-seconds", type=int, default=60, dest="ttl_seconds")
     args = parser.parse_args()
 
     ws = workspace_root(args.workspace)
@@ -139,7 +165,13 @@ def main() -> None:
         sys.exit(1)
 
     template = json.loads(template_path.read_text())
-    template = _insert_lock(template, args.scope_expression)
+    template = _insert_lock(
+        template,
+        args.scope_expression,
+        max_wait_ms=args.max_wait_ms,
+        poll_interval_ms=args.poll_interval_ms,
+        ttl_seconds=args.ttl_seconds,
+    )
     template_path.write_text(json.dumps(template, indent=2))
     print(f"  Inserted lock acquire/release in {template_path}")
 
