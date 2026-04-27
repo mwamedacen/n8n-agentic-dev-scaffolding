@@ -25,6 +25,7 @@ This is the entry point. When the user asks anything n8n-related, route to the m
 | [register-workflow-to-error-handler.md](skills/register-workflow-to-error-handler.md) | Wire `settings.errorWorkflow`. |
 | [create-lock.md](skills/create-lock.md) | First-time setup for distributed locking (Redis-backed primitives). |
 | [add-lock-to-workflow.md](skills/add-lock-to-workflow.md) | Wrap a workflow's main flow in lock acquire/release. |
+| [add-rate-limit-to-workflow.md](skills/add-rate-limit-to-workflow.md) | Gate a workflow's main flow with a Redis-backed fixed-window rate-limit check. |
 | [deploy-single-workflow-in-env.md](skills/deploy-single-workflow-in-env.md) | Deploy one workflow to one env. |
 | [activate-single-workflow-in-env.md](skills/activate-single-workflow-in-env.md) | Activate after deploy. |
 | [deactivate-single-workflow-in-env.md](skills/deactivate-single-workflow-in-env.md) | Pause triggers (commonly during dev). |

@@ -270,3 +270,13 @@ If a Code node still has its function body inlined inside `jsCode`, `validate.py
 For a Python equivalent, swap `js` → `py`, `<camelCaseName>` → `<snake_case_name>`, and skip the trailer step.
 
 There is no helper script — this is a per-workflow migration done by hand.
+
+---
+
+## Primitive exemption
+
+Harness-maintained primitive Code nodes (lock acquisition, lock release, rate-limit check, error-handler cleanup) begin their body with `// @n8n-harness:primitive`. This marker suppresses the placeholder and purity checks in `validate.py` — the validator's `_validate_code_node` short-circuits with no errors as soon as it sees the marker as the first non-whitespace characters of the code field.
+
+Only primitives under `primitives/workflows/` should use this marker. User Code nodes must follow the discipline rule without exception; using the marker in a user workflow will silently bypass validation, defeating the whole point of the rule.
+
+The marker exists because the primitive bodies legitimately use `this.helpers.redis` and have top-level statements (SETNX with TTL, INCR + EXPIRE, owner-pointer writes) — they're not pure functions and can't be written as such without losing atomicity. The marker is the explicit, narrow opt-out for this case.
