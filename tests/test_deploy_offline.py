@@ -101,6 +101,43 @@ class TestDeploy:
         # POST should NOT be called when --no-activate
         assert not mock_post.called
 
+    def test_deploy_aborts_on_inlined_js_template(self, tmp_path):
+        """A template with an inlined-JS Code node must abort deploy before any HTTP call."""
+        ws = _make_workspace(tmp_path)
+
+        bad_template = {
+            "name": "Bad",
+            "nodes": [
+                {
+                    "name": "Code",
+                    "type": "n8n-nodes-base.code",
+                    "parameters": {
+                        "jsCode": "const stats = {}; return { json: { stats } };",
+                    },
+                }
+            ],
+            "connections": {},
+            "settings": {},
+        }
+        (ws / "n8n-workflows-template" / "smoke.template.json").write_text(json.dumps(bad_template))
+
+        with patch("helpers.n8n_client.requests.put") as mock_put, \
+             patch("helpers.n8n_client.requests.post") as mock_post:
+            from helpers import deploy
+            import importlib
+            importlib.reload(deploy)
+            old_argv = sys.argv
+            sys.argv = ["deploy.py", "--workspace", str(ws), "--env", "dev", "--workflow-key", "smoke"]
+            try:
+                with pytest.raises(SystemExit) as exc:
+                    deploy.main()
+                assert exc.value.code == 1
+            finally:
+                sys.argv = old_argv
+
+        assert not mock_put.called, "PUT must not happen when template validation fails"
+        assert not mock_post.called, "POST must not happen when template validation fails"
+
     def test_deploy_strips_disallowed_fields_for_put(self, tmp_path):
         """n8n's PUT API rejects fields like 'active', 'tags', 'id'; deploy.py should drop them."""
         ws = _make_workspace(tmp_path)

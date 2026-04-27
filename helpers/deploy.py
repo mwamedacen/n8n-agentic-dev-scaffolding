@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from helpers.workspace import workspace_root
 from helpers.config import load_yaml, load_env, get_config_value
 from helpers.n8n_client import ensure_client, redact_for_debug
+from helpers.validate import validate_workflow_json
 
 
 _PUT_FIELDS = ("name", "nodes", "connections", "settings", "staticData")
@@ -82,6 +83,19 @@ def main() -> None:
     args = parser.parse_args()
 
     ws = workspace_root(args.workspace)
+
+    template_path = ws / "n8n-workflows-template" / f"{args.workflow_key}.template.json"
+    if not template_path.exists():
+        print(f"ERROR: template not found: {template_path}", file=sys.stderr)
+        sys.exit(1)
+    template_text = template_path.read_text(encoding="utf-8")
+    valid, errors = validate_workflow_json(template_text, source="template", workspace=ws)
+    if not valid:
+        print("ERROR: template validation failed (deploy aborted):", file=sys.stderr)
+        for e in errors:
+            print(f"  - {e}", file=sys.stderr)
+        sys.exit(1)
+
     generated = ws / "n8n-build" / args.env / f"{args.workflow_key}.generated.json"
 
     if args.rehydrate or not generated.exists():
