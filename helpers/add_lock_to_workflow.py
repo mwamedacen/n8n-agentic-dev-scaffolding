@@ -12,7 +12,8 @@ from helpers.workspace import workspace_root
 
 _LOCK_ACQUIRE_NODE_NAME = "Lock Acquire"
 _LOCK_RELEASE_NODE_NAME = "Lock Release"
-_DEFAULT_TTL_SECONDS = 86400  # 24h — bounded leak on crash
+_DEFAULT_TTL_SECONDS = 86400  # 24h — Redis-side EXPIRE on the lock key
+_DEFAULT_MAX_WAIT_SECONDS = 86400  # 24h — wait-loop deadline; effectively unbounded by default
 
 
 def _make_execute_workflow_node(
@@ -50,6 +51,7 @@ def _insert_lock(
     template: dict,
     scope_expr: str,
     ttl_seconds: int = _DEFAULT_TTL_SECONDS,
+    max_wait_seconds: int = _DEFAULT_MAX_WAIT_SECONDS,
     fail_fast: bool = False,
 ) -> dict:
     """Splice in two Execute Workflow nodes, one before the main flow, one after."""
@@ -86,16 +88,14 @@ def _insert_lock(
         pos = n.get("position") or [0, 0]
         n["position"] = [pos[0] + 440, pos[1]]
 
-    # Acquire input contract — the lock_acquisition primitive expects six fields.
-    # workflow_id / workflow_name / execution_id are passed as n8n expressions so the
-    # primitive captures the CALLING workflow's identity (not the lock workflow's).
+    # Acquire input contract — the INCR-based lock_acquisition primitive (B-16) takes
+    # five fields. execution_id becomes the lock_id in the primitive's output.
     acquire_inputs = {
         "scope": scope_expr,
-        "workflow_id": "={{ $workflow.id }}",
-        "workflow_name": "={{ $workflow.name }}",
-        "wait_till_lock_released": not fail_fast,
-        "execution_id": "={{ $execution.id }}",
         "ttl_seconds": ttl_seconds,
+        "execution_id": "={{ $execution.id }}",
+        "wait_till_lock_released": not fail_fast,
+        "max_wait_seconds": max_wait_seconds,
     }
     acquire = _make_execute_workflow_node(
         _LOCK_ACQUIRE_NODE_NAME,
@@ -104,11 +104,11 @@ def _insert_lock(
         acquire_inputs,
     )
 
-    # Release input contract — capture the lock_id returned by the acquire node so the
-    # release call presents a matching token (token-fencing safety model).
+    # Release input contract — just scope. The B-16 INCR-based release does a plain DEL;
+    # there's no lock_id ownership check anymore (race-on-acquire is now PREVENTED at
+    # acquire time via INCR atomicity, not detected at release time).
     release_pos = [trigger_pos[0] + 880, trigger_pos[1]]
     release_inputs = {
-        "lock_id": "={{ $('" + _LOCK_ACQUIRE_NODE_NAME + "').item.json.lock_id }}",
         "scope": scope_expr,
     }
     release = _make_execute_workflow_node(
@@ -149,13 +149,20 @@ def main() -> None:
         type=int,
         default=_DEFAULT_TTL_SECONDS,
         dest="ttl_seconds",
-        help="Lock TTL in seconds (default 86400 = 24h). Stale locks self-heal on next contention.",
+        help="Lock TTL in seconds (default 86400 = 24h). Set on Redis at acquire; bounds leak on crash.",
+    )
+    parser.add_argument(
+        "--max-wait-seconds",
+        type=int,
+        default=_DEFAULT_MAX_WAIT_SECONDS,
+        dest="max_wait_seconds",
+        help="Wait-loop deadline in seconds (default 86400 = 24h). Override per-workflow if you need fail-fast-ish semantics for time-sensitive callers (e.g. webhooks).",
     )
     parser.add_argument(
         "--fail-fast",
         action="store_true",
         dest="fail_fast",
-        help="Pass wait_till_lock_released=false; fail immediately if lock is held instead of waiting.",
+        help="Pass wait_till_lock_released=false; Stop and Error immediately if lock is held instead of waiting.",
     )
     args = parser.parse_args()
 
@@ -177,6 +184,7 @@ def main() -> None:
         template,
         args.scope_expression,
         ttl_seconds=args.ttl_seconds,
+        max_wait_seconds=args.max_wait_seconds,
         fail_fast=args.fail_fast,
     )
     template_path.write_text(json.dumps(template, indent=2))
