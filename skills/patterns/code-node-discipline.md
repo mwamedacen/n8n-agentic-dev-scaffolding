@@ -211,10 +211,11 @@ Anything else at depth 0 — `const`/`let`/`var`, top-level `return`, top-level 
 **Python** — at column 0, the only allowed line shapes are:
 - Blank lines.
 - Comment lines (`#`).
+- A module-level docstring (a triple-quoted string as the first non-blank, non-comment line). Python convention; allowed.
 - `import ...` and `from ... import ...`.
 - `def <name>(...)` and `async def <name>(...)` (with the body indented).
 
-Anything else at column 0 — assignments, `for`/`if`/`while` blocks, bare expressions including module-level docstrings, top-level function calls — is a violation. (Docstrings belong **inside** the `def`, not at module level.)
+Anything else at column 0 — assignments, `for`/`if`/`while` blocks, top-level function calls, bare strings *anywhere else* in the file — is a violation.
 
 The error message includes the offending line number and an excerpt:
 

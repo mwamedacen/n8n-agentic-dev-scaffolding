@@ -437,18 +437,64 @@ def test_py_imports_and_comments_pass(tmp_path):
     assert valid, errors
 
 
-def test_py_top_level_docstring_rejected(tmp_path):
-    """A bare top-level expression (module docstring) is a top-level statement and is rejected."""
+def test_py_module_docstring_single_line_passes(tmp_path):
+    """A single-line module docstring is allowed (Python convention)."""
     text = _write_py_fn(
         tmp_path,
-        '"""Module docstring."""\n'
-        "def foo():\n"
-        "    return 1\n",
+        '"""Pure aggregation."""\n'
+        "\n"
+        "def foo(x):\n"
+        "    return x\n",
+        stem="foo",
+    )
+    valid, errors = validate_workflow_json(text, source="template", workspace=tmp_path)
+    assert valid, errors
+
+
+def test_py_module_docstring_multiline_passes(tmp_path):
+    """A multi-line module docstring is allowed."""
+    text = _write_py_fn(
+        tmp_path,
+        '"""\n'
+        "Multi-line\n"
+        "module docstring.\n"
+        '"""\n'
+        "\n"
+        "def foo(x):\n"
+        "    return x\n",
+        stem="foo",
+    )
+    valid, errors = validate_workflow_json(text, source="template", workspace=tmp_path)
+    assert valid, errors
+
+
+def test_py_string_after_def_still_rejected(tmp_path):
+    """A bare top-level string AFTER a def is still a top-level expression, not a docstring."""
+    text = _write_py_fn(
+        tmp_path,
+        "def foo(x):\n"
+        "    return x\n"
+        "\n"
+        '"""bare string at top level"""\n',
         stem="foo",
     )
     valid, errors = validate_workflow_json(text, source="template", workspace=tmp_path)
     assert not valid
-    assert any("top-level code" in e and "line 1" in e for e in errors), errors
+    assert any("top-level code" in e for e in errors), errors
+
+
+def test_py_module_docstring_with_single_quotes_passes(tmp_path):
+    """A `'''...'''` module docstring is also allowed."""
+    text = _write_py_fn(
+        tmp_path,
+        "'''docstring'''\n"
+        "\n"
+        "def foo(x):\n"
+        "    return x\n",
+        stem="foo",
+    )
+    valid, errors = validate_workflow_json(text, source="template", workspace=tmp_path)
+    assert valid, errors
 
 
 def test_py_function_body_for_loop_passes(tmp_path):

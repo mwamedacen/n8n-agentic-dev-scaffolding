@@ -92,10 +92,21 @@ def _py_top_level_allowed(stripped: str) -> bool:
 
 
 def _py_top_level_violations(text: str) -> list[tuple[int, str]]:
-    """Return [(line_no, excerpt), ...] for every column-0 Python line that introduces code outside def/import."""
+    """Return [(line_no, excerpt), ...] for every column-0 Python line that introduces code outside def/import.
+
+    The first non-blank, non-comment line may be a module-level docstring (a triple-quoted string
+    literal); it is consumed without violation. Bare strings anywhere else at top-level are
+    violations.
+    """
+    lines = text.splitlines()
+    skip_until = _consume_module_docstring(lines)
+
     violations: list[tuple[int, str]] = []
     in_triple: str | None = None  # '"""' or "'''" if currently inside a multi-line string, else None
-    for line_no, line in enumerate(text.splitlines(), start=1):
+    for idx, line in enumerate(lines):
+        line_no = idx + 1
+        if idx < skip_until:
+            continue
         if in_triple is not None:
             if in_triple in line:
                 in_triple = None
@@ -119,6 +130,36 @@ def _py_top_level_violations(text: str) -> list[tuple[int, str]]:
             if indent == 0 and not _py_top_level_allowed(stripped):
                 violations.append((line_no, stripped[:80]))
     return violations
+
+
+def _consume_module_docstring(lines: list[str]) -> int:
+    """Return the index of the first line AFTER any leading module docstring.
+
+    Skips leading blank/comment lines. If the first real line opens with a triple-quoted string,
+    consumes through the matching closer and returns the index past it. Otherwise returns 0.
+    """
+    i = 0
+    while i < len(lines):
+        stripped = lines[i].strip()
+        if not stripped or stripped.startswith("#"):
+            i += 1
+            continue
+        break
+    if i >= len(lines):
+        return 0
+    first = lines[i].strip()
+    for quote in ('"""', "'''"):
+        if first.startswith(quote):
+            rest = first[len(quote):]
+            if quote in rest:
+                return i + 1
+            j = i + 1
+            while j < len(lines):
+                if quote in lines[j]:
+                    return j + 1
+                j += 1
+            return j
+    return 0
 
 
 def _validate_code_node(
