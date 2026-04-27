@@ -15,6 +15,7 @@ from helpers.placeholder import validator as placeholder_validator
 _JS_PLACEHOLDER_RE = re.compile(r"\{\{HYDRATE:js:([^}]+)\}\}")
 _PY_PLACEHOLDER_RE = re.compile(r"\{\{HYDRATE:py:([^}]+)\}\}")
 _JS_TRAILER_REQUIRED = 'if (typeof module !== "undefined")'
+_PRIMITIVE_MARKER = "// @n8n-harness:primitive"
 
 _JS_BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
 _JS_TOP_LEVEL_KEYWORDS = ("function", "async function", "module.exports", "exports.")
@@ -185,6 +186,8 @@ def _validate_code_node(
         test_filename = lambda stem: f"{stem}.test.js"
 
     code_field = params.get(code_field_name, "")
+    if code_field.lstrip().startswith(_PRIMITIVE_MARKER):
+        return []  # primitive — exempt from pure-function discipline
     if not code_field:
         errors.append(f"node '{name}': {code_field_name} is empty or missing")
         return errors
