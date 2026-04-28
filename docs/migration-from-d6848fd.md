@@ -6,7 +6,7 @@ This guide maps the legacy single-repo layout (where the harness checkout WAS th
 
 | Old | New |
 |---|---|
-| `n8n-harness` checkout = your project | `n8n-harness` checkout = read-only skill package |
+| `n8n-evol-I` checkout = your project | `n8n-evol-I` checkout = read-only skill package |
 | `n8n/workflows/*.template.json` | `<workspace>/n8n-workflows-template/*.template.json` |
 | `n8n/environments/{dev,prod}.yaml` | `<workspace>/n8n-config/{dev,prod}.yml` |
 | `.env`, `.env.dev`, `.env.prod` at repo root | `<workspace>/n8n-config/.env.<env>` |
@@ -16,7 +16,7 @@ This guide maps the legacy single-repo layout (where the harness checkout WAS th
 | `n8n/resync_scripts/resync_workflow.sh` | `helpers/resync.py` |
 | `n8n/resync_scripts/resync_all.sh` | `helpers/resync_all.py` |
 | `n8n/resync_scripts/dehydrate_workflow.py` | `helpers/dehydrate.py` |
-| `n8n-harness -c "<python>"` REPL | per-helper CLI invocation |
+| `n8n-evol-I -c "<python>"` REPL | per-helper CLI invocation |
 | `pattern-skills/*.md` | `skills/patterns/*.md` |
 | `integration-skills/<service>/*.md` | `skills/integrations/<service>/*.md` |
 | `cloud_functions/` (in harness) | `<workspace>/cloud-functions/` (in user project) |
@@ -39,25 +39,25 @@ This guide maps the legacy single-repo layout (where the harness checkout WAS th
 1. **Clone the harness** somewhere outside your project:
 
    ```bash
-   cd ~/.claude/skills && git clone https://github.com/<user>/n8n-harness.git
+   cd ~/.claude/skills && git clone https://github.com/<user>/n8n-evol-I.git
    ```
 
 2. **From your project root**, run `init`:
 
    ```bash
    cd /path/to/your/project
-   python3 ~/.claude/skills/n8n-harness/helpers/init.py
+   python3 ~/.claude/skills/n8n-evol-I/helpers/init.py
    ```
 
-3. **Move templates** from old `n8n/workflows/*.template.json` to `n8n-harness-workspace/n8n-workflows-template/`.
-4. **Move env configs** from old `n8n/environments/{env}.yaml` to `n8n-harness-workspace/n8n-config/{env}.yml`. Update the file extension `.yaml → .yml`.
-5. **Move secrets** from old root `.env.<env>` to `n8n-harness-workspace/n8n-config/.env.<env>`.
+3. **Move templates** from old `n8n/workflows/*.template.json` to `n8n-evol-I-workspace/n8n-workflows-template/`.
+4. **Move env configs** from old `n8n/environments/{env}.yaml` to `n8n-evol-I-workspace/n8n-config/{env}.yml`. Update the file extension `.yaml → .yml`.
+5. **Move secrets** from old root `.env.<env>` to `n8n-evol-I-workspace/n8n-config/.env.<env>`.
 6. **Move JS / prompts / assets** to their new homes under the workspace (`n8n-functions/`, `n8n-prompts/`, `n8n-assets/`).
 7. **Verify** with `python3 <harness>/helpers/doctor.py --env dev` and a small `deploy-run-assert` smoke test.
 
 ## What's gone for good
 
-- The `n8n-harness -c "<python>"` evaluator. Skill markdown shows the explicit chain of commands; that's the new ergonomics.
+- The `n8n-evol-I -c "<python>"` evaluator. Skill markdown shows the explicit chain of commands; that's the new ergonomics.
 - The `helpers.py` god-file. Each capability lives in a narrow CLI script.
 - Auto-update of the harness package. Use `git pull` in the harness checkout — explicit, predictable.
 - Local instance lifecycle helpers (`start_local_n8n`, `attach`, etc.). The harness's scope is REST control of an existing instance, not provisioning.

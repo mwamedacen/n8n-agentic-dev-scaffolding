@@ -1,4 +1,4 @@
-# n8n-harness
+# n8n-evol-I
 
 A skill package for driving n8n from code. Designed to be read by a coding agent.
 
@@ -6,7 +6,7 @@ A skill package for driving n8n from code. Designed to be read by a coding agent
 
 n8n is a capable workflow automation platform, but operating it at scale from code requires the same boilerplate on every project: REST-API wrappers, per-environment config management, a way to keep workflow logic in version control, and enough structural discipline that a coding agent can author and deploy without re-learning the API surface every session.
 
-n8n-harness provides that structure. It is a read-only skill package: the agent reads markdown sub-skills from `skills/` and invokes Python helpers from `helpers/` against a separate per-project workspace. Workflow templates live in the workspace, not in the harness, so the harness can be updated with `git pull` without touching user content. The agent needs to know only one thing: read `SKILL.md` first.
+n8n-evol-I provides that structure. It is a read-only skill package: the agent reads markdown sub-skills from `skills/` and invokes Python helpers from `helpers/` against a separate per-project workspace. Workflow templates live in the workspace, not in the harness, so the harness can be updated with `git pull` without touching user content. The agent needs to know only one thing: read `SKILL.md` first.
 
 ## Features
 
@@ -36,11 +36,11 @@ n8n-harness provides that structure. It is a read-only skill package: the agent 
 
 ## Install
 
-n8n-harness supports two install modes. The workspace and all helpers work identically in both.
+A harness for n8n — ships as a standalone skill set or as a Claude Code plugin with slash commands and auto-tidy. The workspace and all helpers work identically in both.
 
 | | Skill mode | Plugin mode |
 |---|---|---|
-| Slash commands | No | Yes (`/n8n-harness:*`) |
+| Slash commands | No | Yes (`/n8n-evol-I:*`) |
 | Auto-tidy hook | Manual opt-in | Automatic |
 | Discovery | Read `SKILL.md` | Claude Code `/help` |
 | Other agent runtimes | Yes | Claude Code only |
@@ -48,7 +48,7 @@ n8n-harness supports two install modes. The workspace and all helpers work ident
 ### Skill mode (works with any agent runtime)
 
 ```bash
-git clone https://github.com/mwamedacen/n8n-harness.git ~/.claude/skills/n8n-harness
+git clone https://github.com/mwamedacen/n8n-evol-I.git ~/.claude/skills/n8n-evol-I
 pip install pyyaml requests python-dotenv
 ```
 
@@ -57,36 +57,36 @@ pip install pyyaml requests python-dotenv
 CLI form (run in your terminal):
 
 ```bash
-claude plugin install https://github.com/mwamedacen/n8n-harness
+claude plugin install https://github.com/mwamedacen/n8n-evol-I
 ```
 
 In-session form (inside a Claude Code session):
 
 ```
-/plugin install https://github.com/mwamedacen/n8n-harness
+/plugin install https://github.com/mwamedacen/n8n-evol-I
 ```
 
 Local dev:
 
 ```bash
-claude --plugin-dir ./n8n-harness
+claude --plugin-dir ./n8n-evol-I
 ```
 
 ## Quick start
 
 ```bash
 # Per project (skill mode path shown; plugin mode uses ${CLAUDE_PLUGIN_ROOT})
-python3 ~/.claude/skills/n8n-harness/helpers/init.py
-python3 ~/.claude/skills/n8n-harness/helpers/bootstrap_env.py \
+python3 ~/.claude/skills/n8n-evol-I/helpers/init.py
+python3 ~/.claude/skills/n8n-evol-I/helpers/bootstrap_env.py \
   --env dev --instance acme.app.n8n.cloud --api-key <key>
-python3 ~/.claude/skills/n8n-harness/helpers/doctor.py --env dev
+python3 ~/.claude/skills/n8n-evol-I/helpers/doctor.py --env dev
 ```
 
 See [`install.md`](install.md) for full prerequisites, optional extras, and update flow.
 
 ## How it works
 
-The harness directory is read-only from the agent's perspective — never modified at runtime. All project state (workflow templates, env config, built JSON, prompts, JS/Python functions, cloud functions) lives in a separate workspace at `${PWD}/n8n-harness-workspace/`, which the agent can `git init` and version-control independently. The workspace layout is opinionated — see below.
+The harness directory is read-only from the agent's perspective — never modified at runtime. All project state (workflow templates, env config, built JSON, prompts, JS/Python functions, cloud functions) lives in a separate workspace at `${PWD}/n8n-evol-I-workspace/`, which the agent can `git init` and version-control independently. The workspace layout is opinionated — see below.
 
 The agent reads [`SKILL.md`](SKILL.md) to locate the right sub-skill for any n8n-related request. Each skill is a markdown doc that tells the agent which helper to invoke and with what arguments. Helpers are standalone Python scripts in `helpers/`; there is no master CLI and no daemon.
 
@@ -94,10 +94,10 @@ Code-node logic, prompts, schemas, and HTML templates are stored as separate wor
 
 ## Workspace layout
 
-`init.py` scaffolds an opinionated workspace tree. Every project that uses n8n-harness has the same layout, so the agent never has to ask where a thing should live:
+`init.py` scaffolds an opinionated workspace tree. Every project that uses n8n-evol-I has the same layout, so the agent never has to ask where a thing should live:
 
 ```
-n8n-harness-workspace/
+n8n-evol-I-workspace/
 ├── AGENTS.md                # workspace orientation (read first every session)
 ├── N8N-WORKSPACE-MEMORY.md  # rolling journal — agent appends as it learns
 ├── n8n-config/              # env YAML (dev.yml, prod.yml, …) + .env.<env> secrets

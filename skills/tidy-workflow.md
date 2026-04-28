@@ -37,13 +37,13 @@ Running tidy twice on the same input produces byte-identical output when using t
 
 ## Auto-tidy hook (plugin mode only)
 
-When n8n-harness is installed as a Claude Code plugin, a PostToolUse hook fires `tidy_workflow.py --in-place` automatically after every `*.template.json` Write/Edit/MultiEdit. Standalone-skill-mode users who want auto-tidy can configure a hook manually in `~/.claude/settings.json`.
+When n8n-evol-I is installed as a Claude Code plugin, a PostToolUse hook fires `tidy_workflow.py --in-place` automatically after every `*.template.json` Write/Edit/MultiEdit. Standalone-skill-mode users who want auto-tidy can configure a hook manually in `~/.claude/settings.json`.
 
 To disable the hook after plugin install: remove or rename `hooks/hooks.json` in the plugin directory, or disable the plugin in Claude Code settings.
 
 ## License
 
-`@n8n/workflow-sdk` is published under the **n8n Sustainable Use License (SUL)**, not MIT. n8n-harness does not redistribute the SDK — your machine fetches it from npm at first run. By running this skill you accept the SUL terms for your use of the SDK. n8n-harness itself remains MIT.
+`@n8n/workflow-sdk` is published under the **n8n Sustainable Use License (SUL)**, not MIT. n8n-evol-I does not redistribute the SDK — your machine fetches it from npm at first run. By running this skill you accept the SUL terms for your use of the SDK. n8n-evol-I itself remains MIT.
 
 ## Install size
 

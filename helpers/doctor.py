@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Health check for an n8n-harness workspace."""
+"""Health check for an n8n-evol-I workspace."""
 import argparse
 import json
 import sys
@@ -184,7 +184,7 @@ def _check_audit(ws: Path, env: str) -> list:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--workspace", default=None, help="Workspace path. Default: ${PWD}/n8n-harness-workspace, or ${PWD} if its basename is already n8n-harness-workspace.")
+    parser.add_argument("--workspace", default=None, help="Workspace path. Default: ${PWD}/n8n-evol-I-workspace, or ${PWD} if its basename is already n8n-evol-I-workspace.")
     parser.add_argument("--env", default=None, help="Check a specific env (default: all configured envs)")
     parser.add_argument("--with-audit", action="store_true", dest="with_audit",
                         help="Also run POST /audit and report risk categories. Off by default.")
@@ -224,7 +224,7 @@ def main() -> None:
     if not args.audit_only:
         rows += _check_templates(ws)
 
-    print("\nn8n-harness doctor report:")
+    print("\nn8n-evol-I doctor report:")
     for state, label, detail in rows:
         print(_fmt(state, label, detail))
     print()

@@ -24,12 +24,12 @@ n8n/workflows/generated/
 factory/prompt_engineering/*.dspy
 factory/prompt_engineering/optimized_programs/
 
-# n8n-harness attached envs (Phase 3)
+# n8n-evol-I attached envs (Phase 3)
 .env.attached.*
 n8n/environments/attached.*.yaml
 
-# n8n-harness debug deploys
-.cache/n8n-harness/
+# n8n-evol-I debug deploys
+.cache/n8n-evol-I/
 
 # Python build/install artifacts
 *.lock
@@ -46,3 +46,5 @@ n8n-harness-coordination-primitives-plan.md
 n8n-harness-debug-plan.md
 n8n-harness-readme-revision-plan.md
 n8n-harness-agents-md-migration-plan.md
+n8n-harness-placeholder-rename-plan.md
+n8n-harness-tidy-and-plugin-plan.md

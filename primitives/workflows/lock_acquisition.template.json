@@ -27,7 +27,7 @@
       "position": [208, 0],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\n// Build a stable context object referenced throughout the acquire flow (including the\n// wait-loop, where node('Build Lock Context').first().json gives us deadline_ms even\n// after multiple loop iterations).\nconst scope = $json.scope || 'default';\nconst ttl = typeof $json.ttl_seconds === 'number' ? $json.ttl_seconds : 60;\nconst executionId = $json.execution_id || $execution.id;\nconst waitTillReleased = $json.wait_till_lock_released !== false;  // default true\nconst maxWaitSeconds = typeof $json.max_wait_seconds === 'number' ? $json.max_wait_seconds : 86400;\nconst key = `lock-${scope}`;\nreturn [{\n  json: {\n    scope,\n    ttl,\n    executionId,\n    wait_till_lock_released: waitTillReleased,\n    max_wait_seconds: maxWaitSeconds,\n    key,\n    lock_id: executionId,\n    deadline_ms: Date.now() + (maxWaitSeconds * 1000),\n  },\n}];\n"
+        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\n// Build a stable context object referenced throughout the acquire flow (including the\n// wait-loop, where node('Build Lock Context').first().json gives us deadline_ms even\n// after multiple loop iterations).\nconst scope = $json.scope || 'default';\nconst ttl = typeof $json.ttl_seconds === 'number' ? $json.ttl_seconds : 60;\nconst executionId = $json.execution_id || $execution.id;\nconst waitTillReleased = $json.wait_till_lock_released !== false;  // default true\nconst maxWaitSeconds = typeof $json.max_wait_seconds === 'number' ? $json.max_wait_seconds : 86400;\nconst key = `lock-${scope}`;\nreturn [{\n  json: {\n    scope,\n    ttl,\n    executionId,\n    wait_till_lock_released: waitTillReleased,\n    max_wait_seconds: maxWaitSeconds,\n    key,\n    lock_id: executionId,\n    deadline_ms: Date.now() + (maxWaitSeconds * 1000),\n  },\n}];\n"
       }
     },
     {
@@ -58,7 +58,7 @@
       "position": [656, 0],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\n// Read the post-INCR count for our key and decide if this caller acquired the lock.\n// `count === 1` means our INCR was the one that created the key — we hold the lock.\n// Any other count means a concurrent caller got there first.\nconst ctx = $('Build Lock Context').first().json;\nconst incrOut = $json;\nconst count = typeof incrOut[ctx.key] === 'number' ? incrOut[ctx.key] : 0;\nconst acquired = count === 1;\nreturn [{ json: { acquired, count, scope: ctx.scope, lock_id: ctx.lock_id, key: ctx.key } }];\n"
+        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\n// Read the post-INCR count for our key and decide if this caller acquired the lock.\n// `count === 1` means our INCR was the one that created the key — we hold the lock.\n// Any other count means a concurrent caller got there first.\nconst ctx = $('Build Lock Context').first().json;\nconst incrOut = $json;\nconst count = typeof incrOut[ctx.key] === 'number' ? incrOut[ctx.key] : 0;\nconst acquired = count === 1;\nreturn [{ json: { acquired, count, scope: ctx.scope, lock_id: ctx.lock_id, key: ctx.key } }];\n"
       }
     },
     {
@@ -173,7 +173,7 @@
       "position": [1776, 64],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\n// Decide what to do next in the wait loop:\n//   - 'timeout'       → max_wait_seconds elapsed; give up.\n//   - 'retry-incr'    → key is gone (released or expired); attempt a fresh INCR.\n//   - 'keep-waiting'  → key still present; loop back to Wait Before Poll.\nconst ctx = $('Build Lock Context').first().json;\nconst lockValue = $json.LOCK_VALUE;\nconst now = Date.now();\nconst remainingMs = ctx.deadline_ms - now;\nlet state;\nif (remainingMs <= 0) {\n  state = 'timeout';\n} else if (lockValue === null || lockValue === undefined || lockValue === '') {\n  state = 'retry-incr';\n} else {\n  state = 'keep-waiting';\n}\nreturn [{ json: { state, remaining_ms: remainingMs, current_value: lockValue, key: ctx.key, scope: ctx.scope } }];\n"
+        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\n// Decide what to do next in the wait loop:\n//   - 'timeout'       → max_wait_seconds elapsed; give up.\n//   - 'retry-incr'    → key is gone (released or expired); attempt a fresh INCR.\n//   - 'keep-waiting'  → key still present; loop back to Wait Before Poll.\nconst ctx = $('Build Lock Context').first().json;\nconst lockValue = $json.LOCK_VALUE;\nconst now = Date.now();\nconst remainingMs = ctx.deadline_ms - now;\nlet state;\nif (remainingMs <= 0) {\n  state = 'timeout';\n} else if (lockValue === null || lockValue === undefined || lockValue === '') {\n  state = 'retry-incr';\n} else {\n  state = 'keep-waiting';\n}\nreturn [{ json: { state, remaining_ms: remainingMs, current_value: lockValue, key: ctx.key, scope: ctx.scope } }];\n"
       }
     },
     {

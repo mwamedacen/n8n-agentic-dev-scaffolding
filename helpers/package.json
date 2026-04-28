@@ -1,1 +1,1 @@
-{"private":true,"name":"n8n-harness-helpers","dependencies":{"@n8n/workflow-sdk":"0.10.2"}}
+{"private":true,"name":"n8n-evol-I-helpers","dependencies":{"@n8n/workflow-sdk":"0.10.2"}}

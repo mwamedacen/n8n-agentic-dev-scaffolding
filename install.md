@@ -1,6 +1,6 @@
 ---
 name: install
-description: How to install n8n-harness as a skill package and what it expects on the host system.
+description: How to install n8n-evol-I as a skill package and what it expects on the host system.
 ---
 
 # install
@@ -19,7 +19,7 @@ Clone into your agent's skills directory:
 
 ```bash
 cd ~/.claude/skills   # or wherever your agent runtime reads skills from
-git clone https://github.com/mwamedacen/n8n-harness.git
+git clone https://github.com/mwamedacen/n8n-evol-I.git
 ```
 
 Install Python deps:
@@ -39,26 +39,26 @@ pip install dspy litellm
 CLI form (run in your terminal):
 
 ```bash
-claude plugin install https://github.com/mwamedacen/n8n-harness
+claude plugin install https://github.com/mwamedacen/n8n-evol-I
 ```
 
 In-session form (inside a Claude Code session):
 
 ```
-/plugin install https://github.com/mwamedacen/n8n-harness
+/plugin install https://github.com/mwamedacen/n8n-evol-I
 ```
 
 Local dev (loads from a local checkout):
 
 ```bash
-claude --plugin-dir ./n8n-harness
+claude --plugin-dir ./n8n-evol-I
 ```
 
 #### Plugin extras
 
-When installed as a plugin, n8n-harness ships two additional behaviors:
+When installed as a plugin, n8n-evol-I ships two additional behaviors:
 
-- **Slash commands** — 10 user-facing commands available as `/n8n-harness:deploy`, `/n8n-harness:tidyup`, etc. Hidden lifecycle skills remain agent-loadable via `SKILL.md` routing but do not appear in `/help`.
+- **Slash commands** — 10 user-facing commands available as `/n8n-evol-I:deploy`, `/n8n-evol-I:tidyup`, etc. Hidden lifecycle skills remain agent-loadable via `SKILL.md` routing but do not appear in `/help`.
 
 - **Auto-tidy hook** — a `PostToolUse` hook fires after every Write/Edit/MultiEdit tool call; the hook script filters to `*.template.json` files and runs `tidy_workflow.py --in-place` on matching files. This keeps node positions clean without any manual step.
 
@@ -83,14 +83,14 @@ python3 <harness>/helpers/<name>.py [args]
 
 ## Per-project setup
 
-Per project, the agent runs `init.md` once to scaffold a workspace at `${PWD}/n8n-harness-workspace/`. From there, `bootstrap-env.md` configures envs, `create-new-workflow.md` authors workflows, etc. See [`SKILL.md`](SKILL.md) for the full skill catalogue.
+Per project, the agent runs `init.md` once to scaffold a workspace at `${PWD}/n8n-evol-I-workspace/`. From there, `bootstrap-env.md` configures envs, `create-new-workflow.md` authors workflows, etc. See [`SKILL.md`](SKILL.md) for the full skill catalogue.
 
 ## Updating
 
 The harness's "version" is its git SHA. To upgrade:
 
 ```bash
-cd ~/.claude/skills/n8n-harness
+cd ~/.claude/skills/n8n-evol-I
 git pull
 ```
 
@@ -99,8 +99,8 @@ Breaking changes between versions are documented in [`CHANGELOG.md`](CHANGELOG.m
 ## Verifying the install
 
 ```bash
-python3 <harness>/helpers/init.py --workspace /tmp/n8n-harness-smoke
-ls /tmp/n8n-harness-smoke/n8n-config /tmp/n8n-harness-smoke/n8n-workflows-template
+python3 <harness>/helpers/init.py --workspace /tmp/n8n-evol-I-smoke
+ls /tmp/n8n-evol-I-smoke/n8n-config /tmp/n8n-evol-I-smoke/n8n-workflows-template
 ```
 
 If both directories exist after the run, the install is good.

@@ -19,7 +19,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/helpers/deploy.py --env <env> --workflow-key <key>
 1. Calls `hydrate.py` first (composes; produces `<workspace>/n8n-build/<env>/<key>.generated.json`) if missing or `--rehydrate`.
 2. Reads the generated JSON, drops disallowed PUT fields (active, tags, id, versionId), PUTs to `<base>/api/v1/workflows/<id>`.
 3. By default, activates via `POST /workflows/<id>/activate`. `--no-activate` skips this.
-4. With `--debug`, dumps redacted pre/post artifacts to `~/.cache/n8n-harness/debug/<pid>/deploy-<n>.json` (mode 0600).
+4. With `--debug`, dumps redacted pre/post artifacts to `~/.cache/n8n-evol-I/debug/<pid>/deploy-<n>.json` (mode 0600).
 
 ## Pattern
 

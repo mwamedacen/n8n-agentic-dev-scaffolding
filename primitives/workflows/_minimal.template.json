@@ -27,7 +27,7 @@
             {
               "id": "{{@:uuid:assign}}",
               "name": "message",
-              "value": "Hello from n8n-harness",
+              "value": "Hello from n8n-evol-I",
               "type": "string"
             }
           ]

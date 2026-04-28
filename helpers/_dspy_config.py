@@ -10,7 +10,7 @@ def configure_lm(provider: Optional[str] = None, model: Optional[str] = None):
         import dspy
     except ImportError:
         raise ImportError(
-            "dspy is not installed. Install with `pip install n8n-harness[dspy]` "
+            "dspy is not installed. Install with `pip install n8n-evol-I[dspy]` "
             "or `pip install dspy litellm`."
         )
 

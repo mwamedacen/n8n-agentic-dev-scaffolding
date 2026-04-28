@@ -25,7 +25,7 @@ def _wrap(node: dict) -> str:
 def test_marker_first_line_passes(tmp_path):
     """Code node with the primitive marker as first line passes without errors."""
     code = (
-        "// @n8n-harness:primitive — exempt from pure-function discipline\n"
+        "// @n8n-evol-I:primitive — exempt from pure-function discipline\n"
         "const scope = $json.scope || 'default';\n"
         "await this.helpers.redis.call('SET', `lock-${scope}`, 'x', 'NX', 'EX', '60');\n"
         "return [{ json: { acquired: true } }];\n"
@@ -43,7 +43,7 @@ def test_marker_with_leading_whitespace_passes(tmp_path):
     """Whitespace before the marker is tolerated by lstrip."""
     code = (
         "   \n"
-        "// @n8n-harness:primitive\n"
+        "// @n8n-evol-I:primitive\n"
         "const x = await this.helpers.redis.call('GET', 'foo');\n"
     )
     text = _wrap({
@@ -71,7 +71,7 @@ def test_no_marker_no_placeholder_rejected(tmp_path):
 def test_function_node_still_rejected_unconditionally(tmp_path):
     """The deprecated `n8n-nodes-base.function` is rejected even if its code starts with the marker."""
     code = (
-        "// @n8n-harness:primitive\n"
+        "// @n8n-evol-I:primitive\n"
         "return items;\n"
     )
     text = _wrap({
@@ -87,7 +87,7 @@ def test_function_node_still_rejected_unconditionally(tmp_path):
 def test_built_with_marker_passes(tmp_path):
     """source='built' already bypasses Code-node discipline; marker is orthogonal but should still pass."""
     code = (
-        "// @n8n-harness:primitive\n"
+        "// @n8n-evol-I:primitive\n"
         "return [{ json: { ok: true } }];\n"
     )
     text = _wrap({
@@ -100,11 +100,11 @@ def test_built_with_marker_passes(tmp_path):
 
 
 def test_python_primitive_marker_passes(tmp_path):
-    """The marker also exempts Python Code nodes (uses the same `// @n8n-harness:primitive` literal as the first stripped chars).
+    """The marker also exempts Python Code nodes (uses the same `// @n8n-evol-I:primitive` literal as the first stripped chars).
     Python code nodes don't typically use this marker since Python primitives aren't shipped, but the validator should still accept it.
     """
     code = (
-        "// @n8n-harness:primitive\n"
+        "// @n8n-evol-I:primitive\n"
         "return [{'json': {}}]\n"
     )
     text = _wrap({

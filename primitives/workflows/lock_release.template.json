@@ -23,7 +23,7 @@
       "position": [208, 0],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\nconst scope = $json.scope || 'default';\nconst key = `lock-${scope}`;\nreturn [{ json: { scope, key } }];\n"
+        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\nconst scope = $json.scope || 'default';\nconst key = `lock-${scope}`;\nreturn [{ json: { scope, key } }];\n"
       }
     },
     {
@@ -51,7 +51,7 @@
       "position": [656, 0],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\nconst prev = $('Build Lock Key').first().json;\nreturn [{ json: { released: true, scope: prev.scope } }];\n"
+        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\nconst prev = $('Build Lock Key').first().json;\nreturn [{ json: { released: true, scope: prev.scope } }];\n"
       }
     }
   ],

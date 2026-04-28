@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-_DEFAULT_WS_NAME = "n8n-harness-workspace"
+_DEFAULT_WS_NAME = "n8n-evol-I-workspace"
 _announced = False
 
 
@@ -10,9 +10,9 @@ def workspace_root(override=None) -> Path:
 
     Resolution order:
       1. ``--workspace`` override (explicit; honored as-is).
-      2. ``cwd`` if its basename is ``n8n-harness-workspace`` — you're already inside.
-      3. ``cwd/n8n-harness-workspace`` if it exists as a child directory.
-      4. ``cwd/n8n-harness-workspace`` (default; ``init.py`` will create it here).
+      2. ``cwd`` if its basename is ``n8n-evol-I-workspace`` — you're already inside.
+      3. ``cwd/n8n-evol-I-workspace`` if it exists as a child directory.
+      4. ``cwd/n8n-evol-I-workspace`` (default; ``init.py`` will create it here).
 
     Prints the resolved path to stderr once per process.
     """
@@ -27,7 +27,7 @@ def workspace_root(override=None) -> Path:
             path = cwd / _DEFAULT_WS_NAME
         path = path.resolve()
     if not _announced:
-        print(f"[n8n-harness] workspace: {path}", file=sys.stderr)
+        print(f"[n8n-evol-I] workspace: {path}", file=sys.stderr)
         _announced = True
     return path
 

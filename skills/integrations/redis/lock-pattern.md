@@ -21,7 +21,7 @@ The harness ships four primitives backed by the dedicated `n8n-nodes-base.redis`
 | `error_handler_lock_cleanup` | `errorTrigger` | `{ cleaned: false, reason, executionId }` (no-op stub; TTL handles cleanup) |
 | `rate_limit_check` | `executeWorkflowTrigger` (inputs: `scope, limit, windowSeconds`) | `{ allowed, scope, count, limit }` |
 
-Every Code-node body inside these primitives starts with `// @n8n-harness:primitive` to bypass `validate.py`'s pure-function discipline. **Do not copy that marker into user Code nodes** — it silently disables validation.
+Every Code-node body inside these primitives starts with `// @n8n-evol-I:primitive` to bypass `validate.py`'s pure-function discipline. **Do not copy that marker into user Code nodes** — it silently disables validation.
 
 ## Lock value: just an integer
 

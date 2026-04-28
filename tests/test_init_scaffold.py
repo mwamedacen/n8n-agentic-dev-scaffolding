@@ -7,7 +7,7 @@ def _run_scaffold(tmp_path):
     """Run _scaffold with tmp_path as cwd so default workspace resolves correctly."""
     with patch("os.getcwd", return_value=str(tmp_path)):
         from helpers.init import _scaffold
-        ws = tmp_path / "n8n-harness-workspace"
+        ws = tmp_path / "n8n-evol-I-workspace"
         _scaffold(ws, force=False)
     return ws, tmp_path
 

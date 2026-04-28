@@ -226,7 +226,7 @@ def _load_workflow(workspace: Path, key: str) -> tuple[Path, dict]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Tidy n8n workflow node positions.")
-    parser.add_argument("--workspace", required=True, help="Path to n8n-harness workspace directory")
+    parser.add_argument("--workspace", required=True, help="Path to n8n-evol-I workspace directory")
     parser.add_argument("--workflow-key", required=True, help="Workflow key (filename stem without .template.json)")
     parser.add_argument("--in-place", action="store_true", help="Write result back to template file (default: print to stdout)")
     args = parser.parse_args()

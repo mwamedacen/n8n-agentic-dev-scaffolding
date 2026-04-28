@@ -19,7 +19,7 @@
       "position": [460, 300],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\nconst scope = $json.scope || 'default';\nconst limit = typeof $json.limit === 'number' ? $json.limit : 10;\nconst windowSeconds = typeof $json.windowSeconds === 'number' ? $json.windowSeconds : 60;\nconst bucket = Math.floor(Date.now() / (windowSeconds * 1000));\nconst key = `ratelimit-${scope}-${bucket}`;\nreturn [{ json: { scope, limit, windowSeconds, key } }];\n"
+        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\nconst scope = $json.scope || 'default';\nconst limit = typeof $json.limit === 'number' ? $json.limit : 10;\nconst windowSeconds = typeof $json.windowSeconds === 'number' ? $json.windowSeconds : 60;\nconst bucket = Math.floor(Date.now() / (windowSeconds * 1000));\nconst key = `ratelimit-${scope}-${bucket}`;\nreturn [{ json: { scope, limit, windowSeconds, key } }];\n"
       }
     },
     {
@@ -50,7 +50,7 @@
       "position": [900, 300],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-harness:primitive — exempt from pure-function discipline\nconst prev = $('Build Bucket Key').first().json;\nconst incrOut = $json;\nconst count = typeof incrOut[prev.key] === 'number' ? incrOut[prev.key] : 0;\nconst allowed = count <= prev.limit;\nreturn [{ json: { allowed, scope: prev.scope, count, limit: prev.limit } }];\n"
+        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\nconst prev = $('Build Bucket Key').first().json;\nconst incrOut = $json;\nconst count = typeof incrOut[prev.key] === 'number' ? incrOut[prev.key] : 0;\nconst allowed = count <= prev.limit;\nreturn [{ json: { allowed, scope: prev.scope, count, limit: prev.limit } }];\n"
       }
     }
   ],

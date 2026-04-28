@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 from registry import EXPOSED_FUNCTIONS
 
-app = FastAPI(title="n8n-harness cloud functions")
+app = FastAPI(title="n8n-evol-I cloud functions")
 
 
 @app.get("/")

@@ -276,7 +276,7 @@ There is no helper script — this is a per-workflow migration done by hand.
 
 ## Primitive exemption
 
-Harness-maintained primitive Code nodes (lock acquisition, lock release, rate-limit check, error-handler cleanup) begin their body with `// @n8n-harness:primitive`. This marker suppresses the placeholder and purity checks in `validate.py` — the validator's `_validate_code_node` short-circuits with no errors as soon as it sees the marker as the first non-whitespace characters of the code field.
+Harness-maintained primitive Code nodes (lock acquisition, lock release, rate-limit check, error-handler cleanup) begin their body with `// @n8n-evol-I:primitive`. This marker suppresses the placeholder and purity checks in `validate.py` — the validator's `_validate_code_node` short-circuits with no errors as soon as it sees the marker as the first non-whitespace characters of the code field.
 
 Only primitives under `primitives/workflows/` should use this marker. User Code nodes must follow the discipline rule without exception; using the marker in a user workflow will silently bypass validation, defeating the whole point of the rule.
 

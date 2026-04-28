@@ -2,13 +2,13 @@
 
 ## v1.0.0 — Read-only skill package + external workspace
 
-The repo is now a **read-only skill package**. All user project state (templates, env config, builds, prompts, JS, assets, cloud functions) lives in a separate workspace at `${PWD}/n8n-harness-workspace/`. The harness directory is never modified by the agent at runtime.
+The repo is now a **read-only skill package**. All user project state (templates, env config, builds, prompts, JS, assets, cloud functions) lives in a separate workspace at `${PWD}/n8n-evol-I-workspace/`. The harness directory is never modified by the agent at runtime.
 
 ### Architecture
 
 - New top-level layout: `SKILL.md` (router), `skills/` (markdown sub-skills), `helpers/` (Python CLI scripts), `primitives/` (seed templates).
-- All helpers default to `--workspace ${PWD}/n8n-harness-workspace`. They never write inside the harness directory (enforced by `assert_not_in_harness`).
-- `n8n-harness -c "<python>"` REPL-style CLI is removed. There is no master CLI; each helper is invoked by absolute path.
+- All helpers default to `--workspace ${PWD}/n8n-evol-I-workspace`. They never write inside the harness directory (enforced by `assert_not_in_harness`).
+- `n8n-evol-I -c "<python>"` REPL-style CLI is removed. There is no master CLI; each helper is invoked by absolute path.
 
 ### New skills (markdown router + sub-skills)
 
@@ -41,7 +41,7 @@ Integrations (per-service quirks): `microsoft-365`, `gmail`, `redis`, `slack`, `
 
 - `n8n/`, `common/`, `factory/`, `cloud_functions/`, `pattern-skills/`, `integration-skills/` — all replaced by the new `helpers/`, `primitives/`, `skills/` tree.
 - `helpers.py`, `admin.py`, `run.py`, `setup.sh`, root `test_*.py` — replaced.
-- `n8n-harness` console script (`[project.scripts]` removed from `pyproject.toml`).
+- `n8n-evol-I` console script (`[project.scripts]` removed from `pyproject.toml`).
 
 ### Migration from pre-rebuild
 

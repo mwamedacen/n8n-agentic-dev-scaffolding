@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Scaffold an n8n-harness workspace.
+"""Scaffold an n8n-evol-I workspace.
 
-Default location is ``${PWD}/n8n-harness-workspace``. If you run from inside an
-existing workspace directory (basename ``n8n-harness-workspace``), the existing
+Default location is ``${PWD}/n8n-evol-I-workspace``. If you run from inside an
+existing workspace directory (basename ``n8n-evol-I-workspace``), the existing
 workspace is used in place. Pass ``--workspace <path>`` to override.
 """
 import argparse
@@ -16,9 +16,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from helpers.workspace import workspace_root
 
 _AGENTS_MD = """\
-# AGENTS.md — n8n-harness workspace orientation
+# AGENTS.md — n8n-evol-I workspace orientation
 
-You are a coding agent working in an n8n-harness workspace. This file tells you
+You are a coding agent working in an n8n-evol-I workspace. This file tells you
 where things are and how to operate. Read it at the start of every session.
 
 ## Skill router
@@ -29,7 +29,7 @@ n8n-related, read that file first to find the right sub-skill and helper.
 ## Workspace layout
 
 ```
-n8n-harness-workspace/
+n8n-evol-I-workspace/
 ├── n8n-config/             # env YAML (dev.yml, prod.yml, …) + .env.<env> secrets
 ├── n8n-workflows-template/ # *.template.json — canonical, version-controlled
 ├── n8n-build/              # hydrated outputs — gitignored, regenerated on deploy
@@ -80,7 +80,7 @@ than no notes. Append; don't rewrite history.
 _WORKSPACE_MEMORY_MD = """\
 # N8N-WORKSPACE-MEMORY
 
-Rolling journal for this n8n-harness workspace. The agent reads this at the start
+Rolling journal for this n8n-evol-I workspace. The agent reads this at the start
 of every session and appends entries as it learns new things.
 
 ## Workflows
@@ -97,7 +97,7 @@ of every session and appends entries as it learns new things.
 """
 
 _ALIAS_TEMPLATE = """\
-@n8n-harness-workspace/AGENTS.md
+@n8n-evol-I-workspace/AGENTS.md
 
 (If your agent runtime does not support @file imports, read the file at the
 path above directly. It contains workspace orientation and points to the rolling
@@ -158,7 +158,7 @@ def _scaffold(ws: Path, force: bool) -> None:
     )
 
     # Write alias files at project root if this is the default workspace location.
-    if ws.name == "n8n-harness-workspace" and ws.parent == Path.cwd():
+    if ws.name == "n8n-evol-I-workspace" and ws.parent == Path.cwd():
         project_root = ws.parent
         _write_if_absent(
             project_root / "CLAUDE.md",
@@ -184,7 +184,7 @@ def _scaffold(ws: Path, force: bool) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--workspace", default=None, help="Workspace path. Default: ${PWD}/n8n-harness-workspace, or ${PWD} if its basename is already n8n-harness-workspace.")
+    parser.add_argument("--workspace", default=None, help="Workspace path. Default: ${PWD}/n8n-evol-I-workspace, or ${PWD} if its basename is already n8n-evol-I-workspace.")
     parser.add_argument("--force", action="store_true", help="Recreate workspace if it already exists (DESTRUCTIVE)")
     args = parser.parse_args()
     _scaffold(workspace_root(args.workspace), args.force)

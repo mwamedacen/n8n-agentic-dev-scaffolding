@@ -85,7 +85,7 @@ def _mint_placeholder_workflows(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--workspace", default=None, help="Workspace path. Default: ${PWD}/n8n-harness-workspace, or ${PWD} if its basename is already n8n-harness-workspace.")
+    parser.add_argument("--workspace", default=None, help="Workspace path. Default: ${PWD}/n8n-evol-I-workspace, or ${PWD} if its basename is already n8n-evol-I-workspace.")
     parser.add_argument("--env", required=True, help="Environment name (e.g. dev, prod)")
     parser.add_argument("--instance", default=None, help="n8n instance URL or hostname")
     parser.add_argument("--api-key", default=None, dest="api_key", help="n8n API key")

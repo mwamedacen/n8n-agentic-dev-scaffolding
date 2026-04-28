@@ -1,25 +1,25 @@
 ---
-name: n8n-harness
+name: n8n-evol-I
 description: Read-only skill package for authoring, deploying, and operating n8n workflows from code. Routes user requests to lifecycle skills (init, bootstrap-env, create-new-workflow, deploy, run, resync, etc.).
 ---
 
-# n8n-harness skill router
+# n8n-evol-I skill router
 
 This is the entry point. When the user asks anything n8n-related, route to the matching sub-skill.
 
 ## Mental model
 
 - The skill package (this directory) is **read-only**. You never edit files here.
-- The user's project state lives in `${PWD}/n8n-harness-workspace/` (created by `init.md`).
+- The user's project state lives in `${PWD}/n8n-evol-I-workspace/` (created by `init.md`).
 - Helpers are Python scripts under `helpers/`. Invoke them with `python3 ${CLAUDE_PLUGIN_ROOT}/helpers/<name>.py [args]` (plugin mode) or `python3 <path-to-harness>/helpers/<name>.py [args]` (skill mode).
-- All helpers default to `--workspace ${PWD}/n8n-harness-workspace`. Pass `--workspace <path>` if the user runs from elsewhere.
+- All helpers default to `--workspace ${PWD}/n8n-evol-I-workspace`. Pass `--workspace <path>` if the user runs from elsewhere.
 - **Agent memory**: read `N8N-WORKSPACE-MEMORY.md` in the workspace at the start of every session; append a dated entry whenever you learn something durable about this project. Full guidance in `AGENTS.md` (also in the workspace root).
 
 ## Lifecycle skills (use when the user wants to do X)
 
 | Skill | When |
 |---|---|
-| [init.md](skills/init.md) | First-time setup. Creates the workspace at `${PWD}/n8n-harness-workspace/`. |
+| [init.md](skills/init.md) | First-time setup. Creates the workspace at `${PWD}/n8n-evol-I-workspace/`. |
 | [bootstrap-env.md](skills/bootstrap-env.md) | Configure an environment (`dev` / `staging` / `prod`). Creates env YAML + `.env`, validates, mints placeholder workflow IDs. |
 | [doctor.md](skills/doctor.md) | Health check. Run before/after major changes. |
 | [create-new-workflow.md](skills/create-new-workflow.md) | Author a brand-new workflow. |

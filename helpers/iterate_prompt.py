@@ -28,7 +28,7 @@ def _check_dspy() -> bool:
         return True
     except ImportError:
         print(
-            "dspy is not installed. Run `pip install n8n-harness[dspy]` to enable iterate-prompt.",
+            "dspy is not installed. Run `pip install n8n-evol-I[dspy]` to enable iterate-prompt.",
             file=sys.stderr,
         )
         return False

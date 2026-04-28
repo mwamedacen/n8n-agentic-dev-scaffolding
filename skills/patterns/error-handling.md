@@ -143,7 +143,7 @@ Each "log" branch runs in parallel from the Build Context node (n8n auto-paralle
 ### Build Context Code-node body
 
 ```javascript
-// @n8n-harness:primitive — exempt from pure-function discipline
+// @n8n-evol-I:primitive — exempt from pure-function discipline
 const ed = $workflow.errorData || {};
 const execution = ed.execution || {};
 const workflow = ed.workflow || {};
@@ -160,7 +160,7 @@ return [{
 }];
 ```
 
-The `// @n8n-harness:primitive` marker is appropriate here — this is harness-pattern code, not user business logic. (If you're building this handler inside a user workspace and not as a shipped primitive, omit the marker and follow the standard Code-node discipline: extract to `n8n-functions/js/buildErrorContext.js` with a paired test.)
+The `// @n8n-evol-I:primitive` marker is appropriate here — this is harness-pattern code, not user business logic. (If you're building this handler inside a user workspace and not as a shipped primitive, omit the marker and follow the standard Code-node discipline: extract to `n8n-functions/js/buildErrorContext.js` with a paired test.)
 
 ### Why parallel branches
 

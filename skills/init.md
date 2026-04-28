@@ -1,6 +1,6 @@
 ---
 name: init
-description: Scaffold a fresh n8n-harness workspace at ${PWD}/n8n-harness-workspace/.
+description: Scaffold a fresh n8n-evol-I workspace at ${PWD}/n8n-evol-I-workspace/.
 user-invocable: false
 ---
 
@@ -8,7 +8,7 @@ user-invocable: false
 
 ## When
 
-First-time use of n8n-harness in a project, or to reset from a clean slate.
+First-time use of n8n-evol-I in a project, or to reset from a clean slate.
 
 ## How
 
@@ -18,7 +18,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/helpers/init.py
 
 Optional flags:
 
-- `--workspace <path>`: override default `${PWD}/n8n-harness-workspace`
+- `--workspace <path>`: override default `${PWD}/n8n-evol-I-workspace`
 - `--force`: clobber existing workspace (DESTRUCTIVE — confirm with the user)
 
 ## Side effects
@@ -53,5 +53,5 @@ migrate manually:
 1. Copy the Notes section contents to the new `N8N-WORKSPACE-MEMORY.md`.
 2. Rename `N8N-HARNESS-MEMORY.md` to `AGENTS.md` and replace its content with the
    current template (visible at `helpers/init.py`'s `_AGENTS_MD` constant).
-3. Add `CLAUDE.md` at your project root with content `@n8n-harness-workspace/AGENTS.md`
+3. Add `CLAUDE.md` at your project root with content `@n8n-evol-I-workspace/AGENTS.md`
    plus the fallback note from `_ALIAS_TEMPLATE`.

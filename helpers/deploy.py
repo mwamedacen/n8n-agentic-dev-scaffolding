@@ -56,7 +56,7 @@ def _resolve_workflow_id(env_name: str, workflow_key: str, workspace: Path) -> s
 
 
 def _write_debug(env_name: str, workflow_key: str, payload: dict, response, stage: str) -> None:
-    debug_dir = Path.home() / ".cache" / "n8n-harness" / "debug" / str(os.getpid())
+    debug_dir = Path.home() / ".cache" / "n8n-evol-I" / "debug" / str(os.getpid())
     debug_dir.mkdir(parents=True, exist_ok=True)
     seq = len(list(debug_dir.glob(f"deploy-*.json"))) + 1
     out = debug_dir / f"deploy-{seq:03d}.json"

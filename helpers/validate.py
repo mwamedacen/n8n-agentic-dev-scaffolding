@@ -15,7 +15,7 @@ from helpers.placeholder import validator as placeholder_validator
 _JS_PLACEHOLDER_RE = re.compile(r"\{\{(?:INTERPOLATE|@):js:([^}]+)\}\}")
 _PY_PLACEHOLDER_RE = re.compile(r"\{\{(?:INTERPOLATE|@):py:([^}]+)\}\}")
 _JS_TRAILER_REQUIRED = 'if (typeof module !== "undefined")'
-_PRIMITIVE_MARKER = "// @n8n-harness:primitive"
+_PRIMITIVE_MARKER = "// @n8n-evol-I:primitive"
 
 _JS_BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
 _JS_TOP_LEVEL_KEYWORDS = ("function", "async function", "module.exports", "exports.")

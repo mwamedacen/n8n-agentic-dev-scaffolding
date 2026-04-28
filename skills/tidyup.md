@@ -1,5 +1,5 @@
 ---
-description: Slash-command entry point to tidy a workflow template's node positions. Invoke as /n8n-harness:tidyup with a workflow key; delegates to tidy-workflow.md for full option details.
+description: Slash-command entry point to tidy a workflow template's node positions. Invoke as /n8n-evol-I:tidyup with a workflow key; delegates to tidy-workflow.md for full option details.
 ---
 
 # tidyup

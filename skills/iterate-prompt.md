@@ -33,4 +33,4 @@ python3 ${CLAUDE_PLUGIN_ROOT}/helpers/iterate_prompt.py --prompt <name> [--datas
 
 ## Optional dep
 
-DSPy is an optional extra. Install with `pip install n8n-harness[dspy]`. The helper prints an install hint if dspy is missing.
+DSPy is an optional extra. Install with `pip install n8n-evol-I[dspy]`. The helper prints an install hint if dspy is missing.
