@@ -20,7 +20,7 @@ from pathlib import Path
 
 _HARNESS_ROOT = Path(__file__).resolve().parent.parent
 _SHIM = _HARNESS_ROOT / "helpers" / "tidy_shim.mjs"
-_SDK_VERSION = "stable"
+_SDK_VERSION = "0.10.2"
 _STICKY_TYPE = "n8n-nodes-base.stickyNote"
 _START_X = 240
 _START_Y = 300
@@ -90,7 +90,6 @@ def _bfs_layout(workflow: dict) -> dict:
     connections = workflow.get("connections", {})
 
     non_sticky = [n for n in nodes if n.get("type") != _STICKY_TYPE]
-    sticky = [n for n in nodes if n.get("type") == _STICKY_TYPE]
 
     if not non_sticky:
         return workflow
@@ -185,7 +184,6 @@ def _bfs_layout(workflow: dict) -> dict:
     for node in nodes:
         n = dict(node)
         if n.get("type") != _STICKY_TYPE and n["name"] in positions:
-            n = dict(n)
             n["position"] = positions[n["name"]]
         result_nodes.append(n)
 

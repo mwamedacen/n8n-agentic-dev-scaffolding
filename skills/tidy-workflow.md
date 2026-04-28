@@ -13,10 +13,13 @@ After authoring or editing a workflow template — especially after `add-lock-to
 ## How
 
 ```bash
+# plugin mode
 python3 ${CLAUDE_PLUGIN_ROOT}/helpers/tidy_workflow.py \
-  --workspace <ws> \
-  --workflow-key <key> \
-  [--in-place]
+  --workspace <ws> --workflow-key <key> [--in-place]
+
+# standalone skill mode (run from harness repo root)
+python3 helpers/tidy_workflow.py \
+  --workspace <ws> --workflow-key <key> [--in-place]
 ```
 
 - Default: prints the tidied JSON to stdout.
@@ -30,7 +33,7 @@ Sticky notes (`type: n8n-nodes-base.stickyNote`) are never moved.
 
 ## Idempotence
 
-Running tidy twice on the same input produces byte-identical output.
+Running tidy twice on the same input produces byte-identical output when using the BFS fallback. SDK-path idempotence depends on `layoutWorkflowJSON` being deterministic, which is expected but not verified by offline tests.
 
 ## Auto-tidy hook (plugin mode only)
 
