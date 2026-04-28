@@ -103,19 +103,19 @@ def test_release_does_not_carry_workflow_metadata_or_lock_id():
 
 
 def test_acquire_and_release_target_correct_primitives():
-    """Acquire targets {{HYDRATE:env:workflows.lock_acquisition.id}}; release targets workflows.lock_release.id."""
+    """Acquire targets {{@:env:workflows.lock_acquisition.id}}; release targets workflows.lock_release.id."""
     tpl = _insert_lock(_minimal_template(), "={{ 'a' }}")
     acq = _acquire_node(tpl)["parameters"]["workflowId"]["value"]
     rel = _release_node(tpl)["parameters"]["workflowId"]["value"]
-    assert acq == "{{HYDRATE:env:workflows.lock_acquisition.id}}"
-    assert rel == "{{HYDRATE:env:workflows.lock_release.id}}"
+    assert acq == "{{@:env:workflows.lock_acquisition.id}}"
+    assert rel == "{{@:env:workflows.lock_release.id}}"
 
 
 def test_make_execute_workflow_node_passes_inputs_through():
     """`_make_execute_workflow_node` writes the full inputs dict into workflowInputs.value."""
     node = _make_execute_workflow_node(
         "Acquire",
-        "{{HYDRATE:env:workflows.lock_acquisition.id}}",
+        "{{@:env:workflows.lock_acquisition.id}}",
         [240, 300],
         {"scope": "={{ 'a' }}", "ttl_seconds": 60, "max_wait_seconds": 30},
     )

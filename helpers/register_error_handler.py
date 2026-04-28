@@ -62,7 +62,7 @@ def main() -> None:
 
     data = json.loads(template.read_text())
     settings = data.setdefault("settings", {})
-    placeholder = "{{HYDRATE:env:workflows." + args.handler_key + ".id}}"
+    placeholder = "{{@:env:workflows." + args.handler_key + ".id}}"
     settings["errorWorkflow"] = placeholder
     template.write_text(json.dumps(data, indent=2))
     print(f"  Wired {args.workflow_key}.settings.errorWorkflow → {placeholder}")

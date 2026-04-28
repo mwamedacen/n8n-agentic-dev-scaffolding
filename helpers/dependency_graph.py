@@ -26,7 +26,7 @@ from helpers.config import load_yaml, load_env, load_common
 from helpers.n8n_client import ensure_client
 
 
-_PLACEHOLDER_RE = re.compile(r"^\{\{HYDRATE:env:workflows\.([A-Za-z0-9_\-]+)\.id\}\}$")
+_PLACEHOLDER_RE = re.compile(r"^\{\{(?:HYDRATE|INTERPOLATE|@):env:workflows\.([A-Za-z0-9_\-]+)\.id\}\}$")
 
 
 def _read_templates(workspace: Path) -> dict[str, dict]:

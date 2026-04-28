@@ -27,7 +27,7 @@ def _make_rate_limit_node(
     window_seconds: int,
 ) -> dict:
     return {
-        "id": "{{HYDRATE:uuid:" + name.lower().replace(" ", "-") + "}}",
+        "id": "{{@:uuid:" + name.lower().replace(" ", "-") + "}}",
         "name": name,
         "type": "n8n-nodes-base.executeWorkflow",
         "typeVersion": 1.2,
@@ -56,7 +56,7 @@ def _make_rate_limit_node(
 
 def _make_if_node(name: str, position: list) -> dict:
     return {
-        "id": "{{HYDRATE:uuid:" + name.lower().replace(" ", "-").replace("?", "") + "}}",
+        "id": "{{@:uuid:" + name.lower().replace(" ", "-").replace("?", "") + "}}",
         "name": name,
         "type": "n8n-nodes-base.if",
         "typeVersion": 2,
@@ -70,7 +70,7 @@ def _make_if_node(name: str, position: list) -> dict:
                 },
                 "conditions": [
                     {
-                        "id": "{{HYDRATE:uuid:" + name.lower().replace(" ", "-").replace("?", "") + "-cond}}",
+                        "id": "{{@:uuid:" + name.lower().replace(" ", "-").replace("?", "") + "-cond}}",
                         "leftValue": "={{ $json.allowed === true }}",
                         "rightValue": True,
                         "operator": {
@@ -89,7 +89,7 @@ def _make_if_node(name: str, position: list) -> dict:
 
 def _make_denied_passthrough_node(name: str, position: list, scope_expr: str) -> dict:
     return {
-        "id": "{{HYDRATE:uuid:" + name.lower().replace(" ", "-") + "}}",
+        "id": "{{@:uuid:" + name.lower().replace(" ", "-") + "}}",
         "name": name,
         "type": "n8n-nodes-base.set",
         "typeVersion": 3.4,
@@ -98,25 +98,25 @@ def _make_denied_passthrough_node(name: str, position: list, scope_expr: str) ->
             "assignments": {
                 "assignments": [
                     {
-                        "id": "{{HYDRATE:uuid:" + name.lower().replace(" ", "-") + "-allowed}}",
+                        "id": "{{@:uuid:" + name.lower().replace(" ", "-") + "-allowed}}",
                         "name": "allowed",
                         "value": False,
                         "type": "boolean",
                     },
                     {
-                        "id": "{{HYDRATE:uuid:" + name.lower().replace(" ", "-") + "-scope}}",
+                        "id": "{{@:uuid:" + name.lower().replace(" ", "-") + "-scope}}",
                         "name": "scope",
                         "value": "={{ $json.scope }}",
                         "type": "string",
                     },
                     {
-                        "id": "{{HYDRATE:uuid:" + name.lower().replace(" ", "-") + "-count}}",
+                        "id": "{{@:uuid:" + name.lower().replace(" ", "-") + "-count}}",
                         "name": "count",
                         "value": "={{ $json.count }}",
                         "type": "number",
                     },
                     {
-                        "id": "{{HYDRATE:uuid:" + name.lower().replace(" ", "-") + "-limit}}",
+                        "id": "{{@:uuid:" + name.lower().replace(" ", "-") + "-limit}}",
                         "name": "limit",
                         "value": "={{ $json.limit }}",
                         "type": "number",
@@ -130,7 +130,7 @@ def _make_denied_passthrough_node(name: str, position: list, scope_expr: str) ->
 
 def _make_denied_stop_node(name: str, position: list) -> dict:
     return {
-        "id": "{{HYDRATE:uuid:" + name.lower().replace(" ", "-") + "}}",
+        "id": "{{@:uuid:" + name.lower().replace(" ", "-") + "}}",
         "name": name,
         "type": "n8n-nodes-base.stopAndError",
         "typeVersion": 1,
@@ -188,7 +188,7 @@ def _insert_rate_limit(
 
     rl_node = _make_rate_limit_node(
         _RATE_LIMIT_NODE_NAME,
-        "{{HYDRATE:env:workflows.rate_limit_check.id}}",
+        "{{@:env:workflows.rate_limit_check.id}}",
         rl_pos,
         scope_expr,
         limit,
