@@ -18,7 +18,7 @@ Clone into your agent's skills directory:
 
 ```bash
 cd ~/.claude/skills   # or wherever your agent runtime reads skills from
-git clone https://github.com/mwamedacen/n8n-scaffolder-for-coding-agents.git n8n-harness
+git clone https://github.com/mwamedacen/n8n-harness.git
 ```
 
 Install Python deps (lightweight by default):
