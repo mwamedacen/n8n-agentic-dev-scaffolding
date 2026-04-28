@@ -107,6 +107,33 @@ def test_sticky_notes_unchanged_tidy_with_node_missing():
     assert sticky_after == sticky_before
 
 
+def test_sticky_notes_unchanged_tidy_with_sdk(capsys):
+    """SDK output that moves stickies must be corrected by tidy()."""
+    wf = _workflow_with_sticky()
+    sticky_before = next(n for n in wf["nodes"] if n["type"] == _STICKY_TYPE)
+
+    # Simulate SDK moving the sticky to [0, 64]
+    sdk_out = {**wf, "nodes": [
+        {**n, "position": [0, 64]} if n["type"] == _STICKY_TYPE else n
+        for n in wf["nodes"]
+    ]}
+
+    def _sdk_run(*args, **kwargs):
+        m = MagicMock()
+        m.returncode = 0
+        m.stdout = json.dumps(sdk_out)
+        m.stderr = ""
+        return m
+
+    with patch("helpers.tidy_workflow.shutil.which", return_value="/usr/bin/node"), \
+         patch("helpers.tidy_workflow._ensure_sdk", return_value=True), \
+         patch("helpers.tidy_workflow.subprocess.run", side_effect=_sdk_run):
+        result = tidy(wf)
+
+    sticky_after = next(n for n in result["nodes"] if n["type"] == _STICKY_TYPE)
+    assert sticky_after["position"] == sticky_before["position"]
+
+
 # ---------------------------------------------------------------------------
 # No duplicate positions
 # ---------------------------------------------------------------------------

@@ -193,11 +193,27 @@ def _bfs_layout(workflow: dict) -> dict:
 
 
 def tidy(workflow: dict) -> dict:
-    """Apply tidy layout: try SDK shim first, fall back to BFS."""
+    """Apply tidy layout: try SDK shim first, fall back to BFS.
+
+    Sticky note positions are always preserved — the SDK moves them, so we
+    snapshot before layout and restore after.
+    """
+    sticky_positions = {
+        n["name"]: n["position"]
+        for n in workflow.get("nodes", [])
+        if n.get("type") == _STICKY_TYPE
+    }
     laid = _layout_via_shim(workflow)
     if laid is None:
         print("[tidy_workflow] using Python BFS fallback", file=sys.stderr)
         laid = _bfs_layout(workflow)
+    if sticky_positions:
+        restored_nodes = []
+        for n in laid.get("nodes", []):
+            if n.get("type") == _STICKY_TYPE and n["name"] in sticky_positions:
+                n = {**n, "position": sticky_positions[n["name"]]}
+            restored_nodes.append(n)
+        laid = {**laid, "nodes": restored_nodes}
     return laid
 
 
