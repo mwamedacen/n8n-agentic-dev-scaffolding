@@ -12,7 +12,15 @@ n8n-harness provides that structure. It is a read-only skill package: the agent 
 
 - **Multi-environment workflows.** Configure dev, staging, and prod in `n8n-config/<env>.yml` with per-env instance URLs, workflow IDs, and credential refs. Every helper accepts `--env`. See [`bootstrap-env.md`](skills/bootstrap-env.md).
 
-- **Heavy resources stay out of workflow JSON.** Code, prompts, schemas, email templates, env values, and UUIDs live in dedicated workspace files (`n8n-functions/`, `n8n-prompts/`, `n8n-assets/`, `n8n-config/`) and are referenced from templates via `{{HYDRATE:js|py|txt|json|html|env|uuid:...}}` placeholders. The agent edits a 50-line `*.template.json` plus separate code/prompt/template files instead of a 200KB blob with everything inlined. `hydrate.py` inlines at deploy time; `dehydrate.py` re-extracts on resync — round-trip stable. See [`skills/patterns/code-node-discipline.md`](skills/patterns/code-node-discipline.md) for the strict-mode rule on JS/Python segmentation.
+- **Build-time substitution keeps heavy resources out of workflow JSON.** Code, prompts, schemas, email templates, env values, and UUIDs live in dedicated workspace files (`n8n-functions/`, `n8n-prompts/`, `n8n-assets/`, `n8n-config/`). Templates reference them via `{{HYDRATE:js|py|txt|json|html|env|uuid:...}}` placeholders that `hydrate.py` substitutes at deploy time; `dehydrate.py` re-extracts on resync, so round-trips with the n8n UI are byte-stable. The agent edits a 50-line `*.template.json` plus separate code/prompt/template files instead of a 200KB blob with everything inlined.
+
+  ```jsonc
+  // n8n-workflows-template/aggregate.template.json
+  { "type": "n8n-nodes-base.code",
+    "parameters": { "jsCode": "{{HYDRATE:js:n8n-functions/js/aggregate.js}}\n\nreturn aggregate(items);" } }
+  ```
+
+  See [`skills/patterns/code-node-discipline.md`](skills/patterns/code-node-discipline.md) for the strict-mode rule on JS/Python segmentation.
 
 - **Dependency-ordered deployment.** `deploy_all.py` rolls out an entire env in tier order so callee sub-workflows deploy before callers. Tier assignment is set per-workflow at create time via `n8n-config/deployment_order.yml`. See [`deploy-all-workflows-in-env.md`](skills/deploy-all-workflows-in-env.md).
 
