@@ -25,3 +25,7 @@ Prints a 3-state (✓/⚠/✗) report:
 - every `*.template.json` parses
 
 Exit 0 unless any `✗ fail` row.
+
+## See also
+
+- [`skills/patterns/agent-api-discipline.md`](patterns/agent-api-discipline.md) — verify `POST /audit` body and category-section shape via Context7 before relying on training-data recall (especially when `--with-audit` enabled).

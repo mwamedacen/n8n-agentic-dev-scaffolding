@@ -52,3 +52,4 @@ Re-running with the same `--key` against an already-populated YAML row is a no-o
 
 - `skills/patterns/credential-refs.md` — YAML shape + placeholder syntax (reference pattern).
 - `skills/integrations/<service>/...md` — per-service `type` strings + service-specific gotchas.
+- [`skills/patterns/agent-api-discipline.md`](patterns/agent-api-discipline.md) — verify `GET /credentials` filter parameters and response shape via Context7 before relying on training-data recall.

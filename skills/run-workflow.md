@@ -34,3 +34,7 @@ error_source_to_handler:
 ```
 
 `register-workflow-to-error-handler.md` writes to this map automatically.
+
+## See also
+
+- [`skills/patterns/agent-api-discipline.md`](patterns/agent-api-discipline.md) — verify `GET /executions` and `/executions/{id}` shapes via Context7 before relying on training-data recall (status enum, `includeData`, pagination).

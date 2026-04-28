@@ -31,3 +31,7 @@ Three idempotent stages:
 ## Tearing down an env
 
 Manually delete `<workspace>/n8n-config/<env>.yml` and `<workspace>/n8n-config/.env.<env>`. There is no teardown helper.
+
+## See also
+
+- [`skills/patterns/agent-api-discipline.md`](patterns/agent-api-discipline.md) — verify `POST /workflows` minimum-body shape via Context7 before relying on training-data recall.

@@ -25,3 +25,7 @@ Aborts if `<handler-key>` is not registered in any env's YAML.
 ## Pattern
 
 For Error Trigger workflows that have no Webhook entry, see `skills/patterns/error-handling.md` and the indirect-dispatch behavior in `run-workflow.md`.
+
+## See also
+
+- [`skills/patterns/agent-api-discipline.md`](patterns/agent-api-discipline.md) — verify `settings.errorWorkflow` field shape (literal id, no `=` prefix) via Context7 before assuming training-data recall is current.

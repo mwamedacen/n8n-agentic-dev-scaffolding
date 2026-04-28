@@ -25,3 +25,7 @@ python3 <harness>/helpers/deploy.py --env <env> --workflow-key <key> [--no-activ
 ## Pattern
 
 See `skills/patterns/validate-deploy.md` for the canonical 5-step loop.
+
+## See also
+
+- [`skills/patterns/agent-api-discipline.md`](patterns/agent-api-discipline.md) — verify `PUT /workflows/{id}` accepted-fields list and `/activate` response shape via Context7 before assuming training-data recall is current.
