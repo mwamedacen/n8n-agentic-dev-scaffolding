@@ -109,36 +109,22 @@ class TestKeyedFlow:
         assert params.get("workflowId") == "wf-alpha"
 
 
-class TestFanOutFlow:
-    """When no --workflow-key, helper enumerates workflows and loops per-workflow."""
+class TestEnvScopedFlow:
+    """When no --workflow-key, helper makes a single env-scoped call (no workflowId param)."""
 
-    def test_fan_out_calls_workflows_then_executions(self, tmp_path, capsys):
+    def test_no_workflow_key_omits_workflowId_param(self, tmp_path, capsys):
         ws = _make_workspace(tmp_path)
 
-        def get_side_effect(url, headers=None, params=None):
-            r = MagicMock()
-            r.raise_for_status.return_value = None
-            if "/workflows" in url and "executions" not in url:
-                r.json.return_value = {"data": [
-                    {"id": "wf-alpha", "name": "Alpha"},
-                    {"id": "wf-beta", "name": "Beta"},
-                ]}
-            else:
-                wid = (params or {}).get("workflowId")
-                if wid == "wf-alpha":
-                    r.json.return_value = {"data": [
-                        _row("e-alpha-1", "wf-alpha", "success", _now_iso()),
-                    ], "nextCursor": None}
-                elif wid == "wf-beta":
-                    r.json.return_value = {"data": [
-                        _row("e-beta-1", "wf-beta", "error", _now_iso()),
-                    ], "nextCursor": None}
-                else:
-                    r.json.return_value = {"data": [], "nextCursor": None}
-            return r
+        rows = [
+            _row("e-alpha-1", "wf-alpha", "success", _now_iso()),
+            _row("e-beta-1", "wf-beta", "error", _now_iso()),
+        ]
 
         with patch("helpers.n8n_client.requests.get") as mock_get:
-            mock_get.side_effect = get_side_effect
+            mock_resp = MagicMock()
+            mock_resp.raise_for_status.return_value = None
+            mock_resp.json.return_value = {"data": rows, "nextCursor": None}
+            mock_get.return_value = mock_resp
 
             import helpers.n8n_client as nc
             nc._CACHE.clear()
@@ -150,10 +136,14 @@ class TestFanOutFlow:
             finally:
                 sys.argv = old_argv
 
+        # Single env-scoped GET to /executions; no workflowId param.
+        assert mock_get.call_count == 1
+        params = mock_get.call_args_list[-1].kwargs.get("params") or {}
+        assert "workflowId" not in params
+
         parsed = json.loads(capsys.readouterr().out)
         ids = {r["id"] for r in parsed}
-        assert "e-alpha-1" in ids
-        assert "e-beta-1" in ids
+        assert ids == {"e-alpha-1", "e-beta-1"}
 
 
 class TestCursorPagination:
@@ -322,32 +312,21 @@ class TestTallyMode:
         parsed = json.loads(capsys.readouterr().out)
         assert parsed["total"] == 50
 
-    def test_tally_fans_out_across_workflows(self, tmp_path, capsys):
+    def test_tally_env_scoped_without_workflow_key(self, tmp_path, capsys):
+        """`--tally` without `--workflow-key` issues a single env-scoped call (no workflowId)."""
         ws = _make_workspace(tmp_path)
 
-        def get_side_effect(url, headers=None, params=None):
-            r = MagicMock()
-            r.raise_for_status.return_value = None
-            if "/workflows" in url and "executions" not in url:
-                r.json.return_value = {"data": [
-                    {"id": "wf-alpha"},
-                    {"id": "wf-beta"},
-                ]}
-            else:
-                wid = (params or {}).get("workflowId")
-                if wid == "wf-alpha":
-                    r.json.return_value = {"data": [
-                        _row("a1", "wf-alpha", "success", _now_iso()),
-                        _row("a2", "wf-alpha", "error", _now_iso()),
-                    ], "nextCursor": None}
-                else:
-                    r.json.return_value = {"data": [
-                        _row("b1", "wf-beta", "error", _now_iso()),
-                    ], "nextCursor": None}
-            return r
+        rows = [
+            _row("a1", "wf-alpha", "success", _now_iso()),
+            _row("a2", "wf-alpha", "error", _now_iso()),
+            _row("b1", "wf-beta", "error", _now_iso()),
+        ]
 
         with patch("helpers.n8n_client.requests.get") as mock_get:
-            mock_get.side_effect = get_side_effect
+            mock_resp = MagicMock()
+            mock_resp.raise_for_status.return_value = None
+            mock_resp.json.return_value = {"data": rows, "nextCursor": None}
+            mock_get.return_value = mock_resp
 
             import helpers.n8n_client as nc
             nc._CACHE.clear()
@@ -360,11 +339,15 @@ class TestTallyMode:
             finally:
                 sys.argv = old_argv
 
+        # One env-scoped GET; no workflowId in params.
+        assert mock_get.call_count == 1
+        params = mock_get.call_args_list[-1].kwargs.get("params") or {}
+        assert "workflowId" not in params
+
         parsed = json.loads(capsys.readouterr().out)
         assert parsed["total"] == 3
         assert parsed["by_status"]["success"] == 1
         assert parsed["by_status"]["error"] == 2
-        assert parsed["workflows_scanned"] == 2
 
 
 class TestStatusFilter:

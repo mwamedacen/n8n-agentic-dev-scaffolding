@@ -2,9 +2,9 @@
 """List n8n executions for an env, with cursor pagination, status filter, and tally mode.
 
 Default mode: emit a JSON array of execution rows on stdout.
-`--tally` mode: walk every page across every in-scope workflow and emit a status histogram
-(plus `hung_count` and `crash_count` aggregates) — used by the inspect-execution Step 1.5
-baseline. `--limit` is ignored in `--tally` mode (single source of truth).
+`--tally` mode: walk every page and emit a status histogram (plus `hung_count` and
+`crash_count` aggregates) — used by the inspect-execution Step 1.5 baseline.
+`--limit` is ignored in `--tally` mode (single source of truth).
 
 Status enum (from n8n's documented `/executions` schema):
     error | success | running | canceled | waiting | crashed | queued
@@ -13,10 +13,10 @@ Pagination follows the documented cursor-based scheme: `nextCursor` from the pre
 response is passed as `cursor` on the next request; absence of `nextCursor` means
 last page.
 
-`workflowId` is documented as Required on `GET /api/v1/executions`. When the caller
-does not pass `--workflow-key` (i.e. broad sweeps for Path B keyless symptoms or the
-Step 6 time-correlation), the helper enumerates workflows via `list_workflows()` and
-fans out per-workflow. Time/window filtering is client-side after fetch.
+`workflowId` is `required: false` per n8n's official OpenAPI spec
+(packages/cli/src/public-api/v1/handlers/executions/spec/paths/executions.yml).
+When `--workflow-key` is omitted, the helper makes a single env-scoped call without
+workflowId; when provided, it scopes the call to that one workflow's id.
 """
 import argparse
 import json
@@ -50,29 +50,27 @@ def _resolve_workflow_id(yaml_data: dict, workflow_key: str) -> str:
     return str(get_config_value(yaml_data, f"workflows.{workflow_key}.id"))
 
 
-def _list_workflow_ids(client: N8nClient) -> list[str]:
-    """Pull every live workflow id (paginated under the hood by list_workflows)."""
-    return [str(wf.get("id")) for wf in client.list_workflows() if wf.get("id")]
-
-
-def _fetch_executions_for_workflow(
+def _fetch_executions(
     client: N8nClient,
-    workflow_id: str,
     *,
+    workflow_id: Optional[str] = None,
     status: Optional[str] = None,
     started_after: Optional[datetime] = None,
     started_before: Optional[datetime] = None,
     limit: Optional[int] = None,
 ) -> list[dict]:
-    """Walk pages of /executions for one workflow, applying client-side filters.
+    """Walk pages of /executions, applying client-side time-window filtering.
 
-    `limit` caps the post-filter row count returned (None = no cap).
-    Pagination is cursor-based: pass `cursor` from `nextCursor` of prior page.
+    `workflow_id=None` issues an env-scoped call (no workflowId param). `limit` caps
+    the post-filter row count returned (None = no cap). Pagination is cursor-based:
+    pass `cursor` from `nextCursor` of the prior page until absent.
     """
     out: list[dict] = []
     cursor: Optional[str] = None
     while True:
-        params: dict = {"workflowId": workflow_id, "limit": _PAGE_SIZE}
+        params: dict = {"limit": _PAGE_SIZE}
+        if workflow_id:
+            params["workflowId"] = workflow_id
         if status:
             params["status"] = status
         if cursor:
@@ -133,7 +131,7 @@ def main() -> None:
     parser.add_argument("--workspace", default=None)
     parser.add_argument("--env", required=True)
     parser.add_argument("--workflow-key", default=None, dest="workflow_key",
-                        help="Yaml key; if omitted, the helper fans out across every live workflow.")
+                        help="Yaml key; if omitted, the call is env-scoped (no workflowId filter).")
     parser.add_argument("--status", choices=_STATUS_CHOICES, default=None,
                         help="Filter by execution status server-side.")
     parser.add_argument("--started-after", default=None, dest="started_after",
@@ -141,9 +139,9 @@ def main() -> None:
     parser.add_argument("--started-before", default=None, dest="started_before",
                         help="ISO 8601 UTC; filter to executions whose startedAt <= this (client-side).")
     parser.add_argument("--limit", type=int, default=100,
-                        help="Cap on rows returned (post-filter, post-fan-out). Default 100. Ignored in --tally.")
+                        help="Cap on rows returned (post-filter). Default 100. Ignored in --tally.")
     parser.add_argument("--tally", action="store_true",
-                        help="Walk every page across every in-scope workflow; emit a status histogram only.")
+                        help="Walk every page; emit a status histogram only.")
     args = parser.parse_args()
 
     ws = workspace_root(args.workspace)
@@ -154,31 +152,22 @@ def main() -> None:
     started_after = _parse_iso(args.started_after) if args.started_after else None
     started_before = _parse_iso(args.started_before) if args.started_before else None
 
-    if args.workflow_key:
-        workflow_ids = [_resolve_workflow_id(yaml_data, args.workflow_key)]
-    else:
-        workflow_ids = _list_workflow_ids(client)
+    workflow_id = _resolve_workflow_id(yaml_data, args.workflow_key) if args.workflow_key else None
 
-    rows: list[dict] = []
     # `--limit` is a post-filter cap; in tally mode we ignore it (walk everything).
     per_call_cap = None if args.tally else args.limit
 
-    for wid in workflow_ids:
-        chunk = _fetch_executions_for_workflow(
-            client, wid,
-            status=args.status,
-            started_after=started_after,
-            started_before=started_before,
-            limit=per_call_cap,
-        )
-        rows.extend(chunk)
-        if per_call_cap is not None and len(rows) >= per_call_cap:
-            rows = rows[:per_call_cap]
-            break
+    rows = _fetch_executions(
+        client,
+        workflow_id=workflow_id,
+        status=args.status,
+        started_after=started_after,
+        started_before=started_before,
+        limit=per_call_cap,
+    )
 
     if args.tally:
         result = _tally_executions(rows)
-        result["workflows_scanned"] = len(workflow_ids)
         print(json.dumps(result, indent=2))
         return
 
