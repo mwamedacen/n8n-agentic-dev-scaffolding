@@ -42,4 +42,4 @@ For credential setup, see [`skills/manage-credentials.md`](../../manage-credenti
 
 ## webhookId placeholder
 
-n8n's webhook node has a `webhookId` field that contains a UUID identifying the public webhook URL. Use `{{HYDRATE:uuid:webhook-public}}` so each env gets its own (the path is shared but the public webhook URL varies).
+n8n's webhook node has a `webhookId` field that contains a UUID identifying the public webhook URL. Use `{{@:uuid:webhook-public}}` so each env gets its own (the path is shared but the public webhook URL varies).

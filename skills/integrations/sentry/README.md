@@ -23,7 +23,7 @@ The envelope endpoint with DSN-in-URL is the simpler, current-recommended path. 
 SENTRY_DSN=https://<public_key>@o<org_id>.ingest.sentry.io/<project_id>
 ```
 
-Resolve via `{{HYDRATE:env:sentry.dsn}}` (after wiring `sentry.dsn: "${SENTRY_DSN}"` in your env YAML). See [`skills/manage-credentials.md`](../../manage-credentials.md) for the env-secret pattern.
+Resolve via `{{@:env:sentry.dsn}}` (after wiring `sentry.dsn: "${SENTRY_DSN}"` in your env YAML). See [`skills/manage-credentials.md`](../../manage-credentials.md) for the env-secret pattern.
 
 ## Endpoint
 
@@ -149,7 +149,7 @@ Always include the standard tags from [`patterns/error-handling.md`](../../patte
 | `workflow_id` | `={{ $workflow.id }}` |
 | `workflow_name` | `={{ $workflow.name }}` |
 | `execution_id` | `={{ $workflow.errorData?.execution?.id || $execution.id }}` |
-| `env` | `{{HYDRATE:env:name}}` |
+| `env` | `{{@:env:name}}` |
 | `last_node` | `={{ $workflow.errorData?.lastNodeExecuted }}` |
 
 Add business-relevant tags (`scope`, `user_id`, `tenant_id`) so Sentry filtering reflects what your on-call actually needs.

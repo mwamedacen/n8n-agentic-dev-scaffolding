@@ -28,7 +28,7 @@ The Gmail node accepts both plain-text and HTML bodies. To inject an HTML email 
 {
   "type": "n8n-nodes-base.gmail",
   "parameters": {
-    "html": "{{HYDRATE:html:n8n-assets/email-templates/report.template.txt}}"
+    "html": "{{@:html:n8n-assets/email-templates/report.template.txt}}"
   }
 }
 ```
@@ -38,4 +38,4 @@ Templates can include n8n expressions inline if you want runtime substitution: `
 ## See also
 
 - [`skills/manage-credentials.md`](../../manage-credentials.md) for credential setup.
-- [`skills/patterns/prompt-and-schema-conventions.md`](../../patterns/prompt-and-schema-conventions.md) (HTML templates use the same `{{HYDRATE:html:...}}` injection mechanism as prompts).
+- [`skills/patterns/prompt-and-schema-conventions.md`](../../patterns/prompt-and-schema-conventions.md) (HTML templates use the same `{{@:html:...}}` injection mechanism as prompts).

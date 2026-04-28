@@ -1,8 +1,8 @@
 {
-  "name": "{{HYDRATE:env:displayName}} Error Handler Lock Cleanup{{HYDRATE:env:workflowNamePostfix}}",
+  "name": "{{@:env:displayName}} Error Handler Lock Cleanup{{@:env:workflowNamePostfix}}",
   "nodes": [
     {
-      "id": "{{HYDRATE:uuid:err-trigger}}",
+      "id": "{{@:uuid:err-trigger}}",
       "name": "Error Trigger",
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
@@ -10,7 +10,7 @@
       "parameters": {}
     },
     {
-      "id": "{{HYDRATE:uuid:err-noop}}",
+      "id": "{{@:uuid:err-noop}}",
       "name": "TTL Bounded Cleanup",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

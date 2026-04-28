@@ -39,8 +39,8 @@ Then in your template:
 {
   "type": "n8n-nodes-base.microsoftExcel",
   "parameters": {
-    "driveId": "{{HYDRATE:env:sharepoint.driveId}}",
-    "fileId": "{{HYDRATE:env:sharepoint.reportFolderId}}"
+    "driveId": "{{@:env:sharepoint.driveId}}",
+    "fileId": "{{@:env:sharepoint.reportFolderId}}"
   }
 }
 ```

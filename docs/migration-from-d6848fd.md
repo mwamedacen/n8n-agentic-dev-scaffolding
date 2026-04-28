@@ -62,6 +62,17 @@ This guide maps the legacy single-repo layout (where the harness checkout WAS th
 - Auto-update of the harness package. Use `git pull` in the harness checkout — explicit, predictable.
 - Local instance lifecycle helpers (`start_local_n8n`, `attach`, etc.). The harness's scope is REST control of an existing instance, not provisioning.
 
+## Placeholder syntax rename
+
+The placeholder syntax was renamed in a later commit set:
+
+- Old: `{{HYDRATE:type:path}}`, marker `/* DEHYDRATE:js:path */` (JS), `# DEHYDRATE:py:path` (Python).
+- New: `{{@:type:path}}` (preferred) or `{{INTERPOLATE:type:path}}` (canonical). Markers: `/* #:js:path */` (JS preferred), `/* MATCH:js:path */` (canonical), `# MATCH:py:path` (Python; no `#` alias).
+
+Hard cutover write-side: resolvers no longer substitute `{{HYDRATE:*}}`. Read-side accepts all three marker forms (`#`/`MATCH`/`DEHYDRATE`) so workflows already deployed under the legacy syntax roll forward to the new syntax on next dehydrate+resync.
+
+To migrate a workspace's templates and markdown in bulk, run `python3 <harness>/helpers/migrate_syntax.py --workspace <path>` (dry-run by default; pass `--apply` to write).
+
 ## Pinning the legacy shape
 
 If you need the pre-rebuild commands to keep working in a long-tail script, pin to SHA `d6848fd`. The legacy structure is preserved in git history; the rebuild commit (B-0) wipes it from the working tree.

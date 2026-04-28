@@ -33,4 +33,4 @@ Idempotent: skips entries that already have a non-placeholder ID; n8n POST is sk
 
 ### Code nodes
 
-Any `n8n-nodes-base.code` node must follow `skills/patterns/code-node-discipline.md` — extract the pure function to `n8n-functions/{js,py}/<name>.{js,py}`, inject it via `{{HYDRATE:js:...}}` or `{{HYDRATE:py:...}}` in the Code-node body, and add a paired test under `n8n-functions-tests/`. The validator rejects inlined logic, missing tests, and the deprecated `n8n-nodes-base.function` type.
+Any `n8n-nodes-base.code` node must follow `skills/patterns/code-node-discipline.md` — extract the pure function to `n8n-functions/{js,py}/<name>.{js,py}`, inject it via `{{@:js:...}}` or `{{@:py:...}}` in the Code-node body, and add a paired test under `n8n-functions-tests/`. The validator rejects inlined logic, missing tests, and the deprecated `n8n-nodes-base.function` type.

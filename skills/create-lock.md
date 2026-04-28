@@ -27,7 +27,7 @@ python3 <harness>/helpers/create_lock.py \
   - `lock_release.template.json` (always)
   - `error_handler_lock_cleanup.template.json` (with `--include-error-handler`)
   - `rate_limit_check.template.json` (with `--include-rate-limit`)
-- Registers each in every configured env's YAML (delegates to `create_workflow.py --no-template`). This mints placeholder workflow IDs that callers reference via `{{HYDRATE:env:workflows.lock_acquisition.id}}` etc.
+- Registers each in every configured env's YAML (delegates to `create_workflow.py --no-template`). This mints placeholder workflow IDs that callers reference via `{{@:env:workflows.lock_acquisition.id}}` etc.
 - Adds them to `deployment_order.yml` under "Tier 0a: leaves" so they deploy before any caller workflow that depends on them.
 
 After this skill, the user owns the primitives in their workspace. The harness's seed copies in `<harness>/primitives/workflows/` are never written to.

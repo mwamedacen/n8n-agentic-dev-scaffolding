@@ -17,7 +17,7 @@ python3 <harness>/helpers/register_error_handler.py --workflow-key <wf> --handle
 
 ## Side effects
 
-- Edits `<workspace>/n8n-workflows-template/<wf>.template.json` so its `settings.errorWorkflow` becomes the literal placeholder `"{{HYDRATE:env:workflows.<handler>.id}}"` (no `=` prefix — n8n expects a literal id).
+- Edits `<workspace>/n8n-workflows-template/<wf>.template.json` so its `settings.errorWorkflow` becomes the literal placeholder `"{{@:env:workflows.<handler>.id}}"` (no `=` prefix — n8n expects a literal id).
 - Updates `<workspace>/n8n-config/common.yml.error_source_to_handler[<wf>] = <handler>` so `run.py` knows about the source/handler pairing for indirect dispatch.
 
 Aborts if `<handler-key>` is not registered in any env's YAML.

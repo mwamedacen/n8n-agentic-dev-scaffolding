@@ -1,8 +1,8 @@
 {
-  "name": "{{HYDRATE:env:displayName}} Rate Limit Check{{HYDRATE:env:workflowNamePostfix}}",
+  "name": "{{@:env:displayName}} Rate Limit Check{{@:env:workflowNamePostfix}}",
   "nodes": [
     {
-      "id": "{{HYDRATE:uuid:rl-trigger}}",
+      "id": "{{@:uuid:rl-trigger}}",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -12,7 +12,7 @@
       }
     },
     {
-      "id": "{{HYDRATE:uuid:rl-prep}}",
+      "id": "{{@:uuid:rl-prep}}",
       "name": "Build Bucket Key",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -23,7 +23,7 @@
       }
     },
     {
-      "id": "{{HYDRATE:uuid:rl-incr}}",
+      "id": "{{@:uuid:rl-incr}}",
       "name": "Redis INCR",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
@@ -37,13 +37,13 @@
       },
       "credentials": {
         "redis": {
-          "id": "{{HYDRATE:env:credentials.redis.id}}",
-          "name": "{{HYDRATE:env:credentials.redis.name}}"
+          "id": "{{@:env:credentials.redis.id}}",
+          "name": "{{@:env:credentials.redis.name}}"
         }
       }
     },
     {
-      "id": "{{HYDRATE:uuid:rl-result}}",
+      "id": "{{@:uuid:rl-result}}",
       "name": "Build Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

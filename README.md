@@ -12,12 +12,12 @@ n8n-harness provides that structure. It is a read-only skill package: the agent 
 
 - **Multi-environment workflows.** Configure dev, staging, and prod in `n8n-config/<env>.yml` with per-env instance URLs, workflow IDs, and credential refs. Every helper accepts `--env`. See [`bootstrap-env.md`](skills/bootstrap-env.md).
 
-- **Build-time substitution keeps heavy resources out of workflow JSON.** Code, prompts, schemas, email templates, env values, and UUIDs live in dedicated workspace files (`n8n-functions/`, `n8n-prompts/`, `n8n-assets/`, `n8n-config/`). Templates reference them via `{{HYDRATE:js|py|txt|json|html|env|uuid:...}}` placeholders that `hydrate.py` substitutes at deploy time; `dehydrate.py` re-extracts on resync, so round-trips with the n8n UI are byte-stable. The agent edits a 50-line `*.template.json` plus separate code/prompt/template files instead of a 200KB blob with everything inlined.
+- **Build-time substitution keeps heavy resources out of workflow JSON.** Code, prompts, schemas, email templates, env values, and UUIDs live in dedicated workspace files (`n8n-functions/`, `n8n-prompts/`, `n8n-assets/`, `n8n-config/`). Templates reference them via `{{@:js|py|txt|json|html|env|uuid:...}}` placeholders that `hydrate.py` substitutes at deploy time; `dehydrate.py` re-extracts on resync, so round-trips with the n8n UI are byte-stable. The agent edits a 50-line `*.template.json` plus separate code/prompt/template files instead of a 200KB blob with everything inlined.
 
   ```jsonc
   // n8n-workflows-template/aggregate.template.json
   { "type": "n8n-nodes-base.code",
-    "parameters": { "jsCode": "{{HYDRATE:js:n8n-functions/js/aggregate.js}}\n\nreturn aggregate(items);" } }
+    "parameters": { "jsCode": "{{@:js:n8n-functions/js/aggregate.js}}\n\nreturn aggregate(items);" } }
   ```
 
   See [`skills/patterns/code-node-discipline.md`](skills/patterns/code-node-discipline.md) for the strict-mode rule on JS/Python segmentation.
@@ -70,15 +70,15 @@ n8n-harness-workspace/
 ├── n8n-workflows-template/  # *.template.json — canonical, version-controlled
 ├── n8n-build/               # hydrated outputs — gitignored, regenerated on deploy
 ├── n8n-functions/
-│   ├── js/                  # pure JS injected via {{HYDRATE:js:...}}
-│   └── py/                  # pure Python injected via {{HYDRATE:py:...}}
+│   ├── js/                  # pure JS injected via {{@:js:...}}
+│   └── py/                  # pure Python injected via {{@:py:...}}
 ├── n8n-functions-tests/     # *.test.js / test_*.py — paired tests, validator-required
 ├── n8n-prompts/
 │   ├── prompts/             # *_prompt.txt + *_schema.json
 │   ├── datasets/            # *.json for iterate-prompt
 │   └── evals/
 ├── n8n-assets/
-│   ├── email-templates/     # *.html injected via {{HYDRATE:html:...}}
+│   ├── email-templates/     # *.html injected via {{@:html:...}}
 │   ├── images/
 │   └── misc/
 ├── cloud-functions/         # FastAPI service scaffolded by add-cloud-function

@@ -18,7 +18,7 @@ The caller references the callee by **n8n workflow ID** (not by name). Use the p
     "source": "database",
     "workflowId": {
       "__rl": true,
-      "value": "{{HYDRATE:env:workflows.<callee-key>.id}}",
+      "value": "{{@:env:workflows.<callee-key>.id}}",
       "mode": "id"
     }
   }

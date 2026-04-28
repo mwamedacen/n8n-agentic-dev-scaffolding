@@ -5,7 +5,7 @@ description: How workflow templates reference credentials — YAML shape and pla
 
 # Pattern: credential refs (reference)
 
-This is a **reference pattern** documenting the YAML shape and the `{{HYDRATE:env:credentials.<key>....}}` placeholder syntax. The actual creation/linking flow lives in [`skills/manage-credentials.md`](../manage-credentials.md).
+This is a **reference pattern** documenting the YAML shape and the `{{@:env:credentials.<key>....}}` placeholder syntax. The actual creation/linking flow lives in [`skills/manage-credentials.md`](../manage-credentials.md).
 
 ## YAML shape
 
@@ -34,8 +34,8 @@ Workflow templates reference credentials via the `credentials` block on each nod
   "type": "n8n-nodes-base.microsoftExcel",
   "credentials": {
     "microsoftExcelOAuth2Api": {
-      "id": "{{HYDRATE:env:credentials.microsoft_oauth.id}}",
-      "name": "{{HYDRATE:env:credentials.microsoft_oauth.name}}"
+      "id": "{{@:env:credentials.microsoft_oauth.id}}",
+      "name": "{{@:env:credentials.microsoft_oauth.name}}"
     }
   }
 }

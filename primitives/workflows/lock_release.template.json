@@ -1,8 +1,8 @@
 {
-  "name": "{{HYDRATE:env:displayName}} Lock Release{{HYDRATE:env:workflowNamePostfix}}",
+  "name": "{{@:env:displayName}} Lock Release{{@:env:workflowNamePostfix}}",
   "nodes": [
     {
-      "id": "{{HYDRATE:uuid:lr-trigger}}",
+      "id": "{{@:uuid:lr-trigger}}",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -16,7 +16,7 @@
       }
     },
     {
-      "id": "{{HYDRATE:uuid:lr-prep}}",
+      "id": "{{@:uuid:lr-prep}}",
       "name": "Build Lock Key",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -27,7 +27,7 @@
       }
     },
     {
-      "id": "{{HYDRATE:uuid:lr-del}}",
+      "id": "{{@:uuid:lr-del}}",
       "name": "DEL Lock",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
@@ -38,13 +38,13 @@
       },
       "credentials": {
         "redis": {
-          "id": "{{HYDRATE:env:credentials.redis.id}}",
-          "name": "{{HYDRATE:env:credentials.redis.name}}"
+          "id": "{{@:env:credentials.redis.id}}",
+          "name": "{{@:env:credentials.redis.name}}"
         }
       }
     },
     {
-      "id": "{{HYDRATE:uuid:lr-result}}",
+      "id": "{{@:uuid:lr-result}}",
       "name": "Build Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

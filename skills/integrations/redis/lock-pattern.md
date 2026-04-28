@@ -9,7 +9,7 @@ The harness ships four primitives backed by the dedicated `n8n-nodes-base.redis`
 
 ## Credential
 
-`redis` credential type. See [`skills/manage-credentials.md`](../../manage-credentials.md). The four primitives all reference it via `{{HYDRATE:env:credentials.redis.{id,name}}}` placeholders.
+`redis` credential type. See [`skills/manage-credentials.md`](../../manage-credentials.md). The four primitives all reference it via `{{@:env:credentials.redis.{id,name}}}` placeholders.
 
 ## Shipped primitives
 

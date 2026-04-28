@@ -23,7 +23,7 @@ Use `register-workflow-to-error-handler.md`:
 python3 <harness>/helpers/register_error_handler.py --workflow-key <wf> --handler-key <handler>
 ```
 
-This sets `settings.errorWorkflow = "{{HYDRATE:env:workflows.<handler>.id}}"` (literal placeholder, no `=` prefix — n8n expects a literal id).
+This sets `settings.errorWorkflow = "{{@:env:workflows.<handler>.id}}"` (literal placeholder, no `=` prefix — n8n expects a literal id).
 
 It also writes to `<workspace>/n8n-config/common.yml.error_source_to_handler[<wf>] = <handler>` so `run.py` knows about the pairing for indirect dispatch.
 
@@ -76,7 +76,7 @@ Always include these fields/tags so cross-platform correlation works:
 | `workflow_id` | `={{ $workflow.id }}` | Pivot from Sentry to n8n UI. |
 | `workflow_name` | `={{ $workflow.name }}` | Human-readable in dashboards. |
 | `execution_id` | `={{ $workflow.errorData?.execution?.id || $execution.id }}` | Direct link to the failing run. |
-| `env` | `{{HYDRATE:env:name}}` | Filter by dev/staging/prod. |
+| `env` | `{{@:env:name}}` | Filter by dev/staging/prod. |
 | `last_node` | `={{ $workflow.errorData?.lastNodeExecuted }}` | Where it actually broke. |
 
 Add business-relevant tags too (`scope`, `user_id`, `tenant_id`, ...) — they make incident triage 10× faster.

@@ -9,7 +9,7 @@ n8n requires every node id within a workflow to be globally unique within its in
 
 ## Solution
 
-Templates use the `{{HYDRATE:uuid:<identifier>}}` placeholder. Each `<identifier>` resolves to the same UUID within a single hydration run, but a fresh UUID on every hydration. So:
+Templates use the `{{@:uuid:<identifier>}}` placeholder. Each `<identifier>` resolves to the same UUID within a single hydration run, but a fresh UUID on every hydration. So:
 
 - `dev` hydration produces UUID `aaa-...`
 - `prod` hydration produces UUID `bbb-...`
@@ -19,7 +19,7 @@ This is fine because n8n only cares about uniqueness within an instance. Each en
 
 ## When you add a node
 
-Use `{{HYDRATE:uuid:<some-distinct-name>}}` for the new node's `id` field. The identifier just has to be unique within the template (e.g. `webhook-2`, `set-after-merge`).
+Use `{{@:uuid:<some-distinct-name>}}` for the new node's `id` field. The identifier just has to be unique within the template (e.g. `webhook-2`, `set-after-merge`).
 
 ## Resync preserves UUIDs
 
