@@ -28,6 +28,7 @@ This is the entry point. When the user asks anything n8n-related, route to the m
 | [copy-primitive.md](skills/copy-primitive.md) | Copy a single primitive (any) into the workspace. General-purpose; doesn't register. |
 | [add-lock-to-workflow.md](skills/add-lock-to-workflow.md) | Wrap a workflow's main flow in lock acquire/release. |
 | [add-rate-limit-to-workflow.md](skills/add-rate-limit-to-workflow.md) | Gate a workflow's main flow with a Redis-backed fixed-window rate-limit check. |
+| [tidy-workflow.md](skills/tidy-workflow.md) | Apply n8n's canvas-layout algorithm to a workflow template to clean up node positions. |
 | [deploy-single-workflow-in-env.md](skills/deploy-single-workflow-in-env.md) | Deploy one workflow to one env. |
 | [activate-single-workflow-in-env.md](skills/activate-single-workflow-in-env.md) | Activate after deploy. |
 | [deactivate-single-workflow-in-env.md](skills/deactivate-single-workflow-in-env.md) | Pause triggers (commonly during dev). |
