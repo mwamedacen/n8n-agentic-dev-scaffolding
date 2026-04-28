@@ -1,6 +1,7 @@
 ---
 name: integration-datadog
 description: Datadog as the audit destination for n8n error handlers — events POST via HTTP Request, region selection, tag conventions for aggregation.
+user-invocable: false
 ---
 
 # Datadog

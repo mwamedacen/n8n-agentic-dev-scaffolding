@@ -1,6 +1,7 @@
 ---
 name: integration-microsoft-365
 description: Microsoft Excel + SharePoint nodes. OAuth2 credential setup, drive + item ID quirks.
+user-invocable: false
 ---
 
 # Microsoft 365 (Excel + SharePoint)

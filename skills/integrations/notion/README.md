@@ -1,6 +1,7 @@
 ---
 name: integration-notion
 description: Notion nodes — internal integration tokens, database / page IDs.
+user-invocable: false
 ---
 
 # Notion

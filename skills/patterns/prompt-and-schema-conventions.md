@@ -1,6 +1,7 @@
 ---
 name: pattern-prompt-and-schema-conventions
 description: File naming and injection syntax for the harness's prompt + schema infrastructure.
+user-invocable: false
 ---
 
 # Pattern: prompt + schema conventions

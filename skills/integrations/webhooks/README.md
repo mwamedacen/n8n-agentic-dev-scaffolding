@@ -1,6 +1,7 @@
 ---
 name: integration-webhooks
 description: Webhook node patterns — paths, response modes, test vs production URLs.
+user-invocable: false
 ---
 
 # Webhooks

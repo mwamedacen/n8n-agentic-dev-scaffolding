@@ -1,6 +1,7 @@
 ---
 name: pattern-subworkflows
 description: Calling one workflow from another via Execute Workflow nodes — tier ordering, ID resolution.
+user-invocable: false
 ---
 
 # Pattern: subworkflows

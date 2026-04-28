@@ -1,6 +1,7 @@
 ---
 name: pattern-position-recalculation
 description: When inserting nodes mid-flow, shift downstream nodes 220px right.
+user-invocable: false
 ---
 
 # Pattern: position recalculation

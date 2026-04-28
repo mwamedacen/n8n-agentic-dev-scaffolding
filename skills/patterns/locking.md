@@ -1,6 +1,7 @@
 ---
 name: pattern-locking
 description: Distributed coordination via Redis sub-workflows — atomic INCR lock + GET-poll wait + fixed-window rate-limit. Safety model, scope expressions, when NOT to use.
+user-invocable: false
 ---
 
 # Pattern: locking + rate-limit

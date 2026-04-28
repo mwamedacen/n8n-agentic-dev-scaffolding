@@ -1,6 +1,7 @@
 ---
 name: integration-google-drive
 description: Google Drive + Sheets nodes. OAuth scopes, folder-vs-file IDs.
+user-invocable: false
 ---
 
 # Google Drive (and Sheets)

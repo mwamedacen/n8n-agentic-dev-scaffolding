@@ -1,6 +1,7 @@
 ---
 name: pattern-llm-providers
 description: LLM provider notes — OpenRouter via openAiApi, Anthropic token-counting quirks.
+user-invocable: false
 ---
 
 # Pattern: LLM providers

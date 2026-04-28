@@ -1,6 +1,7 @@
 ---
 name: integration-gmail
 description: Gmail node for sending email. OAuth2 credential setup, scope quirks.
+user-invocable: false
 ---
 
 # Gmail

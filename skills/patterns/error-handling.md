@@ -1,6 +1,7 @@
 ---
 name: pattern-error-handling
 description: Three-step paradigm for n8n error handling — capture (Error Trigger), log (Sentry/Datadog/Slack), process (locks, DB invalidation, compensating workflows).
+user-invocable: false
 ---
 
 # Pattern: error handling

@@ -1,6 +1,7 @@
 ---
 name: pattern-agent-api-discipline
 description: Verify n8n REST API shapes via Context7 before invoking helpers — agent-meta-discipline rule that catches doc-vs-training-data drift on parameters, status enums, response shapes, and pagination model.
+user-invocable: false
 ---
 
 # Pattern: agent-api-discipline

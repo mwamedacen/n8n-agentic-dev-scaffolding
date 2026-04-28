@@ -1,6 +1,7 @@
 ---
 name: integration-slack
 description: Slack nodes — bot/user OAuth, posting messages, threads, error-notification Block Kit pattern.
+user-invocable: false
 ---
 
 # Slack

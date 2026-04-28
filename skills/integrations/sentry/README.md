@@ -1,6 +1,7 @@
 ---
 name: integration-sentry
 description: Sentry as the audit destination for n8n error handlers — envelope POST via HTTP Request, DSN auth, tag conventions for grouping.
+user-invocable: false
 ---
 
 # Sentry

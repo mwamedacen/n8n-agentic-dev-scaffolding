@@ -1,5 +1,5 @@
 ---
-description: Apply n8n's canvas-layout algorithm to a workflow template so node positions are clean and consistent.
+description: Slash-command entry point to tidy a workflow template's node positions. Invoke as /n8n-harness:tidyup with a workflow key; delegates to tidy-workflow.md for full option details.
 ---
 
 # tidyup

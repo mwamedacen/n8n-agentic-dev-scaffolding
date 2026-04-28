@@ -1,6 +1,7 @@
 ---
 name: pattern-pindata-hygiene
 description: Why pinData must never be in template files.
+user-invocable: false
 ---
 
 # Pattern: pinData hygiene

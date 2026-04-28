@@ -1,6 +1,7 @@
 ---
 name: pattern-code-node-discipline
 description: Pure-function-plus-glue convention for n8n Code nodes — extract logic to n8n-functions/, inject via {{@:js|py:...}}, pair with a test. Validator hard-fails otherwise.
+user-invocable: false
 ---
 
 # Pattern: Code-node discipline

@@ -1,6 +1,7 @@
 ---
 name: pattern-credential-refs
 description: How workflow templates reference credentials — YAML shape and placeholder syntax.
+user-invocable: false
 ---
 
 # Pattern: credential refs (reference)

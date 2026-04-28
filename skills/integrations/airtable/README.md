@@ -1,6 +1,7 @@
 ---
 name: integration-airtable
 description: Airtable nodes — PAT credential, base / table IDs.
+user-invocable: false
 ---
 
 # Airtable

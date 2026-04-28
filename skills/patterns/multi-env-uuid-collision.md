@@ -1,6 +1,7 @@
 ---
 name: pattern-multi-env-uuid-collision
 description: Why each env needs fresh UUIDs and how the harness mints them.
+user-invocable: false
 ---
 
 # Pattern: multi-env UUID collision

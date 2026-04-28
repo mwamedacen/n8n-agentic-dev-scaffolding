@@ -1,6 +1,7 @@
 ---
 name: integration-redis
 description: Redis-backed coordination primitives — atomic-INCR lock with GET-poll wait loop, rate-limit, key namespace.
+user-invocable: false
 ---
 
 # Redis (lock + rate-limit pattern)

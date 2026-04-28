@@ -1,6 +1,7 @@
 ---
 name: pattern-validate-deploy
 description: The canonical 5-step validate-before-deploy loop — REST-only.
+user-invocable: false
 ---
 
 # Pattern: validate-deploy

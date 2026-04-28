@@ -1,6 +1,7 @@
 ---
 name: pattern-investigation-discipline
 description: 8-step rubric for investigating a failing or missing n8n workflow execution. Causal-linkage check, trigger health check, time-correlation, sub-agent cross-check, structured report. Read-only loop until Step 8.
+user-invocable: false
 ---
 
 # Pattern: investigation-discipline
