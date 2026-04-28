@@ -12,8 +12,8 @@ from helpers.workspace import workspace_root
 from helpers.placeholder import validator as placeholder_validator
 
 
-_JS_PLACEHOLDER_RE = re.compile(r"\{\{HYDRATE:js:([^}]+)\}\}")
-_PY_PLACEHOLDER_RE = re.compile(r"\{\{HYDRATE:py:([^}]+)\}\}")
+_JS_PLACEHOLDER_RE = re.compile(r"\{\{(?:INTERPOLATE|@):js:([^}]+)\}\}")
+_PY_PLACEHOLDER_RE = re.compile(r"\{\{(?:INTERPOLATE|@):py:([^}]+)\}\}")
 _JS_TRAILER_REQUIRED = 'if (typeof module !== "undefined")'
 _PRIMITIVE_MARKER = "// @n8n-harness:primitive"
 
@@ -195,7 +195,7 @@ def _validate_code_node(
     m = placeholder_re.search(code_field)
     if not m:
         errors.append(
-            f"node '{name}': no {{{{HYDRATE:{ext}:...}}}} placeholder found in {code_field_name}. "
+            f"node '{name}': no {{{{@:{ext}:...}}}} placeholder found in {code_field_name}. "
             f"Extract the pure function to n8n-functions/{ext}/<name>.{ext} and add the placeholder."
         )
         return errors

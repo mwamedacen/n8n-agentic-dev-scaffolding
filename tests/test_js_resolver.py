@@ -45,7 +45,7 @@ def test_multiline_js_with_quotes_produces_valid_json(tmp_path):
     js_file = fn_dir / "calculateStatsByCategory.js"
     js_file.write_text(CALC_STATS_JS)
 
-    raw = _workflow_json("{{HYDRATE:js:n8n-functions/js/calculateStatsByCategory.js}}")
+    raw = _workflow_json("{{@:js:n8n-functions/js/calculateStatsByCategory.js}}")
     out = js_resolver.resolve(raw, tmp_path)
 
     data = json.loads(out)
@@ -53,8 +53,34 @@ def test_multiline_js_with_quotes_produces_valid_json(tmp_path):
     assert "function calculateStatsByCategory" in code
     assert 'article.category || "uncategorized"' in code
     assert 'if (typeof module !== "undefined") module.exports' in code
-    assert "/* DEHYDRATE:js:n8n-functions/js/calculateStatsByCategory.js */" in code
-    assert "/* /DEHYDRATE:js:n8n-functions/js/calculateStatsByCategory.js */" in code
+    # Resolver writes `#` markers (preferred form).
+    assert "/* #:js:n8n-functions/js/calculateStatsByCategory.js */" in code
+    assert "/* /#:js:n8n-functions/js/calculateStatsByCategory.js */" in code
+
+
+def test_canonical_INTERPOLATE_form_also_accepted(tmp_path):
+    """Both `{{@:js:...}}` (alias) and `{{INTERPOLATE:js:...}}` (canonical) must hydrate."""
+    fn_dir = tmp_path / "n8n-functions" / "js"
+    fn_dir.mkdir(parents=True)
+    (fn_dir / "calculateStatsByCategory.js").write_text(CALC_STATS_JS)
+
+    raw = _workflow_json("{{INTERPOLATE:js:n8n-functions/js/calculateStatsByCategory.js}}")
+    out = js_resolver.resolve(raw, tmp_path)
+    data = json.loads(out)
+    assert "function calculateStatsByCategory" in data["nodes"][0]["parameters"]["jsCode"]
+
+
+def test_legacy_HYDRATE_form_no_longer_substitutes(tmp_path):
+    """Hard cutover: `{{HYDRATE:js:...}}` is NOT recognized; the placeholder passes through unchanged."""
+    fn_dir = tmp_path / "n8n-functions" / "js"
+    fn_dir.mkdir(parents=True)
+    (fn_dir / "calculateStatsByCategory.js").write_text(CALC_STATS_JS)
+
+    raw = _workflow_json("{{HYDRATE:js:n8n-functions/js/calculateStatsByCategory.js}}")
+    out = js_resolver.resolve(raw, tmp_path)
+    data = json.loads(out)
+    # Placeholder survives — resolver did not substitute. Residual validator catches this downstream.
+    assert "{{HYDRATE:js:" in data["nodes"][0]["parameters"]["jsCode"]
 
 
 def test_glue_survives_hydrate(tmp_path):
@@ -64,7 +90,7 @@ def test_glue_survives_hydrate(tmp_path):
     (fn_dir / "calculateStatsByCategory.js").write_text(CALC_STATS_JS)
 
     glue = (
-        "{{HYDRATE:js:n8n-functions/js/calculateStatsByCategory.js}}\n"
+        "{{@:js:n8n-functions/js/calculateStatsByCategory.js}}\n"
         "\n"
         "const body = $input.body || {};\n"
         "const articles = Array.isArray(body.articles) ? body.articles : [];\n"
@@ -82,13 +108,13 @@ def test_glue_survives_hydrate(tmp_path):
 
 
 def test_round_trip_restores_placeholder_and_glue(tmp_path):
-    """hydrate → dehydrate restores the original placeholder; glue is preserved verbatim."""
+    """hydrate → dehydrate restores the @-form placeholder; glue is preserved verbatim."""
     fn_dir = tmp_path / "n8n-functions" / "js"
     fn_dir.mkdir(parents=True)
     (fn_dir / "calculateStatsByCategory.js").write_text(CALC_STATS_JS)
 
     glue = (
-        "{{HYDRATE:js:n8n-functions/js/calculateStatsByCategory.js}}\n"
+        "{{@:js:n8n-functions/js/calculateStatsByCategory.js}}\n"
         "\n"
         "const articles = $input.body.articles || [];\n"
         "return { json: { stats: calculateStatsByCategory(articles) } };\n"
@@ -99,10 +125,47 @@ def test_round_trip_restores_placeholder_and_glue(tmp_path):
 
     data = json.loads(dehydrated)
     code = data["nodes"][0]["parameters"]["jsCode"]
-    assert "{{HYDRATE:js:n8n-functions/js/calculateStatsByCategory.js}}" in code
+    assert "{{@:js:n8n-functions/js/calculateStatsByCategory.js}}" in code
     assert "const articles = $input.body.articles || [];" in code
     assert "return { json: { stats: calculateStatsByCategory(articles) } };" in code
+    assert "/* #:js:" not in code
     assert "/* DEHYDRATE:js:" not in code
+
+
+def test_legacy_DEHYDRATE_marker_collapses_on_dehydrate(tmp_path):
+    """A workflow with the old `/* DEHYDRATE:js:... */` markers (e.g. fetched from a deployed instance
+    that was hydrated before this rename) must still collapse back to a `{{@:js:...}}` placeholder.
+    """
+    rel_path = "n8n-functions/js/calculateStatsByCategory.js"
+    legacy_jscode = (
+        f"/* DEHYDRATE:js:{rel_path} */\n"
+        + CALC_STATS_JS.rstrip("\n") + "\n"
+        + f"/* /DEHYDRATE:js:{rel_path} */\n"
+        "\n"
+        "return { json: {} };"
+    )
+    raw = _workflow_json(legacy_jscode)
+    dehydrated = js_resolver.dehydrate(raw)
+    code = json.loads(dehydrated)["nodes"][0]["parameters"]["jsCode"]
+    assert "{{@:js:" + rel_path + "}}" in code
+    assert "/* DEHYDRATE:js:" not in code
+
+
+def test_canonical_MATCH_marker_collapses_on_dehydrate(tmp_path):
+    """The canonical `/* MATCH:js:... */` form must also collapse on dehydrate."""
+    rel_path = "n8n-functions/js/calculateStatsByCategory.js"
+    match_jscode = (
+        f"/* MATCH:js:{rel_path} */\n"
+        + CALC_STATS_JS.rstrip("\n") + "\n"
+        + f"/* /MATCH:js:{rel_path} */\n"
+        "\n"
+        "return { json: {} };"
+    )
+    raw = _workflow_json(match_jscode)
+    dehydrated = js_resolver.dehydrate(raw)
+    code = json.loads(dehydrated)["nodes"][0]["parameters"]["jsCode"]
+    assert "{{@:js:" + rel_path + "}}" in code
+    assert "/* MATCH:js:" not in code
 
 
 def test_trailer_survives_injection(tmp_path):
@@ -111,7 +174,7 @@ def test_trailer_survives_injection(tmp_path):
     fn_dir.mkdir(parents=True)
     (fn_dir / "calculateStatsByCategory.js").write_text(CALC_STATS_JS)
 
-    raw = _workflow_json("{{HYDRATE:js:n8n-functions/js/calculateStatsByCategory.js}}")
+    raw = _workflow_json("{{@:js:n8n-functions/js/calculateStatsByCategory.js}}")
     out = js_resolver.resolve(raw, tmp_path)
 
     data = json.loads(out)
@@ -123,7 +186,7 @@ def test_trailer_survives_injection(tmp_path):
 
 
 def test_dehydrate_leaves_unrelated_strings_alone(tmp_path):
-    """Strings that don't contain DEHYDRATE markers must be left untouched."""
+    """Strings that don't contain `#`/`MATCH`/`DEHYDRATE` markers must be left untouched."""
     raw = json.dumps(
         {
             "name": "Smoke",
@@ -145,12 +208,12 @@ def test_dehydrate_leaves_unrelated_strings_alone(tmp_path):
 
 
 def test_resolve_rejects_absolute_paths(tmp_path):
-    raw = _workflow_json("{{HYDRATE:js:/abs/path.js}}")
+    raw = _workflow_json("{{@:js:/abs/path.js}}")
     with pytest.raises(ValueError, match="Absolute paths"):
         js_resolver.resolve(raw, tmp_path)
 
 
 def test_resolve_raises_on_missing_file(tmp_path):
-    raw = _workflow_json("{{HYDRATE:js:n8n-functions/js/missing.js}}")
+    raw = _workflow_json("{{@:js:n8n-functions/js/missing.js}}")
     with pytest.raises(FileNotFoundError):
         js_resolver.resolve(raw, tmp_path)

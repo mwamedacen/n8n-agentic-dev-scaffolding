@@ -65,7 +65,7 @@ def test_no_marker_no_placeholder_rejected(tmp_path):
     })
     valid, errors = validate_workflow_json(text, source="template", workspace=tmp_path)
     assert not valid
-    assert any("HYDRATE:js" in e for e in errors), errors
+    assert any("@:js" in e for e in errors), errors
 
 
 def test_function_node_still_rejected_unconditionally(tmp_path):

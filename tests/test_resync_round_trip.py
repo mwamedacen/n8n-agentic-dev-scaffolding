@@ -31,10 +31,10 @@ class TestRoundTrip:
         ws = _make_workspace(tmp_path)
 
         original_template = {
-            "name": "Smoke {{HYDRATE:env:displayName}}",
+            "name": "Smoke {{@:env:displayName}}",
             "nodes": [
                 {
-                    "id": "{{HYDRATE:uuid:webhook-id}}",
+                    "id": "{{@:uuid:webhook-id}}",
                     "name": "Webhook",
                     "type": "n8n-nodes-base.webhook",
                     "parameters": {"path": "smoke"},
@@ -42,7 +42,7 @@ class TestRoundTrip:
                     "position": [100, 200],
                 },
                 {
-                    "id": "{{HYDRATE:uuid:set-id}}",
+                    "id": "{{@:uuid:set-id}}",
                     "name": "Set",
                     "type": "n8n-nodes-base.set",
                     "parameters": {"values": {}},
@@ -64,7 +64,9 @@ class TestRoundTrip:
         built = json.loads(built_path.read_text())
         # Resolved values present
         assert built["name"] == "Smoke Development"
+        assert "{{@:" not in json.dumps(built)
         assert "{{HYDRATE" not in json.dumps(built)
+        assert "{{INTERPOLATE" not in json.dumps(built)
         webhook_uuid = built["nodes"][0]["id"]
         set_uuid = built["nodes"][1]["id"]
 
@@ -87,11 +89,11 @@ class TestRoundTrip:
             assert vol not in round_tripped
 
         # Volatile node ids replaced back to UUID placeholders
-        assert round_tripped["nodes"][0]["id"] == "{{HYDRATE:uuid:webhook-id}}"
-        assert round_tripped["nodes"][1]["id"] == "{{HYDRATE:uuid:set-id}}"
+        assert round_tripped["nodes"][0]["id"] == "{{@:uuid:webhook-id}}"
+        assert round_tripped["nodes"][1]["id"] == "{{@:uuid:set-id}}"
 
         # Env values reversed back
-        assert round_tripped["name"] == "Smoke {{HYDRATE:env:displayName}}"
+        assert round_tripped["name"] == "Smoke {{@:env:displayName}}"
 
         # Connections survive
         assert round_tripped["connections"]["Webhook"] == \

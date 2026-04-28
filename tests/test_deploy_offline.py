@@ -29,7 +29,7 @@ def _make_workspace(tmp_path: Path) -> Path:
     (ws / "n8n-config" / ".env.dev").write_text("N8N_API_KEY=fake\n")
 
     template = {
-        "name": "Smoke {{HYDRATE:env:displayName}}",
+        "name": "Smoke {{@:env:displayName}}",
         "nodes": [{"name": "T", "type": "n8n-nodes-base.webhook", "parameters": {}}],
         "connections": {},
         "settings": {},

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve all {{HYDRATE:...}} placeholders in a workflow template for one env."""
+"""Resolve all {{INTERPOLATE:...}} / {{@:...}} placeholders in a workflow template for one env."""
 import argparse
 import json
 import sys

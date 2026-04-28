@@ -44,10 +44,10 @@ class TestHydrate:
         ws = _make_workspace(tmp_path)
 
         template = {
-            "name": "Smoke {{HYDRATE:env:displayName}}",
+            "name": "Smoke {{@:env:displayName}}",
             "nodes": [
                 {
-                    "id": "{{HYDRATE:uuid:trigger-id}}",
+                    "id": "{{@:uuid:trigger-id}}",
                     "name": "Trigger",
                     "type": "n8n-nodes-base.webhook",
                     "parameters": {"path": "smoke"},
@@ -68,10 +68,12 @@ class TestHydrate:
         out = ws / "n8n-build" / "dev" / "smoke.generated.json"
         assert out.is_file()
         text = out.read_text()
-        assert "{{HYDRATE" not in text, "residual placeholder!"
+        assert "{{@:" not in text, "residual @ placeholder!"
+        assert "{{INTERPOLATE" not in text, "residual INTERPOLATE placeholder!"
+        assert "{{HYDRATE" not in text, "residual legacy HYDRATE placeholder!"
         data = json.loads(text)
         assert data["name"] == "Smoke Development"
-        assert data["nodes"][0]["id"] != "{{HYDRATE:uuid:trigger-id}}"
+        assert data["nodes"][0]["id"] != "{{@:uuid:trigger-id}}"
 
     def test_file_resolver_resolves_text(self, tmp_path):
         ws = _make_workspace(tmp_path)
@@ -85,7 +87,7 @@ class TestHydrate:
                 {
                     "name": "Set",
                     "type": "n8n-nodes-base.set",
-                    "parameters": {"prompt": "{{HYDRATE:txt:n8n-prompts/prompts/summary.txt}}"},
+                    "parameters": {"prompt": "{{@:txt:n8n-prompts/prompts/summary.txt}}"},
                 }
             ],
             "connections": {},
@@ -108,9 +110,9 @@ class TestHydrate:
         template = {
             "name": "Smoke",
             "nodes": [
-                {"id": "{{HYDRATE:uuid:a}}", "name": "A", "type": "x", "parameters": {}},
-                {"id": "{{HYDRATE:uuid:a}}", "name": "B", "type": "x", "parameters": {}},
-                {"id": "{{HYDRATE:uuid:b}}", "name": "C", "type": "x", "parameters": {}},
+                {"id": "{{@:uuid:a}}", "name": "A", "type": "x", "parameters": {}},
+                {"id": "{{@:uuid:a}}", "name": "B", "type": "x", "parameters": {}},
+                {"id": "{{@:uuid:b}}", "name": "C", "type": "x", "parameters": {}},
             ],
             "connections": {},
             "settings": {},
@@ -130,7 +132,7 @@ class TestHydrate:
         ws = _make_workspace(tmp_path)
         # Reference an env key that doesn't exist
         template = {
-            "name": "{{HYDRATE:env:does.not.exist}}",
+            "name": "{{@:env:does.not.exist}}",
             "nodes": [],
             "connections": {},
             "settings": {},
@@ -204,7 +206,7 @@ class TestValidate:
         build_dir = ws / "n8n-build" / "dev"
         build_dir.mkdir(parents=True)
         bad = {
-            "name": "{{HYDRATE:env:displayName}}",
+            "name": "{{@:env:displayName}}",
             "nodes": [{"name": "T", "type": "x", "parameters": {}}],
             "connections": {},
             "settings": {},

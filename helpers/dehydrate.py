@@ -28,7 +28,7 @@ def _strip_metadata(data: dict) -> dict:
 
 def _restore_uuids_by_name(data: dict, existing_template: dict) -> dict:
     """For each node, if the existing template had a UUID placeholder for the same name, restore it."""
-    uuid_pattern = re.compile(r"\{\{HYDRATE:uuid:[^}]+\}\}")
+    uuid_pattern = re.compile(r"\{\{(?:HYDRATE|INTERPOLATE|@):uuid:[^}]+\}\}")
     name_to_uuid_placeholder: dict[str, str] = {}
     for node in existing_template.get("nodes", []):
         name = node.get("name")
@@ -44,7 +44,7 @@ def _restore_uuids_by_name(data: dict, existing_template: dict) -> dict:
 
 
 def _reverse_env_values(text: str, env_data: dict) -> str:
-    """Reverse-substitute env values back into {{HYDRATE:env:...}} placeholders.
+    """Reverse-substitute env values back into {{@:env:...}} placeholders.
 
     Skips workflows.* and credentials.* blocks (those are n8n internal IDs/names, not
     values that should appear in template body content). Only substitutes strings of
@@ -63,7 +63,7 @@ def _reverse_env_values(text: str, env_data: dict) -> str:
     )
     for key, value in sortable:
         encoded = json.dumps(value)[1:-1]  # strip outer quotes for substring match in JSON text
-        placeholder = "{{HYDRATE:env:" + key + "}}"
+        placeholder = "{{@:env:" + key + "}}"
         text = text.replace(encoded, placeholder)
     return text
 

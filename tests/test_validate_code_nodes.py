@@ -74,7 +74,7 @@ def test_clean_template_passes(tmp_path):
     """Placeholder + glue + file + trailer + test → 0 errors."""
     _seed_js(tmp_path)
     code = (
-        "{{HYDRATE:js:n8n-functions/js/calculateStatsByCategory.js}}\n"
+        "{{@:js:n8n-functions/js/calculateStatsByCategory.js}}\n"
         "\n"
         "return { json: { stats: calculateStatsByCategory([]) } };\n"
     )
@@ -90,7 +90,7 @@ def test_clean_template_passes(tmp_path):
 def test_clean_python_template_passes(tmp_path):
     _seed_py(tmp_path)
     code = (
-        "{{HYDRATE:py:n8n-functions/py/calculate_stats_by_category.py}}\n"
+        "{{@:py:n8n-functions/py/calculate_stats_by_category.py}}\n"
         "\n"
         'return [{"json": {"stats": calculate_stats_by_category([])}}]\n'
     )
@@ -115,7 +115,7 @@ def test_deprecated_function_node_rejected(tmp_path):
 
 
 def test_missing_placeholder_rejected(tmp_path):
-    """Inlined JS (no {{HYDRATE:js:...}}) → error."""
+    """Inlined JS (no {{@:js:...}}) → error."""
     code = "const stats = {}; return { json: { stats } };"
     text = _wrap({
         "name": "Code",
@@ -124,7 +124,7 @@ def test_missing_placeholder_rejected(tmp_path):
     })
     valid, errors = validate_workflow_json(text, source="template", workspace=tmp_path)
     assert not valid
-    assert any("HYDRATE:js" in e for e in errors), errors
+    assert any("@:js" in e for e in errors), errors
 
 
 def test_missing_placeholder_python_rejected(tmp_path):
@@ -136,12 +136,12 @@ def test_missing_placeholder_python_rejected(tmp_path):
     })
     valid, errors = validate_workflow_json(text, source="template", workspace=tmp_path)
     assert not valid
-    assert any("HYDRATE:py" in e for e in errors), errors
+    assert any("@:py" in e for e in errors), errors
 
 
 def test_missing_file_rejected(tmp_path):
     """Placeholder points to a file that doesn't exist on disk."""
-    code = "{{HYDRATE:js:n8n-functions/js/missing.js}}\n"
+    code = "{{@:js:n8n-functions/js/missing.js}}\n"
     text = _wrap({
         "name": "Code",
         "type": "n8n-nodes-base.code",
@@ -155,7 +155,7 @@ def test_missing_file_rejected(tmp_path):
 def test_missing_trailer_rejected(tmp_path):
     """JS file lacks the conditional `if (typeof module !== \"undefined\")` trailer."""
     _seed_js(tmp_path, with_trailer=False)
-    code = "{{HYDRATE:js:n8n-functions/js/calculateStatsByCategory.js}}\nreturn { json: {} };\n"
+    code = "{{@:js:n8n-functions/js/calculateStatsByCategory.js}}\nreturn { json: {} };\n"
     text = _wrap({
         "name": "Code",
         "type": "n8n-nodes-base.code",
@@ -169,7 +169,7 @@ def test_missing_trailer_rejected(tmp_path):
 def test_missing_test_rejected(tmp_path):
     """Function file exists with trailer, but no paired test file."""
     _seed_js(tmp_path, with_trailer=True, with_test=False)
-    code = "{{HYDRATE:js:n8n-functions/js/calculateStatsByCategory.js}}\nreturn { json: {} };\n"
+    code = "{{@:js:n8n-functions/js/calculateStatsByCategory.js}}\nreturn { json: {} };\n"
     text = _wrap({
         "name": "Code",
         "type": "n8n-nodes-base.code",
@@ -183,7 +183,7 @@ def test_missing_test_rejected(tmp_path):
 def test_missing_python_test_rejected(tmp_path):
     _seed_py(tmp_path, with_test=False)
     code = (
-        "{{HYDRATE:py:n8n-functions/py/calculate_stats_by_category.py}}\n"
+        "{{@:py:n8n-functions/py/calculate_stats_by_category.py}}\n"
         'return [{"json": {}}]\n'
     )
     text = _wrap({
@@ -221,7 +221,7 @@ def test_built_skips_code_discipline(tmp_path):
 
 def test_workspace_none_skips_filesystem_checks(tmp_path):
     """Without a workspace, only the placeholder presence check runs (no file existence / trailer / test)."""
-    code = "{{HYDRATE:js:n8n-functions/js/anywhere.js}}\nreturn { json: {} };\n"
+    code = "{{@:js:n8n-functions/js/anywhere.js}}\nreturn { json: {} };\n"
     text = _wrap({
         "name": "Code",
         "type": "n8n-nodes-base.code",
@@ -253,7 +253,7 @@ def _write_js_fn(ws: Path, content: str, stem: str = "calculateStatsByCategory")
         f'const x = require("../n8n-functions/js/{stem}.js");\n'
     )
     code = (
-        f"{{{{HYDRATE:js:n8n-functions/js/{stem}.js}}}}\n"
+        f"{{{{@:js:n8n-functions/js/{stem}.js}}}}\n"
         "\n"
         "return { json: {} };\n"
     )
@@ -275,7 +275,7 @@ def _write_py_fn(ws: Path, content: str, stem: str = "calculate_stats_by_categor
         "    pass\n"
     )
     code = (
-        f"{{{{HYDRATE:py:n8n-functions/py/{stem}.py}}}}\n"
+        f"{{{{@:py:n8n-functions/py/{stem}.py}}}}\n"
         "\n"
         'return [{"json": {}}]\n'
     )
