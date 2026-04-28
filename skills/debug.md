@@ -1,9 +1,8 @@
 ---
-name: inspect-execution
 description: Investigate a failing or missing n8n workflow execution — from vague symptom to root-cause with evidence.
 ---
 
-# inspect-execution
+# debug
 
 ## When
 
@@ -25,21 +24,21 @@ The helpers used by this skill:
 
 ```bash
 # Step 1: dependency graph
-python3 <harness>/helpers/dependency_graph.py --env <env> --source both
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/dependency_graph.py --env <env> --source both
 
 # Step 1.5: 7-day baseline (chronic vs acute, hung counts)
-python3 <harness>/helpers/list_executions.py --env <env> --started-after <ISO-UTC> --tally
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/list_executions.py --env <env> --started-after <ISO-UTC> --tally
 
 # Step 2: candidate prescreen (keyed)
-python3 <harness>/helpers/list_executions.py --env <env> --workflow-key <key> \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/list_executions.py --env <env> --workflow-key <key> \
   --started-after <ISO-UTC> --started-before <ISO-UTC> --limit 100
 
 # Step 3: execution detail
-python3 <harness>/helpers/inspect_execution.py --env <env> --execution-id <id> \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/inspect_execution.py --env <env> --execution-id <id> \
   [--include-data] [--max-size-kb 50] [--no-truncate]
 
 # Step 6: time-correlation across workflows
-python3 <harness>/helpers/list_executions.py --env <env> \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/list_executions.py --env <env> \
   --started-after <T-5min> --started-before <T+5min> --status error --limit 500
 ```
 
@@ -47,4 +46,4 @@ python3 <harness>/helpers/list_executions.py --env <env> \
 
 - [`skills/patterns/investigation-discipline.md`](patterns/investigation-discipline.md) — the load-bearing 8-step rubric this skill executes.
 - [`skills/patterns/agent-api-discipline.md`](patterns/agent-api-discipline.md) — verify `/executions`, `/executions/{id}`, `/executions/stop` shapes via Context7 before invoking.
-- [`skills/run-workflow.md`](run-workflow.md) — for active reproduction once the cause is hypothesized (after user approves a next step).
+- [`skills/run.md`](run.md) — for active reproduction once the cause is hypothesized (after user approves a next step).

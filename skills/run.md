@@ -1,9 +1,8 @@
 ---
-name: run-workflow
 description: Fire a webhook-triggered workflow and assert terminal status.
 ---
 
-# run-workflow
+# run
 
 ## When
 
@@ -12,7 +11,7 @@ Verify a deployed workflow actually runs.
 ## How
 
 ```bash
-python3 <harness>/helpers/run.py --env <env> --workflow-key <key> [--payload '{"x":1}'] [--expect-status success|error] [--timeout 30]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/run.py --env <env> --workflow-key <key> [--payload '{"x":1}'] [--expect-status success|error] [--timeout 30]
 ```
 
 ## Side effects

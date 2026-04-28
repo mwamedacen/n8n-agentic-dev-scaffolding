@@ -1,6 +1,7 @@
 ---
 name: iterate-prompt
 description: Optimize a prompt against a paired schema + dataset using DSPy.
+user-invocable: false
 ---
 
 # iterate-prompt
@@ -20,7 +21,7 @@ The agent constructs the `dspy.Signature` subclass in-process at invocation time
 ## How
 
 ```bash
-python3 <harness>/helpers/iterate_prompt.py --prompt <name> [--dataset <name>] [--optimizer miprov2|bootstrap] [--export]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/iterate_prompt.py --prompt <name> [--dataset <name>] [--optimizer miprov2|bootstrap] [--export]
 ```
 
 ## Side effects

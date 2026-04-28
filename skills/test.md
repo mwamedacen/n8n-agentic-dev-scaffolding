@@ -1,9 +1,8 @@
 ---
-name: test-functions
 description: Run unit tests over JS used in n8n Code nodes and/or Python used in cloud functions.
 ---
 
-# test-functions
+# test
 
 ## When
 
@@ -12,7 +11,7 @@ Before deploys. After edits that touch `n8n-functions/` or `cloud-functions/`.
 ## How
 
 ```bash
-python3 <harness>/helpers/test_functions.py --target {n8n|cloud|all} [--filter <name>]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/test_functions.py --target {n8n|cloud|all} [--filter <name>]
 ```
 
 ## Side effects

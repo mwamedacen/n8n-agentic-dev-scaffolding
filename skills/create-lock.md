@@ -1,6 +1,7 @@
 ---
 name: create-lock
 description: First-time setup for distributed locking + rate-limit — copy the coordination primitives into the workspace AND register them in env YAMLs.
+user-invocable: false
 ---
 
 # create-lock
@@ -14,7 +15,7 @@ This skill is the **bundled** entry point: it copies the lock pair (lock_acquisi
 ## How
 
 ```bash
-python3 <harness>/helpers/create_lock.py \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/create_lock.py \
   [--include-error-handler] \
   [--include-rate-limit] \
   [--force-overwrite]
@@ -22,7 +23,7 @@ python3 <harness>/helpers/create_lock.py \
 
 ## Side effects
 
-- Copies these primitives from `<harness>/primitives/workflows/` into `<workspace>/n8n-workflows-template/`:
+- Copies these primitives from `${CLAUDE_PLUGIN_ROOT}/primitives/workflows/` into `<workspace>/n8n-workflows-template/`:
   - `lock_acquisition.template.json` (always)
   - `lock_release.template.json` (always)
   - `error_handler_lock_cleanup.template.json` (with `--include-error-handler`)
@@ -30,7 +31,7 @@ python3 <harness>/helpers/create_lock.py \
 - Registers each in every configured env's YAML (delegates to `create_workflow.py --no-template`). This mints placeholder workflow IDs that callers reference via `{{@:env:workflows.lock_acquisition.id}}` etc.
 - Adds them to `deployment_order.yml` under "Tier 0a: leaves" so they deploy before any caller workflow that depends on them.
 
-After this skill, the user owns the primitives in their workspace. The harness's seed copies in `<harness>/primitives/workflows/` are never written to.
+After this skill, the user owns the primitives in their workspace. The harness's seed copies in `${CLAUDE_PLUGIN_ROOT}/primitives/workflows/` are never written to.
 
 ## What you're actually deploying
 

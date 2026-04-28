@@ -1,9 +1,8 @@
 ---
-name: validate-workflow
 description: Structural REST validation for a template or generated JSON.
 ---
 
-# validate-workflow
+# validate
 
 ## When
 
@@ -12,7 +11,7 @@ Before any deploy. Catches structural breakage early.
 ## How
 
 ```bash
-python3 <harness>/helpers/validate.py --workflow-key <key> [--env <env>] [--source built|template]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/validate.py --workflow-key <key> [--env <env>] [--source built|template]
 ```
 
 Default source is `built` if `--env` given, else `template`.

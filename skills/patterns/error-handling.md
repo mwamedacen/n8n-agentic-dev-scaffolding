@@ -20,7 +20,7 @@ n8n supports per-workflow error handlers via `settings.errorWorkflow`. When the 
 Use `register-workflow-to-error-handler.md`:
 
 ```bash
-python3 <harness>/helpers/register_error_handler.py --workflow-key <wf> --handler-key <handler>
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/register_error_handler.py --workflow-key <wf> --handler-key <handler>
 ```
 
 This sets `settings.errorWorkflow = "{{@:env:workflows.<handler>.id}}"` (literal placeholder, no `=` prefix — n8n expects a literal id).
@@ -47,7 +47,7 @@ The exact shape varies between n8n versions. Add a Set node downstream during te
 Error Trigger workflows have no Webhook entry — you can't fire them directly. To run / verify a handler, fire the **paired source** workflow (which is supposed to error and route to the handler). `run.py` does this automatically when the requested key is a known handler:
 
 ```bash
-python3 <harness>/helpers/run.py --env dev --workflow-key error_handler_lock_cleanup
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/run.py --env dev --workflow-key error_handler_lock_cleanup
 # → reverse-looks-up the source key from common.yml.error_source_to_handler
 # → fires that source's webhook (expecting it to error)
 # → polls the handler's executions for the routed error

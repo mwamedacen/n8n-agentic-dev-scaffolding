@@ -66,4 +66,4 @@ Use a standard JSON Schema with `type: object`, `properties`, `required`, and `a
 
 ## Seed examples
 
-`<harness>/primitives/prompts/example_summary_prompt.txt` and `example_summary_schema.json` show the canonical pair shape. Copy + adapt.
+`${CLAUDE_PLUGIN_ROOT}/primitives/prompts/example_summary_prompt.txt` and `example_summary_schema.json` show the canonical pair shape. Copy + adapt.

@@ -1,6 +1,7 @@
 ---
 name: add-cloud-function
 description: Scaffold a Python cloud function under <workspace>/cloud-functions/.
+user-invocable: false
 ---
 
 # add-cloud-function
@@ -12,7 +13,7 @@ The user wants to add a Python function callable over HTTP from n8n nodes (HTTP 
 ## How
 
 ```bash
-python3 <harness>/helpers/add_cloud_function.py --name <name> [--platform railway|supabase|generic]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/add_cloud_function.py --name <name> [--platform railway|supabase|generic]
 ```
 
 ## Side effects

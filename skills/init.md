@@ -1,6 +1,7 @@
 ---
 name: init
 description: Scaffold a fresh n8n-harness workspace at ${PWD}/n8n-harness-workspace/.
+user-invocable: false
 ---
 
 # init
@@ -12,7 +13,7 @@ First-time use of n8n-harness in a project, or to reset from a clean slate.
 ## How
 
 ```bash
-python3 <harness>/helpers/init.py
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/init.py
 ```
 
 Optional flags:

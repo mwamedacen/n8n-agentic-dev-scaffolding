@@ -1,6 +1,7 @@
 ---
 name: find-skills
 description: Suggest which patterns / integrations skills apply to a workflow based on its node types.
+user-invocable: false
 ---
 
 # find-skills
@@ -12,7 +13,7 @@ While authoring a workflow, you want to know which patterns and integration docs
 ## How
 
 ```bash
-python3 <harness>/helpers/find_skills.py --workflow-key <key> [--env <env>]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/find_skills.py --workflow-key <key> [--env <env>]
 ```
 
 If `--env` is given, reads the live workflow from n8n; otherwise reads the template at `n8n-workflows-template/<key>.template.json`.

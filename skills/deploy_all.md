@@ -1,9 +1,8 @@
 ---
-name: deploy-all-workflows-in-env
 description: Roll out an entire env in tier order.
 ---
 
-# deploy-all-workflows-in-env
+# deploy_all
 
 ## When
 
@@ -12,7 +11,7 @@ Bulk deploy or initial deployment for an env.
 ## How
 
 ```bash
-python3 <harness>/helpers/deploy_all.py --env <env> [--keep-active] [--continue-on-failure]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/deploy_all.py --env <env> [--keep-active] [--continue-on-failure]
 ```
 
 ## Side effects

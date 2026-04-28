@@ -15,7 +15,7 @@ To set up an OpenRouter credential:
 2. Run `manage-credentials.md` (Path A):
 
 ```bash
-python3 <harness>/helpers/manage_credentials.py create \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/manage_credentials.py create \
   --env dev --key openrouter \
   --type openAiApi \
   --name "OpenRouter (Dev)" \

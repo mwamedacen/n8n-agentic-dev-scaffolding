@@ -1,6 +1,7 @@
 ---
 name: register-workflow-to-error-handler
 description: Wire a workflow's settings.errorWorkflow to point at an existing error handler.
+user-invocable: false
 ---
 
 # register-workflow-to-error-handler
@@ -12,7 +13,7 @@ A workflow needs `settings.errorWorkflow` to route on-error to an existing Error
 ## How
 
 ```bash
-python3 <harness>/helpers/register_error_handler.py --workflow-key <wf> --handler-key <handler>
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/register_error_handler.py --workflow-key <wf> --handler-key <handler>
 ```
 
 ## Side effects

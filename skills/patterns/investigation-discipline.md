@@ -38,7 +38,7 @@ If shapes have drifted, flag and adapt. If Context7 is unavailable, note "API ve
 ### Step 1 — Build the dependency graph
 
 ```bash
-python3 <harness>/helpers/dependency_graph.py --env <env> --source both
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/dependency_graph.py --env <env> --source both
 ```
 
 `--source both` reads workspace templates AND live `GET /workflows`. Three adjacency outputs:
@@ -55,7 +55,7 @@ python3 <harness>/helpers/dependency_graph.py --env <env> --source both
 A 7-day baseline frames every other step. Walk every page of `/executions` across every in-scope workflow and tally statuses while iterating — single source of truth, no two-call drift:
 
 ```bash
-python3 <harness>/helpers/list_executions.py --env <env> --started-after <7-days-ago-ISO> --tally
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/list_executions.py --env <env> --started-after <7-days-ago-ISO> --tally
 ```
 
 `--tally` walks all pages (ignores `--limit`) and emits a status histogram plus three derived signals:
@@ -76,7 +76,7 @@ Two paths depending on whether the user named a specific workflow.
 **Path A — keyed symptom** (user said "workflow Y failed"):
 
 ```bash
-python3 <harness>/helpers/list_executions.py \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/list_executions.py \
   --env <env> --workflow-key <key> \
   --started-after "ISO-UTC" --started-before "ISO-UTC" \
   --limit 100
@@ -85,7 +85,7 @@ python3 <harness>/helpers/list_executions.py \
 **Path B — keyless symptom** (user said "alerts silent" / "everything's slow" / "data didn't update"):
 
 ```bash
-python3 <harness>/helpers/list_executions.py \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/list_executions.py \
   --env <env> \
   --started-after "ISO-UTC" --started-before "ISO-UTC" \
   --limit 500
@@ -107,7 +107,7 @@ If `>7` candidates all match `status=error` and the same workflow_key, the cap m
 ### Step 3 — Get execution detail
 
 ```bash
-python3 <harness>/helpers/inspect_execution.py \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/inspect_execution.py \
   --env <env> --execution-id <id> \
   [--include-data] [--max-size-kb 50] [--no-truncate]
 ```
@@ -174,7 +174,7 @@ The most common cause for "I didn't get X" is the trigger never fired. Via `n8n_
 Before invoking, count the distinct workflows that failed in the symptom window. If Step 2 was Path A (keyed), run an env-scoped error-only fetch:
 
 ```bash
-python3 <harness>/helpers/list_executions.py --env <env> \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/list_executions.py --env <env> \
   --started-after <T-5min> --started-before <T+5min> \
   --status error --limit 500
 ```

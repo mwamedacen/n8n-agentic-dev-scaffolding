@@ -1,6 +1,7 @@
 ---
 name: create-new-workflow
 description: Author a brand-new workflow — scaffold template + register IDs in env YAMLs + mint placeholder n8n workflow.
+user-invocable: false
 ---
 
 # create-new-workflow
@@ -12,7 +13,7 @@ The user asks to create a new workflow.
 ## How
 
 ```bash
-python3 <harness>/helpers/create_workflow.py --key <key> --name "<display name>" [--register-in <env1,env2,...>] [--with-error-handler <handler-key>] [--tier <tier-name>]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/create_workflow.py --key <key> --name "<display name>" [--register-in <env1,env2,...>] [--with-error-handler <handler-key>] [--tier <tier-name>]
 ```
 
 ## Side effects

@@ -13,6 +13,8 @@ description: How to install n8n-harness as a skill package and what it expects o
 
 ## Install (one-time)
 
+### Skill mode (any agent runtime)
+
 Clone into your agent's skills directory:
 
 ```bash
@@ -31,6 +33,36 @@ pip install pyyaml requests python-dotenv
 ```bash
 pip install dspy litellm
 ```
+
+### Plugin mode (Claude Code only)
+
+CLI form (run in your terminal):
+
+```bash
+claude plugin install https://github.com/mwamedacen/n8n-harness
+```
+
+In-session form (inside a Claude Code session):
+
+```
+/plugin install https://github.com/mwamedacen/n8n-harness
+```
+
+Local dev (loads from a local checkout):
+
+```bash
+claude --plugin-dir ./n8n-harness
+```
+
+#### Plugin extras
+
+When installed as a plugin, n8n-harness ships two additional behaviors:
+
+- **Slash commands** — 10 user-facing commands available as `/n8n-harness:deploy`, `/n8n-harness:tidyup`, etc. Hidden lifecycle skills remain agent-loadable via `SKILL.md` routing but do not appear in `/help`.
+
+- **Auto-tidy hook** — a `PostToolUse` hook fires `tidy_workflow.py --in-place` automatically after every `*.template.json` Write/Edit/MultiEdit. This keeps node positions clean without any manual step.
+
+  To disable the auto-tidy hook: remove or rename `hooks/hooks.json` in the plugin directory, or disable the plugin in Claude Code settings. Standalone-skill-mode users who want auto-tidy can configure the hook manually in `~/.claude/settings.json`.
 
 ## What the harness expects on disk
 

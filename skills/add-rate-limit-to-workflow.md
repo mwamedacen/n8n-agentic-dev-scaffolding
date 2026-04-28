@@ -1,6 +1,7 @@
 ---
 name: add-rate-limit-to-workflow
 description: Insert a Redis-backed fixed-window rate-limit gate at the head of a workflow's main flow.
+user-invocable: false
 ---
 
 # add-rate-limit-to-workflow
@@ -12,7 +13,7 @@ A workflow needs to throttle requests per scope (per user, per tenant, per route
 ## How
 
 ```bash
-python3 <harness>/helpers/add_rate_limit_to_workflow.py \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/add_rate_limit_to_workflow.py \
   --workflow-key <wf> \
   --limit <int> \
   --window-seconds <int> \
@@ -41,10 +42,10 @@ You have an API-fronting workflow keyed `api_v1_handler` and want to cap any sin
 
 ```bash
 # 1. one-time: ship the rate-limit primitive into the workspace
-python3 <harness>/helpers/create_lock.py --include-rate-limit
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/create_lock.py --include-rate-limit
 
 # 2. wire the gate
-python3 <harness>/helpers/add_rate_limit_to_workflow.py \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/add_rate_limit_to_workflow.py \
   --workflow-key api_v1_handler \
   --scope-expression "=api-v1-{{ $json.userId }}" \
   --limit 100 \

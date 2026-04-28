@@ -1,6 +1,7 @@
 ---
 name: deploy-run-assert
 description: One-shot validate → deploy → run --expect-status success.
+user-invocable: false
 ---
 
 # deploy-run-assert
@@ -12,7 +13,7 @@ Verify a workflow end-to-end in a single call after authoring or modifying it.
 ## How
 
 ```bash
-python3 <harness>/helpers/deploy_run_assert.py --env <env> --workflow-key <key> [--payload '{"x":1}'] [--timeout 30] [--no-activate]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/deploy_run_assert.py --env <env> --workflow-key <key> [--payload '{"x":1}'] [--timeout 30] [--no-activate]
 ```
 
 ## Side effects

@@ -66,7 +66,7 @@ Override per-workflow with `--max-wait-seconds <n>` if you need fail-fast-ish se
 
 ```bash
 # Webhook handler — give up after 30 seconds, let upstream retry / queue.
-python3 <harness>/helpers/add_lock_to_workflow.py \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/add_lock_to_workflow.py \
   --workflow-key webhook_handler \
   --scope-expression "='user-' + $json.userId" \
   --max-wait-seconds 30

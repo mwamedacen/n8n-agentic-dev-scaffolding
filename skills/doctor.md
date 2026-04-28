@@ -1,5 +1,4 @@
 ---
-name: doctor
 description: Health check — workspace tree, env YAMLs, templates, n8n API reachability.
 ---
 
@@ -12,7 +11,7 @@ Anything goes wrong, or before an important deploy.
 ## How
 
 ```bash
-python3 <harness>/helpers/doctor.py [--env <name>] [--with-audit] [--audit-only]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/doctor.py [--env <name>] [--with-audit] [--audit-only]
 ```
 
 ## Side effects

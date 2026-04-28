@@ -1,6 +1,7 @@
 ---
 name: copy-primitive
 description: Copy a single primitive template (any) from the harness into the workspace. General-purpose; does not register in env YAMLs.
+user-invocable: false
 ---
 
 # copy-primitive
@@ -19,13 +20,13 @@ For the lock pair specifically, prefer `create-lock.md` — it copies AND regist
 
 ```bash
 # List what's available
-python3 <harness>/helpers/copy_primitive.py --list
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/copy_primitive.py --list
 
 # Copy one primitive
-python3 <harness>/helpers/copy_primitive.py --name <primitive-key> [--force-overwrite]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/copy_primitive.py --name <primitive-key> [--force-overwrite]
 ```
 
-Where `<primitive-key>` matches a file under `<harness>/primitives/workflows/` minus the `.template.json` extension. Currently shipped:
+Where `<primitive-key>` matches a file under `${CLAUDE_PLUGIN_ROOT}/primitives/workflows/` minus the `.template.json` extension. Currently shipped:
 
 - `lock_acquisition`
 - `lock_release`
@@ -34,7 +35,7 @@ Where `<primitive-key>` matches a file under `<harness>/primitives/workflows/` m
 
 ## Side effects
 
-- Copies `<harness>/primitives/workflows/<key>.template.json` into `<workspace>/n8n-workflows-template/<key>.template.json`.
+- Copies `${CLAUDE_PLUGIN_ROOT}/primitives/workflows/<key>.template.json` into `<workspace>/n8n-workflows-template/<key>.template.json`.
 - Idempotent: skips if the destination exists, unless `--force-overwrite`. Without the flag, prints:
   ```
   WARNING: <key>.template.json already exists — re-run with --force-overwrite
@@ -47,13 +48,13 @@ Where `<primitive-key>` matches a file under `<harness>/primitives/workflows/` m
 
 ```bash
 # Drop the rate-limit primitive only
-python3 <harness>/helpers/copy_primitive.py --name rate_limit_check
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/copy_primitive.py --name rate_limit_check
 
 # Force-update lock_acquisition after pulling a newer harness
-python3 <harness>/helpers/copy_primitive.py --name lock_acquisition --force-overwrite
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/copy_primitive.py --name lock_acquisition --force-overwrite
 
 # What's available?
-python3 <harness>/helpers/copy_primitive.py --list
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/copy_primitive.py --list
 ```
 
 ## Pattern

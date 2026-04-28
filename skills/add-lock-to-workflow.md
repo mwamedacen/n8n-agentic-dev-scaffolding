@@ -1,6 +1,7 @@
 ---
 name: add-lock-to-workflow
 description: Wrap a workflow's main flow in lock acquire / release Execute Workflow nodes (atomic-INCR pattern with Redis-side TTL).
+user-invocable: false
 ---
 
 # add-lock-to-workflow
@@ -12,7 +13,7 @@ An existing workflow needs to wrap its critical section in distributed-lock acqu
 ## How
 
 ```bash
-python3 <harness>/helpers/add_lock_to_workflow.py \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/add_lock_to_workflow.py \
   --workflow-key <wf> \
   [--lock-on-error] \
   [--scope-expression "={{ 'excel-' + $json.fileId }}"] \
@@ -89,10 +90,10 @@ Default off. When set, also sets your workflow's `settings.errorWorkflow` to `er
 
 ```bash
 # 1. Make sure the lock pair is in your workspace.
-python3 <harness>/helpers/create_lock.py
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/create_lock.py
 
 # 2. Wrap your workflow with a 10-minute TTL, scoping per Excel file.
-python3 <harness>/helpers/add_lock_to_workflow.py \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/add_lock_to_workflow.py \
   --workflow-key sharepoint_writeback \
   --scope-expression "='excel-' + $json.fileId" \
   --ttl-seconds 600 \
@@ -112,7 +113,7 @@ Two simultaneous webhooks for the same `fileId` race at Lock Acquire. The first 
 ## Webhook example with shorter wait
 
 ```bash
-python3 <harness>/helpers/add_lock_to_workflow.py \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/add_lock_to_workflow.py \
   --workflow-key user_facing_api \
   --scope-expression "='user-' + $json.userId" \
   --ttl-seconds 60 \

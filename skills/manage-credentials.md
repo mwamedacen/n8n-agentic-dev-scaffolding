@@ -1,6 +1,7 @@
 ---
 name: manage-credentials
 description: Single source of truth for credential lifecycle (Path A — agent-mediated create from .env; Path B — link to existing n8n credential).
+user-invocable: false
 ---
 
 # manage-credentials
@@ -21,7 +22,7 @@ Any time a workflow needs an n8n credential — whether the user wants the agent
 2. Agent runs:
 
 ```bash
-python3 <harness>/helpers/manage_credentials.py create \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/manage_credentials.py create \
   --env <env> --key <yaml-key> \
   --type <n8n-credential-type> --name "<display name>" \
   --env-vars KEY1,KEY2,...
@@ -37,7 +38,7 @@ python3 <harness>/helpers/manage_credentials.py create \
 2. Agent runs:
 
 ```bash
-python3 <harness>/helpers/manage_credentials.py list-link \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/manage_credentials.py list-link \
   --env <env> --key <yaml-key> \
   --type <n8n-credential-type> [--from-name "<existing display name>"]
 ```

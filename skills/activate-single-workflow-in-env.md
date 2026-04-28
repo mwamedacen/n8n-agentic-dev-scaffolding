@@ -1,6 +1,7 @@
 ---
 name: activate-single-workflow-in-env
 description: Activate an already-deployed workflow.
+user-invocable: false
 ---
 
 # activate-single-workflow-in-env
@@ -12,7 +13,7 @@ Activate a workflow that was deployed with `--no-activate`, or re-activate after
 ## How
 
 ```bash
-python3 <harness>/helpers/activate.py --env <env> --workflow-key <key>
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/activate.py --env <env> --workflow-key <key>
 ```
 
 POST `/api/v1/workflows/<id>/activate`. Idempotent on the n8n side.

@@ -1,6 +1,7 @@
 ---
 name: bootstrap-env
 description: Stand up an n8n environment from scratch and/or top up its placeholder workflow IDs.
+user-invocable: false
 ---
 
 # bootstrap-env
@@ -13,7 +14,7 @@ description: Stand up an n8n environment from scratch and/or top up its placehol
 ## How
 
 ```bash
-python3 <harness>/helpers/bootstrap_env.py --env <name> [--instance <url>] [--api-key <key>] [--postfix " [DEV]"] [--display-name "Development"] [--dry-run]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/bootstrap_env.py --env <name> [--instance <url>] [--api-key <key>] [--postfix " [DEV]"] [--display-name "Development"] [--dry-run]
 ```
 
 If `--instance` / `--api-key` omitted on the CLI, the helper falls back to env vars (`N8N_API_KEY`) or prompts.

@@ -1,9 +1,8 @@
 ---
-name: deploy-single-workflow-in-env
 description: Hydrate, PUT to n8n, and (default) activate one workflow on one env.
 ---
 
-# deploy-single-workflow-in-env
+# deploy
 
 ## When
 
@@ -12,7 +11,7 @@ Roll one workflow to one env.
 ## How
 
 ```bash
-python3 <harness>/helpers/deploy.py --env <env> --workflow-key <key> [--no-activate] [--rehydrate] [--debug]
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/deploy.py --env <env> --workflow-key <key> [--no-activate] [--rehydrate] [--debug]
 ```
 
 ## Side effects

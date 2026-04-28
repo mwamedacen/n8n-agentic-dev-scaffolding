@@ -1,0 +1,9 @@
+{
+  "name": "n8n-harness",
+  "description": "Author, deploy, and operate n8n workflows from code. Agent-native skill package.",
+  "version": "1.0.0",
+  "author": { "name": "mwamedacen" },
+  "homepage": "https://github.com/mwamedacen/n8n-harness",
+  "repository": "https://github.com/mwamedacen/n8n-harness",
+  "license": "MIT"
+}

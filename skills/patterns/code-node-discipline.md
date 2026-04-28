@@ -248,7 +248,7 @@ There is **no opt-out** for trivial Code nodes.
 ## Running the tests
 
 ```bash
-python3 <harness>/helpers/test_functions.py --target n8n
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/test_functions.py --target n8n
 ```
 
 Runs both `node --test` (over `*.test.js`) and `pytest` (over `test_*.py`) under `n8n-functions-tests/`.

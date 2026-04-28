@@ -1,6 +1,7 @@
 ---
 name: tidy-workflow
 description: Apply n8n's canvas-layout algorithm to a workflow template so node positions are clean and consistent.
+user-invocable: false
 ---
 
 # tidy-workflow
@@ -12,7 +13,7 @@ After authoring or editing a workflow template — especially after `add-lock-to
 ## How
 
 ```bash
-python3 <harness>/helpers/tidy_workflow.py \
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/tidy_workflow.py \
   --workspace <ws> \
   --workflow-key <key> \
   [--in-place]

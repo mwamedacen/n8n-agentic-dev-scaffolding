@@ -1,9 +1,8 @@
 ---
-name: resync-single-workflow-from-env
 description: Pull live state of one workflow back into its template.
 ---
 
-# resync-single-workflow-from-env
+# resync
 
 ## When
 
@@ -12,7 +11,7 @@ After someone edits a workflow in the n8n UI and you want the template to reflec
 ## How
 
 ```bash
-python3 <harness>/helpers/resync.py --env <env> --workflow-key <key>
+python3 ${CLAUDE_PLUGIN_ROOT}/helpers/resync.py --env <env> --workflow-key <key>
 ```
 
 ## Side effects

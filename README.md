@@ -34,14 +34,48 @@ n8n-harness provides that structure. It is a read-only skill package: the agent 
 
 - **Prompt optimization with DSPy.** `iterate-prompt.md` runs BootstrapFewShot or MIPROv2 against a workspace prompt + schema + dataset, evaluates on structural correctness, and optionally exports the optimized prompt back to disk. Requires `pip install dspy litellm`. See [`skills/iterate-prompt.md`](skills/iterate-prompt.md).
 
+## Install
+
+n8n-harness supports two install modes. The workspace and all helpers work identically in both.
+
+| | Skill mode | Plugin mode |
+|---|---|---|
+| Slash commands | No | Yes (`/n8n-harness:*`) |
+| Auto-tidy hook | Manual opt-in | Automatic |
+| Discovery | Read `SKILL.md` | Claude Code `/help` |
+| Other agent runtimes | Yes | Claude Code only |
+
+### Skill mode (works with any agent runtime)
+
+```bash
+git clone https://github.com/mwamedacen/n8n-harness.git ~/.claude/skills/n8n-harness
+pip install pyyaml requests python-dotenv
+```
+
+### Plugin mode (Claude Code only)
+
+CLI form (run in your terminal):
+
+```bash
+claude plugin install https://github.com/mwamedacen/n8n-harness
+```
+
+In-session form (inside a Claude Code session):
+
+```
+/plugin install https://github.com/mwamedacen/n8n-harness
+```
+
+Local dev:
+
+```bash
+claude --plugin-dir ./n8n-harness
+```
+
 ## Quick start
 
 ```bash
-# One-time: clone into your agent's skills directory
-git clone https://github.com/mwamedacen/n8n-harness.git ~/.claude/skills/n8n-harness
-pip install pyyaml requests python-dotenv
-
-# Per project
+# Per project (skill mode path shown; plugin mode uses ${CLAUDE_PLUGIN_ROOT})
 python3 ~/.claude/skills/n8n-harness/helpers/init.py
 python3 ~/.claude/skills/n8n-harness/helpers/bootstrap_env.py \
   --env dev --instance acme.app.n8n.cloud --api-key <key>
