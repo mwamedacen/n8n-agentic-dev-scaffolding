@@ -19,7 +19,7 @@ Clone into your agent's skills directory:
 
 ```bash
 cd ~/.claude/skills   # or wherever your agent runtime reads skills from
-git clone https://github.com/<user>/n8n-harness.git
+git clone https://github.com/mwamedacen/n8n-harness.git
 ```
 
 Install Python deps:
@@ -60,7 +60,9 @@ When installed as a plugin, n8n-harness ships two additional behaviors:
 
 - **Slash commands** — 10 user-facing commands available as `/n8n-harness:deploy`, `/n8n-harness:tidyup`, etc. Hidden lifecycle skills remain agent-loadable via `SKILL.md` routing but do not appear in `/help`.
 
-- **Auto-tidy hook** — a `PostToolUse` hook fires `tidy_workflow.py --in-place` automatically after every `*.template.json` Write/Edit/MultiEdit. This keeps node positions clean without any manual step.
+- **Auto-tidy hook** — a `PostToolUse` hook fires after every Write/Edit/MultiEdit tool call; the hook script filters to `*.template.json` files and runs `tidy_workflow.py --in-place` on matching files. This keeps node positions clean without any manual step.
+
+  The hook runs asynchronously (`async: true`), so Claude Code does not wait for it before continuing. If the agent reads the template file immediately after writing it (e.g. to feed it into a deploy step), it may observe the un-tidied version. In that case, run `tidy-workflow` manually before deploying, or add a short pause between the write and the read.
 
   To disable the auto-tidy hook: remove or rename `hooks/hooks.json` in the plugin directory, or disable the plugin in Claude Code settings. Standalone-skill-mode users who want auto-tidy can configure the hook manually in `~/.claude/settings.json`.
 
