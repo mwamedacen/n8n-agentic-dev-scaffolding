@@ -1,77 +1,68 @@
 # n8n-harness
 
-A read-only **skill package** for authoring, deploying, and operating n8n workflows from code — designed to be driven by a coding agent.
+A skill package for driving n8n from code. Designed to be read by a coding agent.
 
-The package contains markdown sub-skills (the agent's instruction surface), Python helper scripts (the executable surface), and seed primitives (lock workflows, a FastAPI cloud-function app, prompt + schema scaffolds). It does **not** contain user project state — that lives in a separate workspace at `${PWD}/n8n-harness-workspace/`.
+## Why
 
-## What's distinctive
+n8n is a capable workflow automation platform, but operating it at scale from code requires the same boilerplate on every project: REST-API wrappers, per-environment config management, a way to keep workflow logic in version control, and enough structural discipline that a coding agent can author and deploy without re-learning the API surface every session.
 
-- **Read-only skill / writeable workspace separation.** The harness directory is never modified at runtime. All authored artifacts (templates, env config, JS/Python code, prompts, cloud functions) land in `${PWD}/n8n-harness-workspace/`. Updates are `git pull` on the harness; user content is unaffected.
-- **Code-node discipline, enforced.** Logic inside an n8n Code node must be a pure function extracted to `n8n-functions/{js,py}/<name>.{js,py}` and injected via `{{HYDRATE:js|py:...}}`. A paired test under `n8n-functions-tests/` is required. `validate.py` hard-fails inlined Code-node bodies and rejects the deprecated `n8n-nodes-base.function` node type entirely. `deploy.py` runs validation automatically before pushing. See [`skills/patterns/code-node-discipline.md`](skills/patterns/code-node-discipline.md).
-- **Round-trippable templates.** `dehydrate` collapses live n8n exports back to placeholder-bearing templates so manual edits in the n8n UI don't leak duplicated function bodies or stale env values into version control.
-- **No master CLI.** Each helper under `helpers/` is independently invokable by absolute path. There is no console script and no PATH pollution.
-- **Pure REST + per-env config.** Every helper talks to n8n over the official REST API using `pyyaml` + `requests` + `python-dotenv`. No browser automation, no SDK lock-in.
-- **Investigation discipline.** When a workflow misbehaves in production, [`skills/inspect-execution.md`](skills/inspect-execution.md) routes the agent through an 8-step read-only investigation rubric ([`skills/patterns/investigation-discipline.md`](skills/patterns/investigation-discipline.md)) — causal-linkage check that catches `status=success` side-effect skips, mandatory trigger-health check when no executions are found, mandatory time-correlation when >1 workflow fails in the window, and a sub-agent cross-check before closing. No write operations until the user approves the recommended next step.
+n8n-harness provides that structure. It is a read-only skill package: the agent reads markdown sub-skills from `skills/` and invokes Python helpers from `helpers/` against a separate per-project workspace. Workflow templates live in the workspace, not in the harness, so the harness can be updated with `git pull` without touching user content. The agent needs to know only one thing: read `SKILL.md` first.
 
-## Install
+## Features
 
-Clone into your agent's skills directory:
+- **Multi-environment workflows.** Configure dev, staging, and prod in `n8n-config/<env>.yml` with per-env instance URLs, workflow IDs, and credential refs. Every helper accepts `--env`. See [`bootstrap-env.md`](skills/bootstrap-env.md).
+
+- **Heavy resources stay out of workflow JSON.** Code, prompts, schemas, email templates, env values, and UUIDs live in dedicated workspace files (`n8n-functions/`, `n8n-prompts/`, `n8n-assets/`, `n8n-config/`) and are referenced from templates via `{{HYDRATE:js|py|txt|json|html|env|uuid:...}}` placeholders. The agent edits a 50-line `*.template.json` plus separate code/prompt/template files instead of a 200KB blob with everything inlined. `hydrate.py` inlines at deploy time; `dehydrate.py` re-extracts on resync — round-trip stable. See [`skills/patterns/code-node-discipline.md`](skills/patterns/code-node-discipline.md) for the strict-mode rule on JS/Python segmentation.
+
+- **Dependency-ordered deployment.** `deploy_all.py` rolls out an entire env in tier order so callee sub-workflows deploy before callers. Tier assignment is set per-workflow at create time via `n8n-config/deployment_order.yml`. See [`deploy-all-workflows-in-env.md`](skills/deploy-all-workflows-in-env.md).
+
+- **Execution debugging.** `inspect-execution.md` guides a structured investigation from symptom to root cause: dependency-graph traversal, candidate pre-screening, per-execution causal-linkage checks, trigger health, blast-radius enumeration, and a prescribed sub-agent cross-check step. Backed by `list_executions.py`, `inspect_execution.py`, and `dependency_graph.py`. See [`skills/patterns/investigation-discipline.md`](skills/patterns/investigation-discipline.md).
+
+- **Distributed locking.** Redis-backed acquire/release primitives (`lock_acquisition`, `lock_release`) with owner-pointer tracking so a crash lets the next caller identify and clean up a held scope. Locks self-heal via Redis TTL if the error handler is not configured. `add-lock-to-workflow.md` wraps any workflow in lock/release in one command. See [`skills/patterns/locking.md`](skills/patterns/locking.md).
+
+- **Rate limiting.** Fixed-window Redis INCR primitive (`rate_limit_check`) with configurable limit, window, and denied-branch behavior (passthrough / stop / error). `add-rate-limit-to-workflow.md` gates any workflow at the head of its main flow. See [`skills/patterns/locking.md`](skills/patterns/locking.md).
+
+- **Cloud function scaffolding.** `add-cloud-function.md` scaffolds a Python function into a FastAPI service in `cloud-functions/` and auto-registers it in the app's router. The service ships with Railway deployment config (`railpack.json`); callable from n8n via HTTP Request nodes. See [`skills/add-cloud-function.md`](skills/add-cloud-function.md).
+
+- **Prompt optimization with DSPy.** `iterate-prompt.md` runs BootstrapFewShot or MIPROv2 against a workspace prompt + schema + dataset, evaluates on structural correctness, and optionally exports the optimized prompt back to disk. Requires `pip install dspy litellm`. See [`skills/iterate-prompt.md`](skills/iterate-prompt.md).
+
+## Quick start
 
 ```bash
-cd ~/.claude/skills   # or wherever your agent runtime reads skills from
-git clone https://github.com/mwamedacen/n8n-harness.git
-```
-
-Install Python deps (lightweight by default):
-
-```bash
+# One-time: clone into your agent's skills directory
+git clone https://github.com/mwamedacen/n8n-harness.git ~/.claude/skills/n8n-harness
 pip install pyyaml requests python-dotenv
-# Optional, only for `iterate-prompt`:
-pip install dspy litellm
-```
 
-See [`install.md`](install.md) for prerequisites, smoke test, and update instructions.
-
-## Usage
-
-The agent reads [`SKILL.md`](SKILL.md) first — it's the router that maps any n8n-related request onto the right sub-skill.
-
-A typical first session:
-
-```bash
-cd /path/to/your/project
+# Per project
 python3 ~/.claude/skills/n8n-harness/helpers/init.py
 python3 ~/.claude/skills/n8n-harness/helpers/bootstrap_env.py \
-  --env dev --instance acme.app.n8n.cloud --api-key <your-key>
+  --env dev --instance acme.app.n8n.cloud --api-key <key>
 python3 ~/.claude/skills/n8n-harness/helpers/doctor.py --env dev
 ```
 
-After that, the agent authors workflows via `create-new-workflow.md`, deploys via `deploy-single-workflow-in-env.md`, runs end-to-end via `deploy-run-assert.md`, and so on.
+See [`install.md`](install.md) for full prerequisites, optional extras, and update flow.
 
-## Mental model
+## How it works
 
-- The harness directory is **read-only** from the agent's perspective.
-- The workspace at `${PWD}/n8n-harness-workspace/` holds all authored artifacts.
-- Helpers under `helpers/<name>.py` are invoked by absolute path; there is no master CLI.
-- Skills under `skills/` are markdown docs telling the agent what to do and which helper to invoke. Patterns and integrations are reference docs read while authoring.
+The harness directory is read-only from the agent's perspective — never modified at runtime. All project state (workflow templates, env config, built JSON, prompts, JS/Python functions, cloud functions) lives in a separate workspace at `${PWD}/n8n-harness-workspace/`, which the agent can `git init` and version-control independently.
+
+The agent reads [`SKILL.md`](SKILL.md) to locate the right sub-skill for any n8n-related request. Each skill is a markdown doc that tells the agent which helper to invoke and with what arguments. Helpers are standalone Python scripts in `helpers/`; there is no master CLI and no daemon.
+
+Code-node logic, prompts, schemas, and HTML templates are stored as separate workspace files and injected at hydration time — the agent never reads or edits megabyte-scale content inlined in workflow JSON. `validate.py` enforces the segmentation discipline before any deploy.
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
-| [`SKILL.md`](SKILL.md) | Router — first thing the agent reads. Lists the lifecycle, pattern, and integration skills. |
+| [`SKILL.md`](SKILL.md) | Router — lists all lifecycle, pattern, and integration skills. |
 | [`install.md`](install.md) | Prerequisites, install, smoke test, update flow. |
-| [`CHANGELOG.md`](CHANGELOG.md) | Version history. |
-| `skills/` | 25 lifecycle skills + 13 [`patterns/`](skills/patterns) + 10 [`integrations/`](skills/integrations) (48 markdowns total). |
-| `helpers/` | 33 top-level Python helpers (init, bootstrap_env, hydrate, deploy, run, resync, validate, list_executions, inspect_execution, dependency_graph, stop_executions, manage_variables, …) plus 6 [`placeholder/`](helpers/placeholder) resolvers (env, file, js, py, uuid, validator). |
-| `primitives/workflows/` | Seed templates copied into the workspace on demand: `_minimal`, `lock_acquisition`, `lock_release`, `error_handler_lock_cleanup`. |
-| `primitives/cloud-functions/` | Deployable FastAPI app seed: `app.py`, `registry.py`, `functions/`, `requirements.txt`, `railpack.json`, `railway.toml`. |
-| `primitives/prompts/` | Example prompt + schema pair for `iterate-prompt`. |
-| `tests/` | Offline tests for each helper (HTTP mocked). |
-| `docs/` | [`migration-from-d6848fd.md`](docs/migration-from-d6848fd.md) — pre-rebuild → current path/command mapping. |
-
-For the full skill catalogue (lifecycle, patterns, integrations) see [`SKILL.md`](SKILL.md).
+| `skills/` | 25 lifecycle + 13 pattern + 10 integration skills (48 total). |
+| `helpers/` | 35 top-level Python helpers + 6 `placeholder/` resolvers. |
+| `primitives/workflows/` | Seed templates: `_minimal`, `lock_acquisition`, `lock_release`, `error_handler_lock_cleanup`, `rate_limit_check`. |
+| `primitives/cloud-functions/` | FastAPI app seed + Railway config (`app.py`, `registry.py`, `railpack.json`). |
+| `primitives/prompts/` | Example prompt + schema for `iterate-prompt`. |
+| `tests/` | Offline tests (HTTP mocked) for each helper. |
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE).
+MIT. See [LICENSE](LICENSE).
