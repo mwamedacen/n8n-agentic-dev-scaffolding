@@ -30,6 +30,8 @@ n8n-evol-I provides that structure. It is a read-only skill package: the agent r
 
 - **Rate limiting.** Fixed-window Redis INCR primitive (`rate_limit_check`) with configurable limit, window, and denied-branch behavior (passthrough / stop / error). `add-rate-limit-to-workflow.md` gates any workflow at the head of its main flow. See [`skills/patterns/locking.md`](skills/patterns/locking.md).
 
+- **Error handling + observability.** Three-step paradigm — capture (Error Trigger), log (Sentry / Datadog / Slack), process (lock cleanup, DB invalidation, compensating workflows). Sinks fan out in parallel branches so a single sink failing doesn't block the others. `register-workflow-to-error-handler.md` wires any workflow into a workspace's central handler. See [`skills/patterns/error-handling.md`](skills/patterns/error-handling.md) and [`skills/integrations/datadog/README.md`](skills/integrations/datadog/README.md).
+
 - **Cloud function scaffolding.** `add-cloud-function.md` scaffolds a Python function into a FastAPI service in `cloud-functions/` and auto-registers it in the app's router. The service ships with Railway deployment config (`railpack.json`); callable from n8n via HTTP Request nodes. See [`skills/add-cloud-function.md`](skills/add-cloud-function.md).
 
 - **Prompt optimization with DSPy.** `iterate-prompt.md` runs BootstrapFewShot or MIPROv2 against a workspace prompt + schema + dataset, evaluates on structural correctness, and optionally exports the optimized prompt back to disk. Requires `pip install dspy litellm`. See [`skills/iterate-prompt.md`](skills/iterate-prompt.md).
@@ -54,6 +56,8 @@ pip install pyyaml requests python-dotenv
 
 ### Plugin mode (Claude Code only)
 
+Plugin mode adds 10 namespaced slash commands covering the full operational lifecycle — `/n8n-evol-I:deploy`, `/n8n-evol-I:deploy_all`, `/n8n-evol-I:resync`, `/n8n-evol-I:resync_all`, `/n8n-evol-I:tidyup`, `/n8n-evol-I:debug`, `/n8n-evol-I:run`, `/n8n-evol-I:doctor`, `/n8n-evol-I:validate`, `/n8n-evol-I:test` — plus an auto-tidy hook that normalizes template positions after every Edit/Write/MultiEdit.
+
 CLI form (run in your terminal):
 
 ```bash
@@ -74,12 +78,18 @@ claude --plugin-dir ./n8n-evol-I
 
 ## Quick start
 
+Set `HARNESS` to your install location — these commands work in both modes:
+
 ```bash
-# Per project (skill mode path shown; plugin mode uses ${CLAUDE_PLUGIN_ROOT})
-python3 ~/.claude/skills/n8n-evol-I/helpers/init.py
-python3 ~/.claude/skills/n8n-evol-I/helpers/bootstrap_env.py \
+# Skill mode:
+HARNESS=~/.claude/skills/n8n-evol-I
+# Plugin mode (inside a Claude Code session, this is auto-resolved):
+HARNESS=$CLAUDE_PLUGIN_ROOT
+
+python3 $HARNESS/helpers/init.py
+python3 $HARNESS/helpers/bootstrap_env.py \
   --env dev --instance acme.app.n8n.cloud --api-key <key>
-python3 ~/.claude/skills/n8n-evol-I/helpers/doctor.py --env dev
+python3 $HARNESS/helpers/doctor.py --env dev
 ```
 
 See [`install.md`](install.md) for full prerequisites, optional extras, and update flow.
@@ -133,7 +143,11 @@ Aliases at the project root (`CLAUDE.md`, `.github/copilot-instructions.md`) poi
 | `primitives/workflows/` | Seed templates: `_minimal`, `lock_acquisition`, `lock_release`, `error_handler_lock_cleanup`, `rate_limit_check`. |
 | `primitives/cloud-functions/` | FastAPI app seed + Railway config (`app.py`, `registry.py`, `railpack.json`). |
 | `primitives/prompts/` | Example prompt + schema for `iterate-prompt`. |
-| `tests/` | Offline tests (HTTP mocked) for each helper. |
+| `tests/` | 200+ offline tests (HTTP mocked) covering every helper, primitive, and pattern. |
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for project history.
 
 ## License
 
