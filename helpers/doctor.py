@@ -96,15 +96,110 @@ def _check_templates(ws: Path) -> list:
     return [_row(OK, "workflow templates", f"{len(templates)} parse OK")]
 
 
+def _summarize_audit_response(report) -> list[tuple[str, int]]:
+    """Walk an n8n audit response and return [(category, finding_count)] for non-empty categories.
+
+    The audit response shape is documented at the per-category level (credentials,
+    database, nodes, filesystem, instance) but the per-finding shape is not stable
+    across n8n versions. Parser stays defensive: for each category we count the
+    number of `sections` (or, if the per-category value is a list, the list length).
+    Empty categories are silently dropped.
+    """
+    out: list[tuple[str, int]] = []
+
+    if isinstance(report, dict):
+        # Common shape: {"Credentials Risk Report": {...sections...}, "Database Risk Report": {...}, ...}
+        # Or:           {"credentials": {...}, "database": {...}, ...}
+        for category_name, payload in report.items():
+            count = _count_findings_in_category(payload)
+            if count:
+                out.append((str(category_name), count))
+    elif isinstance(report, list):
+        # Alt shape: [{"risk": "credentials", "sections": [...]}, ...]
+        for item in report:
+            if not isinstance(item, dict):
+                continue
+            category_name = item.get("risk") or item.get("category") or "unknown"
+            count = _count_findings_in_category(item)
+            if count:
+                out.append((str(category_name), count))
+
+    return out
+
+
+def _count_findings_in_category(payload) -> int:
+    if isinstance(payload, dict):
+        sections = payload.get("sections")
+        if isinstance(sections, list):
+            # Each section may contain a `location` array of N findings.
+            total = 0
+            for section in sections:
+                if isinstance(section, dict):
+                    locations = section.get("location") or section.get("locations")
+                    total += len(locations) if isinstance(locations, list) else 1
+            return total
+        # Fallback: count top-level keys that aren't metadata.
+        return len([k for k in payload if k not in ("risk", "category")])
+    if isinstance(payload, list):
+        return len(payload)
+    return 0
+
+
+def _check_audit(ws: Path, env: str) -> list:
+    """Run POST /audit and emit a 3-state row per non-empty risk category.
+
+    Per R-10: this check is opt-in via --with-audit; default doctor.py runs do
+    NOT call audit. Per R-16: parser handles both documented shapes (per-category
+    dict OR array of risk-report objects) and silently drops empty categories.
+    Older n8n instances that lack the endpoint return 404 → graceful WARN row.
+    """
+    try:
+        from helpers.config import load_yaml, load_env
+        import os
+        data = load_yaml(env, ws)
+        load_env(env, ws)
+        api_key = os.environ.get("N8N_API_KEY", "")
+        if not api_key:
+            return [_row(WARN, f"{env} audit", "N8N_API_KEY not set in .env")]
+        from helpers.n8n_client import N8nClient
+        instance = data.get("n8n", {}).get("instanceName", "")
+        client = N8nClient(base_url=instance, api_key=api_key)
+        report = client.post("audit", {})
+    except Exception as e:
+        msg = str(e)
+        # Best-effort 404 detection without coupling to requests internals.
+        if "404" in msg:
+            return [_row(WARN, f"{env} audit", "endpoint not available (older n8n?)")]
+        return [_row(FAIL, f"{env} audit", msg)]
+
+    findings = _summarize_audit_response(report)
+    if not findings:
+        return [_row(OK, f"{env} audit", "no risks reported")]
+
+    rows = []
+    for category, count in findings:
+        rows.append(_row(WARN, f"{env} audit / {category}", f"{count} finding(s)"))
+    return rows
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace", default=None, help="Workspace path. Default: ${PWD}/n8n-harness-workspace, or ${PWD} if its basename is already n8n-harness-workspace.")
     parser.add_argument("--env", default=None, help="Check a specific env (default: all configured envs)")
+    parser.add_argument("--with-audit", action="store_true", dest="with_audit",
+                        help="Also run POST /audit and report risk categories. Off by default.")
+    parser.add_argument("--audit-only", action="store_true", dest="audit_only",
+                        help="Run only the audit phase (skips workspace / env / template checks). Implies --with-audit.")
     args = parser.parse_args()
+
+    if args.audit_only:
+        args.with_audit = True
 
     ws = workspace_root(args.workspace)
     rows: list[tuple] = []
-    rows += _check_workspace(ws)
+
+    if not args.audit_only:
+        rows += _check_workspace(ws)
 
     config_dir = ws / "n8n-config"
     envs: list[str] = []
@@ -120,10 +215,14 @@ def main() -> None:
         rows.append(_row(WARN, "environments", "no env configured — run bootstrap-env first"))
     else:
         for env in envs:
-            rows += _check_env_yaml(ws, env)
-            rows += _check_n8n_api(ws, env)
+            if not args.audit_only:
+                rows += _check_env_yaml(ws, env)
+                rows += _check_n8n_api(ws, env)
+            if args.with_audit:
+                rows += _check_audit(ws, env)
 
-    rows += _check_templates(ws)
+    if not args.audit_only:
+        rows += _check_templates(ws)
 
     print("\nn8n-harness doctor report:")
     for state, label, detail in rows:
