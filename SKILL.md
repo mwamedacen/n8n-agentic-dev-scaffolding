@@ -36,6 +36,7 @@ This is the entry point. When the user asks anything n8n-related, route to the m
 | [dehydrate-workflow.md](skills/dehydrate-workflow.md) | Convert raw exported JSON into a template. |
 | [validate-workflow.md](skills/validate-workflow.md) | Structural REST validation before deploy. |
 | [run-workflow.md](skills/run-workflow.md) | Fire a webhook + assert terminal status. |
+| [inspect-execution.md](skills/inspect-execution.md) | Investigate a failing or missing execution — from vague symptom to root-cause with evidence. |
 | [deploy-run-assert.md](skills/deploy-run-assert.md) | One-shot validate → deploy → run verify. |
 | [find-skills.md](skills/find-skills.md) | While authoring, find applicable patterns/integrations. |
 | [manage-credentials.md](skills/manage-credentials.md) | Create or link n8n credentials (Path A from `.env.<env>` / Path B from existing UI credential). |
@@ -58,6 +59,8 @@ These are reference docs, not action triggers. Read them while authoring.
 - [skills/patterns/pindata-hygiene.md](skills/patterns/pindata-hygiene.md)
 - [skills/patterns/position-recalculation.md](skills/patterns/position-recalculation.md)
 - [skills/patterns/prompt-and-schema-conventions.md](skills/patterns/prompt-and-schema-conventions.md)
+- [skills/patterns/agent-api-discipline.md](skills/patterns/agent-api-discipline.md)
+- [skills/patterns/investigation-discipline.md](skills/patterns/investigation-discipline.md)
 
 ## Integration skills (per-service quirks)
 

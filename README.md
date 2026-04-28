@@ -11,6 +11,7 @@ The package contains markdown sub-skills (the agent's instruction surface), Pyth
 - **Round-trippable templates.** `dehydrate` collapses live n8n exports back to placeholder-bearing templates so manual edits in the n8n UI don't leak duplicated function bodies or stale env values into version control.
 - **No master CLI.** Each helper under `helpers/` is independently invokable by absolute path. There is no console script and no PATH pollution.
 - **Pure REST + per-env config.** Every helper talks to n8n over the official REST API using `pyyaml` + `requests` + `python-dotenv`. No browser automation, no SDK lock-in.
+- **Investigation discipline.** When a workflow misbehaves in production, [`skills/inspect-execution.md`](skills/inspect-execution.md) routes the agent through an 8-step read-only investigation rubric ([`skills/patterns/investigation-discipline.md`](skills/patterns/investigation-discipline.md)) — causal-linkage check that catches `status=success` side-effect skips, mandatory trigger-health check when no executions are found, mandatory time-correlation when >1 workflow fails in the window, and a sub-agent cross-check before closing. No write operations until the user approves the recommended next step.
 
 ## Install
 
@@ -61,8 +62,8 @@ After that, the agent authors workflows via `create-new-workflow.md`, deploys vi
 | [`SKILL.md`](SKILL.md) | Router — first thing the agent reads. Lists the lifecycle, pattern, and integration skills. |
 | [`install.md`](install.md) | Prerequisites, install, smoke test, update flow. |
 | [`CHANGELOG.md`](CHANGELOG.md) | Version history. |
-| `skills/` | 22 lifecycle skills + 11 [`patterns/`](skills/patterns) + 8 [`integrations/`](skills/integrations) (41 markdowns total). |
-| `helpers/` | 28 top-level Python helpers (init, bootstrap_env, hydrate, deploy, run, resync, validate, …) plus 6 [`placeholder/`](helpers/placeholder) resolvers (env, file, js, py, uuid, validator). |
+| `skills/` | 25 lifecycle skills + 13 [`patterns/`](skills/patterns) + 10 [`integrations/`](skills/integrations) (48 markdowns total). |
+| `helpers/` | 33 top-level Python helpers (init, bootstrap_env, hydrate, deploy, run, resync, validate, list_executions, inspect_execution, dependency_graph, stop_executions, manage_variables, …) plus 6 [`placeholder/`](helpers/placeholder) resolvers (env, file, js, py, uuid, validator). |
 | `primitives/workflows/` | Seed templates copied into the workspace on demand: `_minimal`, `lock_acquisition`, `lock_release`, `error_handler_lock_cleanup`. |
 | `primitives/cloud-functions/` | Deployable FastAPI app seed: `app.py`, `registry.py`, `functions/`, `requirements.txt`, `railpack.json`, `railway.toml`. |
 | `primitives/prompts/` | Example prompt + schema pair for `iterate-prompt`. |
