@@ -44,11 +44,41 @@ See [`install.md`](install.md) for full prerequisites, optional extras, and upda
 
 ## How it works
 
-The harness directory is read-only from the agent's perspective — never modified at runtime. All project state (workflow templates, env config, built JSON, prompts, JS/Python functions, cloud functions) lives in a separate workspace at `${PWD}/n8n-harness-workspace/`, which the agent can `git init` and version-control independently.
+The harness directory is read-only from the agent's perspective — never modified at runtime. All project state (workflow templates, env config, built JSON, prompts, JS/Python functions, cloud functions) lives in a separate workspace at `${PWD}/n8n-harness-workspace/`, which the agent can `git init` and version-control independently. The workspace layout is opinionated — see below.
 
 The agent reads [`SKILL.md`](SKILL.md) to locate the right sub-skill for any n8n-related request. Each skill is a markdown doc that tells the agent which helper to invoke and with what arguments. Helpers are standalone Python scripts in `helpers/`; there is no master CLI and no daemon.
 
 Code-node logic, prompts, schemas, and HTML templates are stored as separate workspace files and injected at hydration time — the agent never reads or edits megabyte-scale content inlined in workflow JSON. `validate.py` enforces the segmentation discipline before any deploy.
+
+## Workspace layout
+
+`init.py` scaffolds an opinionated workspace tree. Every project that uses n8n-harness has the same layout, so the agent never has to ask where a thing should live:
+
+```
+n8n-harness-workspace/
+├── AGENTS.md                # workspace orientation (read first every session)
+├── N8N-WORKSPACE-MEMORY.md  # rolling journal — agent appends as it learns
+├── n8n-config/              # env YAML (dev.yml, prod.yml, …) + .env.<env> secrets
+├── n8n-workflows-template/  # *.template.json — canonical, version-controlled
+├── n8n-build/               # hydrated outputs — gitignored, regenerated on deploy
+├── n8n-functions/
+│   ├── js/                  # pure JS injected via {{HYDRATE:js:...}}
+│   └── py/                  # pure Python injected via {{HYDRATE:py:...}}
+├── n8n-functions-tests/     # *.test.js / test_*.py — paired tests, validator-required
+├── n8n-prompts/
+│   ├── prompts/             # *_prompt.txt + *_schema.json
+│   ├── datasets/            # *.json for iterate-prompt
+│   └── evals/
+├── n8n-assets/
+│   ├── email-templates/     # *.html injected via {{HYDRATE:html:...}}
+│   ├── images/
+│   └── misc/
+├── cloud-functions/         # FastAPI service scaffolded by add-cloud-function
+│   └── functions/
+└── cloud-functions-tests/
+```
+
+Aliases at the project root (`CLAUDE.md`, `.github/copilot-instructions.md`) point each agent runtime at `AGENTS.md` so the workspace is discoverable from wherever the agent is invoked.
 
 ## Repository layout
 

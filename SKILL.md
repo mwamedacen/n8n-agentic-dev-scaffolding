@@ -13,6 +13,7 @@ This is the entry point. When the user asks anything n8n-related, route to the m
 - The user's project state lives in `${PWD}/n8n-harness-workspace/` (created by `init.md`).
 - Helpers are Python scripts under `helpers/`. Invoke them with `python3 <harness>/helpers/<name>.py [args]`.
 - All helpers default to `--workspace ${PWD}/n8n-harness-workspace`. Pass `--workspace <path>` if the user runs from elsewhere.
+- **Agent memory**: read `N8N-WORKSPACE-MEMORY.md` in the workspace at the start of every session; append a dated entry whenever you learn something durable about this project. Full guidance in `AGENTS.md` (also in the workspace root).
 
 ## Lifecycle skills (use when the user wants to do X)
 

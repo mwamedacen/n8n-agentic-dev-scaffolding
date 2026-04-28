@@ -27,7 +27,8 @@ class TestInit:
         assert r.returncode == 0, r.stderr
         assert (ws / "n8n-config").is_dir()
         assert (ws / "n8n-workflows-template").is_dir()
-        assert (ws / "N8N-HARNESS-MEMORY.md").is_file()
+        assert (ws / "AGENTS.md").is_file()
+        assert (ws / "N8N-WORKSPACE-MEMORY.md").is_file()
         assert (ws / "n8n-config" / ".env.example").is_file()
 
     def test_idempotent_refusal(self, tmp_path):
