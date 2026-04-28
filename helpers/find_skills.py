@@ -82,7 +82,7 @@ def find_skills_for_workflow(workflow: dict) -> list[str]:
             suggestions.append(str(md.relative_to(harness)))
 
     if any("functions" in (n.get("type") or "") for n in nodes):
-        md = harness / "skills" / "test-functions.md"
+        md = harness / "skills" / "test.md"
         if md.is_file():
             suggestions.append(str(md.relative_to(harness)))
 
