@@ -30,8 +30,8 @@ Idempotent: skips entries that already have a non-placeholder ID; n8n POST is sk
 
 - Edit the new template at `n8n-workflows-template/<key>.template.json` to add the actual nodes.
 - `tidy-workflow.md` to clean up node positions after editing.
-- `validate-workflow.md` to sanity-check.
-- `deploy-single-workflow-in-env.md` to ship it.
+- `validate.md` to sanity-check.
+- `deploy.md` to ship it.
 
 ### Code nodes
 

@@ -37,12 +37,12 @@ Examples that have actually mattered for harness work:
 
 | Sub-skill | Query |
 |---|---|
-| `inspect-execution` | `"GET /api/v1/executions parameters cursor nextCursor pagination response shape"` |
+| `debug` | `"GET /api/v1/executions parameters cursor nextCursor pagination response shape"` |
 | `manage-credentials` (Path B) | `"GET /api/v1/credentials filter type response shape"` |
 | `register-workflow-to-error-handler` | `"GET /api/v1/workflows settings.errorWorkflow shape"` |
 | `bootstrap-env` | `"POST /api/v1/workflows minimum required body fields"` |
 | `doctor --with-audit` | `"POST /api/v1/audit request body category sections risk fields"` |
-| `run-workflow` | `"GET /api/v1/executions/{id} includeData query param response shape"` |
+| `run` | `"GET /api/v1/executions/{id} includeData query param response shape"` |
 
 If Context7 returns conflicting or absent docs, FALL BACK to a live smoke against the env the agent will operate against. Document the smoke result in the relevant skill / pattern doc and proceed against the captured shape — not the remembered shape.
 
@@ -68,9 +68,9 @@ Context7's per-endpoint spec for `GET /api/v1/executions` historically marked `w
 
 Sub-skills that should run a Context7 verification step:
 
-- `skills/inspect-execution.md` — `/executions`, `/executions/{id}`, `/executions/stop`
-- `skills/run-workflow.md` — `/executions`, `/executions/{id}`
-- `skills/deploy-single-workflow-in-env.md` — `/workflows/{id}` PUT, `/workflows/{id}/activate`
+- `skills/debug.md` — `/executions`, `/executions/{id}`, `/executions/stop`
+- `skills/run.md` — `/executions`, `/executions/{id}`
+- `skills/deploy.md` — `/workflows/{id}` PUT, `/workflows/{id}/activate`
 - `skills/bootstrap-env.md` — `/workflows` POST + minimum body fields
 - `skills/manage-credentials.md` — `/credentials` GET / POST
 - `skills/register-workflow-to-error-handler.md` — `/workflows` GET (verify `settings.errorWorkflow` shape)

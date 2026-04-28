@@ -16,11 +16,9 @@ This is the read-only investigation loop. No write operations (`manage_variables
 - `time_window` — date + timezone. Always ask if relative ("around 2pm"). Convert to ISO 8601 UTC before any helper call.
 - `symptom` — concrete: "no email in inbox," "report shows 2025 data," "workflow page shows red." If the user named a specific workflow, capture both the user's wording AND a reframed Q1 ("user said X failed but actually Y didn't produce data") so Step 3b's causal-linkage check can falsify a wrong attribution.
 
-## How
-
 The full 8-step investigation rubric — including the three non-negotiable framing rules (existence ≠ causality, don't stop at the first issue, don't guess), the causal-linkage check (Step 3b), the trigger health check (Step 5b, mandatory if no executions found), the time-correlation step (Step 6, mandatory if >1 workflow failing in window), and the sub-agent cross-check (Step 7) — lives in [`skills/patterns/investigation-discipline.md`](patterns/investigation-discipline.md). Read it before invoking any helper.
 
-The helpers used by this skill:
+## Helpers
 
 ```bash
 # Step 1: dependency graph

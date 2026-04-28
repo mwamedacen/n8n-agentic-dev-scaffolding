@@ -25,7 +25,7 @@ Aborts if `<handler-key>` is not registered in any env's YAML.
 
 ## Pattern
 
-For Error Trigger workflows that have no Webhook entry, see `skills/patterns/error-handling.md` and the indirect-dispatch behavior in `run-workflow.md`.
+For Error Trigger workflows that have no Webhook entry, see `skills/patterns/error-handling.md` and the indirect-dispatch behavior in `run.md`.
 
 ## See also
 

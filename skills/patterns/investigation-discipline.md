@@ -5,7 +5,7 @@ description: 8-step rubric for investigating a failing or missing n8n workflow e
 
 # Pattern: investigation-discipline
 
-This pattern is the load-bearing playbook for [`skills/inspect-execution.md`](../inspect-execution.md). It's deliberately separated because the rubric is long (≈250 lines) and the skill markdown stays terse so the agent can route to it from a vague symptom in one read.
+This pattern is the load-bearing playbook for [`skills/debug.md`](../debug.md). It's deliberately separated because the rubric is long (≈250 lines) and the skill markdown stays terse so the agent can route to it from a vague symptom in one read.
 
 The investigation is **read-only** until Step 8 has been delivered to the user and the user has approved the recommended next step. No `manage_variables`, no `stop_executions`, no redeploys during the loop.
 

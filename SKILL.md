@@ -11,7 +11,7 @@ This is the entry point. When the user asks anything n8n-related, route to the m
 
 - The skill package (this directory) is **read-only**. You never edit files here.
 - The user's project state lives in `${PWD}/n8n-harness-workspace/` (created by `init.md`).
-- Helpers are Python scripts under `helpers/`. Invoke them with `python3 <harness>/helpers/<name>.py [args]`.
+- Helpers are Python scripts under `helpers/`. Invoke them with `python3 ${CLAUDE_PLUGIN_ROOT}/helpers/<name>.py [args]` (plugin mode) or `python3 <path-to-harness>/helpers/<name>.py [args]` (skill mode).
 - All helpers default to `--workspace ${PWD}/n8n-harness-workspace`. Pass `--workspace <path>` if the user runs from elsewhere.
 - **Agent memory**: read `N8N-WORKSPACE-MEMORY.md` in the workspace at the start of every session; append a dated entry whenever you learn something durable about this project. Full guidance in `AGENTS.md` (also in the workspace root).
 
@@ -29,22 +29,22 @@ This is the entry point. When the user asks anything n8n-related, route to the m
 | [add-lock-to-workflow.md](skills/add-lock-to-workflow.md) | Wrap a workflow's main flow in lock acquire/release. |
 | [add-rate-limit-to-workflow.md](skills/add-rate-limit-to-workflow.md) | Gate a workflow's main flow with a Redis-backed fixed-window rate-limit check. |
 | [tidy-workflow.md](skills/tidy-workflow.md) | Apply n8n's canvas-layout algorithm to a workflow template to clean up node positions. |
-| [deploy-single-workflow-in-env.md](skills/deploy-single-workflow-in-env.md) | Deploy one workflow to one env. |
+| [deploy.md](skills/deploy.md) | Deploy one workflow to one env. |
 | [activate-single-workflow-in-env.md](skills/activate-single-workflow-in-env.md) | Activate after deploy. |
 | [deactivate-single-workflow-in-env.md](skills/deactivate-single-workflow-in-env.md) | Pause triggers (commonly during dev). |
-| [deploy-all-workflows-in-env.md](skills/deploy-all-workflows-in-env.md) | Roll out an entire env in tier order. |
-| [resync-single-workflow-from-env.md](skills/resync-single-workflow-from-env.md) | Pull live state of one workflow back into its template. |
-| [resync-all-workflows-from-env.md](skills/resync-all-workflows-from-env.md) | Snapshot a full env back to templates. |
+| [deploy_all.md](skills/deploy_all.md) | Roll out an entire env in tier order. |
+| [resync.md](skills/resync.md) | Pull live state of one workflow back into its template. |
+| [resync_all.md](skills/resync_all.md) | Snapshot a full env back to templates. |
 | [dehydrate-workflow.md](skills/dehydrate-workflow.md) | Convert raw exported JSON into a template. |
-| [validate-workflow.md](skills/validate-workflow.md) | Structural REST validation before deploy. |
-| [run-workflow.md](skills/run-workflow.md) | Fire a webhook + assert terminal status. |
-| [inspect-execution.md](skills/inspect-execution.md) | Investigate a failing or missing execution — from vague symptom to root-cause with evidence. |
+| [validate.md](skills/validate.md) | Structural REST validation before deploy. |
+| [run.md](skills/run.md) | Fire a webhook + assert terminal status. |
+| [debug.md](skills/debug.md) | Investigate a failing or missing execution — from vague symptom to root-cause with evidence. |
 | [deploy-run-assert.md](skills/deploy-run-assert.md) | One-shot validate → deploy → run verify. |
 | [find-skills.md](skills/find-skills.md) | While authoring, find applicable patterns/integrations. |
 | [manage-credentials.md](skills/manage-credentials.md) | Create or link n8n credentials (Path A from `.env.<env>` / Path B from existing UI credential). |
 | [add-cloud-function.md](skills/add-cloud-function.md) | Scaffold a Python cloud function under `<workspace>/cloud-functions/`. |
 | [iterate-prompt.md](skills/iterate-prompt.md) | Optimize a prompt against a paired schema + dataset using DSPy. |
-| [test-functions.md](skills/test-functions.md) | Run unit tests over n8n Code-node JS and / or cloud-function Python. |
+| [test.md](skills/test.md) | Run unit tests over n8n Code-node JS and / or cloud-function Python. |
 
 ## Pattern skills (read-only knowledge)
 

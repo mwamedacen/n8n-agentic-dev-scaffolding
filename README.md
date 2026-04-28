@@ -22,9 +22,9 @@ n8n-harness provides that structure. It is a read-only skill package: the agent 
 
   See [`skills/patterns/code-node-discipline.md`](skills/patterns/code-node-discipline.md) for the strict-mode rule on JS/Python segmentation.
 
-- **Dependency-ordered deployment.** `deploy_all.py` rolls out an entire env in tier order so callee sub-workflows deploy before callers. Tier assignment is set per-workflow at create time via `n8n-config/deployment_order.yml`. See [`deploy-all-workflows-in-env.md`](skills/deploy-all-workflows-in-env.md).
+- **Dependency-ordered deployment.** `deploy_all.py` rolls out an entire env in tier order so callee sub-workflows deploy before callers. Tier assignment is set per-workflow at create time via `n8n-config/deployment_order.yml`. See [`deploy_all.md`](skills/deploy_all.md).
 
-- **Execution debugging.** `inspect-execution.md` guides a structured investigation from symptom to root cause: dependency-graph traversal, candidate pre-screening, per-execution causal-linkage checks, trigger health, blast-radius enumeration, and a prescribed sub-agent cross-check step. Backed by `list_executions.py`, `inspect_execution.py`, and `dependency_graph.py`. See [`skills/patterns/investigation-discipline.md`](skills/patterns/investigation-discipline.md).
+- **Execution debugging.** `debug.md` guides a structured investigation from symptom to root cause: dependency-graph traversal, candidate pre-screening, per-execution causal-linkage checks, trigger health, blast-radius enumeration, and a prescribed sub-agent cross-check step. Backed by `list_executions.py`, `inspect_execution.py`, and `dependency_graph.py`. See [`skills/patterns/investigation-discipline.md`](skills/patterns/investigation-discipline.md).
 
 - **Distributed locking.** Redis-backed acquire/release primitives (`lock_acquisition`, `lock_release`) with owner-pointer tracking so a crash lets the next caller identify and clean up a held scope. Locks self-heal via Redis TTL if the error handler is not configured. `add-lock-to-workflow.md` wraps any workflow in lock/release in one command. See [`skills/patterns/locking.md`](skills/patterns/locking.md).
 
@@ -128,7 +128,7 @@ Aliases at the project root (`CLAUDE.md`, `.github/copilot-instructions.md`) poi
 |---|---|
 | [`SKILL.md`](SKILL.md) | Router — lists all lifecycle, pattern, and integration skills. |
 | [`install.md`](install.md) | Prerequisites, install, smoke test, update flow. |
-| `skills/` | 25 lifecycle + 13 pattern + 10 integration skills (48 total). |
+| `skills/` | 27 lifecycle + 13 pattern + 10 integration skills (50 total). |
 | `helpers/` | 35 top-level Python helpers + 6 `placeholder/` resolvers. |
 | `primitives/workflows/` | Seed templates: `_minimal`, `lock_acquisition`, `lock_release`, `error_handler_lock_cleanup`, `rate_limit_check`. |
 | `primitives/cloud-functions/` | FastAPI app seed + Railway config (`app.py`, `registry.py`, `railpack.json`). |
