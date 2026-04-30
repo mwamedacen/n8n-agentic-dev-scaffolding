@@ -1,0 +1,4 @@
+# Eval-runner output. Per-run artifacts go here. Not version-controlled
+# because they're regenerated on every run and contain machine-specific
+# paths + timestamps.
+results/
