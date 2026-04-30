@@ -14,7 +14,7 @@ A workflow that mutates a shared resource (a Sharepoint Excel file, a database r
 | Lock — fail-fast | `lock_acquisition` | `{ scope, ttl_seconds, execution_id, wait_till_lock_released: false, max_wait_seconds }` | `{ acquired, count, scope, lock_id, key }` OR Stop and Error |
 | Rate limit | `rate_limit_check` | `{ scope, limit, windowSeconds }` | `{ allowed, scope, count, limit }` |
 
-`lock_release` is the partner to `lock_acquisition` (always called once per acquire). `error_handler_lock_cleanup` is a no-op stub — orphan locks self-heal via Redis-side EXPIRE.
+`lock_release` is the partner to `lock_acquisition` (always called once per acquire) and verifies caller ownership before releasing. `error_handler_lock_cleanup` actively iterates `<env>.yml.lockScopes`, GETs each scope's `:meta` sidecar, and DELs only the entries owned by the failed execution. Scopes not registered in `lockScopes` (typically dynamic ones) fall back to Redis-side TTL self-heal.
 
 For node-graph diagrams + the Redis key namespace, see [`skills/integrations/redis/lock-pattern.md`](../integrations/redis/lock-pattern.md).
 
@@ -24,11 +24,10 @@ The shipped pattern is **Redis-native atomic INCR + EXPIRE**. INCR is a single s
 
 Wait-mode polls with **GET (read-only)** instead of re-INCR — because re-INCR would re-EXTEND the EXPIRE TTL on every poll, breaking the holder's TTL backstop. When GET returns null (lock released or expired), the waiter re-INCRs to attempt acquire.
 
-This is materially better than the B-9 token-fencing pattern it replaces:
+This is materially better than a token-fencing pattern:
 - Race-on-acquire is **prevented** at acquire time, not detected at release time.
 - TTL is enforced **server-side** by Redis, not client-side by every reader.
-- Lock value is a plain integer counter — no JSON metadata to parse, no schema drift.
-- Total node count: 13 (acquire) + 4 (release) vs. earlier 10 + 6.
+- The counter is a plain integer; identity (owner, workflow, execution) lives in a separate `:meta` sidecar so the hot-path INCR stays cheap and the verification path can read JSON without contending on it.
 
 ## Safety model
 
@@ -36,7 +35,7 @@ This is materially better than the B-9 token-fencing pattern it replaces:
 
 **Wasted INCRs on re-race are harmless.** If 5 waiters all see GET=null and all simultaneously re-INCR, only the first gets `count === 1` (holds); the others see counts 2–5 and re-enter wait. The inflated counter is cleared when the holder DELs on release.
 
-**Release does no ownership check.** The wrapper flow guarantees only the holder reaches release (failed acquires Stop and Error before the critical section). A defensive `lock_id` ownership check would add complexity for a failure mode that doesn't occur in normal use. If you need defense-in-depth (caller passes the wrong scope to release, etc.), add a Code node before `Lock Release` in your wrapped workflow that asserts `acquired === true` first.
+**Release verifies ownership.** `lock_release` GETs the `:meta` sidecar, parses the stored `lock_id`, and DELs the counter + meta pair only when the caller-supplied `lock_id` matches. Mismatch raises StopAndError with a `LOGIC ERROR:` prefix that names the actual holder (workflow, execution, locked_at). Absent meta is treated as idempotent success (already released or expired). This catches caller bugs — wrong scope passed to release, or one workflow trying to release another's lock.
 
 ## When NOT to use this
 
@@ -85,7 +84,7 @@ The Wait node duration is hardcoded to 1 second. Edit the primitive in your work
 
 ## Scope expression
 
-Each primitive invocation passes a `scope` field that becomes the Redis key suffix (`lock-<scope>`). Choose carefully:
+Each primitive invocation passes a `scope` field that becomes the Redis key suffix (`n8n-lock-<scope>`, with a paired `n8n-lock-<scope>:meta` sidecar). Choose carefully:
 
 - `={{ $execution.id }}` — "one execution at a time" semantics. Useful for self-throttling.
 - `={{ 'excel-' + $json.fileId }}` — per-resource locking (one Excel file at a time).
@@ -98,7 +97,7 @@ Anything that produces a stable, per-protected-thing string works.
 
 `rate_limit_check` is **fixed-window INCR** (different from the lock pattern even though both use INCR):
 
-- Bucket key: `ratelimit-<scope>-<floor(now_ms / (windowSeconds * 1000))>`.
+- Bucket key: `n8n-ratelimit-<scope>-<floor(now_ms / (windowSeconds * 1000))>`.
 - INCR returns the new count; EXPIRE is set on every INCR.
 - `allowed = count <= limit`.
 
@@ -114,7 +113,7 @@ The boundary burst caveat: a caller can hit `limit` near the end of one window a
 | Wrap a workflow in lock acquire / release with fail-fast | [`add-lock-to-workflow.md`](../add-lock-to-workflow.md) — pass `--fail-fast` |
 | Tune the lock TTL | [`add-lock-to-workflow.md`](../add-lock-to-workflow.md) — pass `--ttl-seconds` |
 | Tune the wait timeout | [`add-lock-to-workflow.md`](../add-lock-to-workflow.md) — pass `--max-wait-seconds` |
-| Add error-handler cleanup hook (currently a TTL-bounded no-op) | [`add-lock-to-workflow.md`](../add-lock-to-workflow.md) — pass `--lock-on-error` (requires `--include-error-handler` at create-lock time) |
+| Add error-handler cleanup hook (active per-scope cleanup; falls back to Redis TTL for unregistered scopes) | [`add-lock-to-workflow.md`](../add-lock-to-workflow.md) — pass `--lock-on-error` (requires `--include-error-handler` at create-lock time) |
 | Gate a workflow with a rate-limit | [`add-rate-limit-to-workflow.md`](../add-rate-limit-to-workflow.md) — requires `--include-rate-limit` at create-lock time |
 
 ## Caveats

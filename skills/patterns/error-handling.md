@@ -88,14 +88,11 @@ What does "doing something about it" mean? Some recipes:
 
 ### Release stale Redis locks
 
-If the source workflow held a lock when it errored, the lock value sits in Redis until TTL or the next contention. The harness's `error_handler_lock_cleanup.template.json` is a TTL-bounded no-op stub by default; for active cleanup, the upgrade path is:
+If the source workflow held a lock when it errored, the lock keys (`n8n-lock-<scope>` + `n8n-lock-<scope>:meta`) sit in Redis until TTL or the next contention. The harness's `error_handler_lock_cleanup.template.json` is the shipped primitive that handles this: it iterates `<env>.yml.lockScopes`, GETs each scope's `:meta` sidecar, and DELs the lock+meta pair only when the stored `execution_id` matches the failed execution. Wire it in by passing `--lock-on-error` to `add-lock-to-workflow.md`, or by setting `settings.errorWorkflow` on your workflow to `error_handler_lock_cleanup` directly.
 
-1. Read `$workflow.errorData?.execution?.id` to get the failed execution ID.
-2. GET the lock at the failed scope (you must know which scope the workflow held — either pass it through your custom error-data fields, or maintain an owner-pointer at acquire time).
-3. JSON-parse the value, check if the stored `execution_id` matches the failed one.
-4. DEL if match.
+For scopes that are dynamic (e.g. `={{ "lock-" + $json.id }}`) and therefore not in `lockScopes`, the TTL backstop applies: the orphan lock expires after `ttl_seconds` and the next acquire starts cleanly.
 
-See [`patterns/locking.md`](locking.md) for the lock-value JSON shape and [`integrations/redis/lock-pattern.md`](../integrations/redis/lock-pattern.md) for the active-cleanup upgrade path.
+See [`patterns/locking.md`](locking.md) for the safety model and [`integrations/redis/lock-pattern.md`](../integrations/redis/lock-pattern.md) for the full node graph and key namespace.
 
 ### Invalidate "pending" DB rows
 
@@ -172,7 +169,7 @@ If you absolutely need a strict order (e.g., "Sentry must record before Slack no
 
 Users mix log destinations differently — some only Slack, some all three, some Discord/PagerDuty/custom. A shipped `error_handler_default.template.json` would lock in opinions about audit-platform choice and message format. The pattern doc + the three integration skills give you everything to compose your own.
 
-The existing `error_handler_lock_cleanup.template.json` (TTL-bounded no-op stub) stays as-is — it's a *building block* for the "process" step, not the whole error handler.
+The shipped `error_handler_lock_cleanup.template.json` (active per-scope cleanup over `lockScopes`) is a *building block* for the "process" step, not the whole error handler — your handler should compose it (or your own variant) alongside log/notify branches.
 
 ## Cross-references
 

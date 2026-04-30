@@ -30,8 +30,8 @@ Edits `<workspace>/n8n-workflows-template/<wf>.template.json` by splicing two `E
 Trigger ──► Lock Acquire ──► <your existing main flow> ──► Lock Release
 ```
 
-- `Lock Acquire` calls the `lock_acquisition` sub-workflow with `{ scope, ttl_seconds, execution_id, wait_till_lock_released, max_wait_seconds }`.
-- `Lock Release` calls the `lock_release` sub-workflow with `{ scope }`.
+- `Lock Acquire` calls the `lock_acquisition` sub-workflow with `{ scope, ttl_seconds, execution_id, wait_till_lock_released, max_wait_seconds, lock_id, workflow_id, workflow_name }`.
+- `Lock Release` calls the `lock_release` sub-workflow with `{ scope, lock_id }`. The lock_id is verified against the stored owner before the DEL — releasing someone else's lock raises StopAndError with a `LOGIC ERROR:` prefix.
 - Downstream nodes are shifted right by 440 px to make room.
 - With `--lock-on-error`, sets `settings.errorWorkflow` to `error_handler_lock_cleanup` (delegates to `register-workflow-to-error-handler.md`).
 
@@ -39,12 +39,12 @@ Refuses if the lock primitives aren't yet in the workspace — run [`create-lock
 
 ## What the lock primitives actually do
 
-For node-graph diagrams of `lock_acquisition` (13 nodes, includes the wait-loop) and `lock_release` (4 nodes), see [`skills/integrations/redis/lock-pattern.md`](integrations/redis/lock-pattern.md). Quick summary:
+For node-graph diagrams of `lock_acquisition` (15 nodes, includes the wait-loop and the `:meta` sidecar write) and `lock_release` (8 nodes, includes ownership verification and the StopAndError mismatch branch), see [`skills/integrations/redis/lock-pattern.md`](integrations/redis/lock-pattern.md). Quick summary:
 
-- **Acquire**: build context (key, deadline_ms) → atomic Redis INCR with EXPIRE → check `count === 1` → if true, return `{ acquired:true, count, scope, lock_id, key }`. If false (lock held), branch on `wait_till_lock_released`: fail-fast Stop and Error, OR enter a wait loop (Wait 1s → GET → if released re-INCR, else if deadline elapsed Stop and Error, else loop back to Wait).
-- **Release**: build key → Redis DEL → return `{ released:true, scope }`. Idempotent on absent key.
+- **Acquire**: build context (`key = n8n-lock-<scope>`, `meta_key = <key>:meta`, `deadline_ms`) → atomic Redis INCR with EXPIRE → check `count === 1` → if true, write the `:meta` JSON sidecar (lock_id, workflow_id, workflow_name, execution_id, locked_at) → return `{ acquired:true, count, scope, lock_id, key, meta_key, ... }`. If false (lock held), branch on `wait_till_lock_released`: fail-fast Stop and Error, OR enter a wait loop (Wait 1s → GET → if released re-INCR, else if deadline elapsed Stop and Error, else loop back to Wait).
+- **Release**: build key + meta_key → GET meta → parse + verify `provided_lock_id === stored_lock_id` → on match: DEL counter + DEL meta → return `{ released:true, scope, lock_id, idempotent:false }`. On absent meta: idempotent success (`released:true, idempotent:true`). On mismatch: StopAndError with `LOGIC ERROR:` prefix naming the actual holder.
 
-The acquire output's `lock_id` field equals the calling workflow's `$execution.id`. It's surfaced for caller-side correlation/logging but isn't used by `lock_release` — release just DELs the key.
+The acquire output's `lock_id` field defaults to a fresh `crypto.randomUUID()` (caller-supplied wins; falls back to `$execution.id` when crypto is unavailable). The Lock Release node passes it back to verify ownership before the DEL — this catches caller bugs where the wrong scope or lock_id is passed to release.
 
 ## Flag reference
 
@@ -52,7 +52,7 @@ The acquire output's `lock_id` field equals the calling workflow's `$execution.i
 
 The Redis key suffix for the lock. Default: `={{ $execution.id }}` (one-execution-at-a-time semantics).
 
-**Always use the canonical `={{ <expression> }}` form.** Bare `=<expr>` (without `{{ }}`) is treated by `executeWorkflow@1.2` as a literal string — your lock will silently degrade to a single global lock keyed on the raw expression text. The helper auto-wraps bare-`=` and literal forms (with a deprecation warning) as of post-finding-#15 builds, but the rule is: write the canonical form yourself to keep deployed templates clean.
+**Always use the canonical `={{ <expression> }}` form.** Bare `=<expr>` (without `{{ }}`) is treated by `executeWorkflow@1.2` as a literal string — your lock will silently degrade to a single global lock keyed on the raw expression text. The helper auto-wraps bare-`=` and literal forms (with a deprecation warning), but the rule is: write the canonical form yourself to keep deployed templates clean.
 
 For per-resource locking pick a stable string per protected thing:
 - One Excel file at a time: `={{ "excel-" + $json.fileId }}`.
@@ -86,7 +86,7 @@ Default off. When set, passes `wait_till_lock_released: false` to the acquire pr
 
 ### `--lock-on-error`
 
-Default off. When set, also sets your workflow's `settings.errorWorkflow` to `error_handler_lock_cleanup`. The cleanup primitive is currently a no-op stub (orphan locks rely on Redis-side TTL); the flag is wired so an upgrade to active cleanup later doesn't require re-running this helper.
+Default off. When set, also sets your workflow's `settings.errorWorkflow` to `error_handler_lock_cleanup`. The cleanup primitive iterates `<env>.yml.lockScopes`, GETs each scope's `:meta` sidecar, and DELs the lock+meta pair only for entries owned by the failed execution (matched by `execution_id`). Locks for scopes not in `lockScopes` (e.g. dynamic ones) still rely on Redis-side TTL self-heal. See [`create-lock.md`](create-lock.md) § "lockScopes env config" for how the registry is populated.
 
 ## Worked example
 
@@ -123,10 +123,6 @@ python3 ${CLAUDE_PLUGIN_ROOT}/helpers/add_lock_to_workflow.py \
 ```
 
 The `max_wait_seconds 5` means a contended call gives up after 5 seconds — short enough that the user doesn't notice but long enough to absorb sub-second contention bursts.
-
-## Migration note (post-task-13)
-
-The release primitive's input contract gained a `lock_id` field. Workspace templates locked under the pre-task-13 harness (release inputs = `{scope}` only) still work — n8n tolerates the missing field — but the release becomes effectively unverified (matches whatever lock_id is stored, defaults to none). To upgrade an existing locked workflow to the ownership-checked form: re-run `add_lock_to_workflow.py` once on its key. The helper rewrites the Lock Release node's `workflowInputs.value` with the new `lock_id: ={{ $execution.id }}` mapping. No live-state migration needed — Redis keys are namespaced separately (`n8n-lock-` vs the old `lock-`), so old locks expire via TTL and new acquires write to the new namespace cleanly.
 
 ## Pattern + caveats
 

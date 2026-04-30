@@ -31,17 +31,18 @@ Two Redis keys per held lock:
 
 The sidecar exists so:
 - **Release can verify ownership** — the release primitive GETs the meta, parses, compares the caller-supplied `lock_id` to the stored one, and DELs both keys only on match. Mismatch → StopAndError with a `LOGIC ERROR:` prefix that names the actual holder. This catches bugs where workflow A tries to release a lock workflow B is holding.
-- **Active error-handler cleanup** — `error_handler_lock_cleanup` iterates `<env>.yml.lockScopes`, GETs each meta, finds the entries whose `execution_id` matches the failed execution, and DELs only those. Avoids the TTL-window block from the previous no-op stub design.
+- **Active error-handler cleanup** — `error_handler_lock_cleanup` iterates `<env>.yml.lockScopes`, GETs each meta, finds the entries whose `execution_id` matches the failed execution, and DELs only those. The TTL backstop still applies for unregistered (typically dynamic) scopes.
 
-The bare `n8n-lock-` namespace prevents collisions with any unrelated Redis traffic on the same instance. (Pre-task-13 the prefix was `lock-` — short and collision-prone.)
+The bare `n8n-lock-` namespace prevents collisions with any unrelated Redis traffic on the same instance.
 
-## `lock_acquisition` node graph (13 nodes)
+## `lock_acquisition` node graph (15 nodes)
 
 ```
 Execute Workflow Trigger
        │
        ▼
-Build Lock Context (Code: scope, ttl, executionId, key, deadline_ms = now + max_wait_seconds*1000)
+Build Lock Context (Code: scope, ttl, executionId, key, meta_key, lock_id, workflow_id,
+                          workflow_name, locked_at, deadline_ms = now + max_wait_seconds*1000)
        │
        ▼
 INCR Acquire Attempt (Redis INCR + EXPIRE)  ◄────────────────────────────┐
@@ -51,7 +52,12 @@ Evaluate Acquired (Code: count = $json[ctx.key]; acquired = count === 1)  │
        │                                                                  │
        ▼                                                                  │
 Acquired? (If $json.acquired === true)                                    │
-   ├── true  → (success — flow ends, output = Evaluate Acquired's payload)│
+   ├── true  → Set Lock Meta (Redis SET <meta_key> = JSON identity sidecar, EXPIRE = ttl)
+   │              │                                                       │
+   │              ▼                                                        │
+   │          Build Acquire Output (Code: { acquired:true, count, scope, lock_id,
+   │                                        key, meta_key, workflow_id, workflow_name,
+   │                                        execution_id, locked_at })
    └── false → Should Wait? (If wait_till_lock_released === true)         │
                   ├── false → Fail Fast — Lock Held (Stop and Error)      │
                   └── true  → Wait Before Poll (n8n Wait, 1 second)       │
@@ -73,10 +79,12 @@ Acquired? (If $json.acquired === true)                                    │
 
 Node-by-node:
 
-- **Build Lock Context**: pure JS. Computes `key = lock-<scope>`, `lock_id = executionId`, `deadline_ms = Date.now() + max_wait_seconds * 1000`. Output is referenced via `$('Build Lock Context').first().json` from every loop iteration — n8n's `$()` returns the most recent execution of a node, which is stable across loop revisits.
+- **Build Lock Context**: pure JS. Computes `key = n8n-lock-<scope>`, `meta_key = <key>:meta`, `lock_id = caller-supplied || crypto.randomUUID() || executionId`, `deadline_ms = Date.now() + max_wait_seconds * 1000`, plus the workflow-identity fields (`workflow_id`, `workflow_name`, `locked_at`) used by the `:meta` sidecar. Output is referenced via `$('Build Lock Context').first().json` from every loop iteration — n8n's `$()` returns the most recent execution of a node, which is stable across loop revisits.
 - **INCR Acquire Attempt**: Redis INCR with `expire: true, ttl: $json.ttl`. INCR is atomic server-side; only one concurrent caller sees the post-increment count of 1. EXPIRE is re-applied on every INCR (a property of the n8n Redis node) — not a problem for the holder (their TTL gets refreshed each time someone else races and fails) and bounded by max_wait_seconds for waiters.
 - **Evaluate Acquired**: pure JS. Reads `$json[ctx.key]` (the INCR result) and computes `acquired = count === 1`.
-- **Acquired?**: standard If. Success branch is empty `[]` — n8n returns the `Evaluate Acquired` payload as the workflow output when the flow terminates here.
+- **Acquired?**: standard If. Success branch flows into `Set Lock Meta`; failure branch flows into `Should Wait?`.
+- **Set Lock Meta**: Redis SET on `<meta_key>` with the JSON identity sidecar (`{lock_id, workflow_id, workflow_name, execution_id, locked_at}`) and EXPIRE = `ttl` so the meta expires alongside the counter. Only runs on the count===1 branch — waiters never write meta.
+- **Build Acquire Output**: pure JS. Surfaces the full identity payload (lock_id, workflow_id, workflow_name, execution_id, locked_at, key, meta_key, count, scope, acquired:true) to the calling workflow so it can pass `lock_id` to `lock_release` and observe the rest in logs.
 - **Should Wait?**: routes between fail-fast (Stop and Error) and wait-loop based on the original `wait_till_lock_released` input.
 - **Wait Before Poll**: n8n Wait node, `amount: 1, unit: seconds`. Releases the worker between polls (not pinned).
 - **GET Lock**: Redis GET with `propertyName: LOCK_VALUE`. Read-only — does NOT touch the EXPIRE. Returns null if the key has expired or been DEL'd.
@@ -98,15 +106,37 @@ If 5 waiters all see GET=null and all simultaneously re-INCR:
 
 The wasted INCRs leave the Redis counter at 5 instead of 1. **Harmless** — `count === 1` is the ownership check (only A holds), and when A eventually DELs on release, the inflated counter goes with the key. The next acquire INCRs from scratch.
 
-## `lock_release` node graph (4 nodes)
+## `lock_release` node graph (8 nodes)
 
 ```
-Execute Workflow Trigger ──► Build Lock Key (Code: scope, key) ──► DEL Lock (Redis DEL) ──► Build Result (Code)
+Execute Workflow Trigger (inputs: scope, lock_id)
+       │
+       ▼
+Build Release Context (Code: scope, key = n8n-lock-<scope>, meta_key = <key>:meta, provided_lock_id)
+       │
+       ▼
+GET Lock Meta (Redis GET, propertyName = LOCK_META, key = <meta_key>)
+       │
+       ▼
+Parse + Verify Ownership (Code: parse JSON; is_match = parsedLock.lock_id === provided_lock_id;
+                                also surfaces stored workflow_id / workflow_name / execution_id / locked_at)
+       │
+       ▼
+Match? (If $json.is_match === true)
+   ├── true (held + ours)  → DEL Lock Counter (Redis DEL key)
+   │                                │
+   │                                ▼
+   │                         DEL Lock Meta (Redis DEL meta_key)
+   │                                │
+   │                                ▼
+   │                         Build Result (Code: { released:true, idempotent:false, scope, lock_id })
+   │
+   └── false (held + not ours) → Ownership Mismatch — Stop (Stop and Error: 'LOGIC ERROR: ...')
 ```
 
-Output: `{ released: true, scope }`. Idempotent on absent key (Redis DEL returns 0 if the key didn't exist; the workflow doesn't care).
+Output on success: `{ released: true, idempotent: bool, scope, lock_id }`. `idempotent:true` is the absent-meta case — the meta key already expired or was DEL'd by an earlier release. `idempotent:false` is the live release path (the caller's lock_id matched, both keys were DEL'd).
 
-No ownership check. The wrapper flow (`add_lock_to_workflow.py`) ensures only the lock holder reaches release — failed acquires Stop and Error before the critical section, so they never call release. A defensive ownership check would protect against caller bugs that don't happen in normal use.
+Output on mismatch: StopAndError with a `LOGIC ERROR:` prefix that names the actual holder (workflow, execution, locked_at). The wrapper flow (`add_lock_to_workflow.py`) is structured so only the holder reaches release in normal operation — the ownership check is the defensive backstop that catches caller bugs (wrong scope passed, two workflows sharing a `lock_id` they shouldn't).
 
 ## `rate_limit_check` node graph (4 nodes)
 
@@ -114,7 +144,7 @@ No ownership check. The wrapper flow (`add_lock_to_workflow.py`) ensures only th
 Execute Workflow Trigger
        │
        ▼
-Build Bucket Key (Code: scope/limit/windowSeconds + key = ratelimit-<scope>-<bucket>)
+Build Bucket Key (Code: scope/limit/windowSeconds + key = n8n-ratelimit-<scope>-<bucket>)
        │
        ▼
 Redis INCR (operation=incr, key=$json.key, expire=true, ttl=$json.windowSeconds)
@@ -125,26 +155,54 @@ Build Result (Code: count = $json[prev.key]; allowed = count <= prev.limit)
        ▼ output: { allowed, scope, count, limit }
 ```
 
-Bucket key: `ratelimit-<scope>-<floor(now_ms / (windowSeconds * 1000))>`. The bucket integer rotates each window, so old buckets garbage-collect via their own EXPIRE TTL.
+Bucket key: `n8n-ratelimit-<scope>-<floor(now_ms / (windowSeconds * 1000))>`. The bucket integer rotates each window, so old buckets garbage-collect via their own EXPIRE TTL.
 
 Boundary-burst caveat: a caller can hit `limit` near the end of one window and `limit` again at the start of the next, so observed throughput can reach `2 × limit` across the edge. Token-bucket would smooth this but is deferred.
 
-## `error_handler_lock_cleanup` (no-op stub, 2 nodes)
+## `error_handler_lock_cleanup` (active per-scope cleanup, 9 nodes)
 
 ```
-Error Trigger ──► TTL Bounded Cleanup (Code: returns { cleaned: false, reason, executionId })
+Error Trigger
+       │
+       ▼
+Prepare Scope List (Code: read <env>.yml.lockScopes via {{@:env:lockScopes}};
+                    fan out one item per registered scope with key + meta_key + failed_execution_id;
+                    if list is empty, terminate with cleanup_terminal:true and a config-gap log entry)
+       │
+       ▼
+Has Scopes? (If $json.cleanup_terminal !== true)
+   ├── false (no scopes) → terminates with the no-op log entry
+   └── true              → GET Scope Meta (Redis GET, propertyName = LOCK_META, key = <meta_key>) — runs per-scope
+                                │
+                                ▼
+                          Filter Owned Scopes (Code: parse each meta JSON; keep only items where
+                                                parsedLock.execution_id === failed_execution_id)
+                                │
+                                ▼
+                          Owned? (If $json.should_release === true)
+                            ├── true  → DEL Owned Counter (Redis DEL key)
+                            │                │
+                            │                ▼
+                            │           DEL Owned Meta (Redis DEL meta_key)
+                            │                │
+                            │                ▼
+                            │           Log Cleanup (Code: { cleaned, cleaned_count, scopes })
+                            └── false → terminates without DEL
 ```
 
-No Redis ops. Orphaned locks self-heal via Redis-side EXPIRE — when a workflow holds the lock and crashes before reaching `lock_release`, the EXPIRE counts down from the original acquire time and the key vanishes after `ttl_seconds`. The next `lock_acquisition` INCR sees the key absent and starts fresh.
+Real Redis ops. The handler iterates every scope registered in `<env>.yml.lockScopes`, GETs the `:meta` sidecar, and DELs the lock+meta pair only for the entries whose stored `execution_id` matches the failed execution. Locks owned by other executions are left intact; locks for scopes not registered in `lockScopes` (typically dynamic ones whose key shape isn't known at config time) fall back to Redis-side TTL self-heal.
 
-To upgrade to active cleanup later, replace the stub with: Redis EXISTS at the failed scope's key → If present → Redis DEL. Much simpler than the B-9-era token-fencing version.
+Output: `{ cleaned: bool, cleaned_count, scopes: [...] }`. Empty `lockScopes` → graceful no-op with a `reason` field that surfaces the configuration gap to the operator log.
+
+See [`skills/create-lock.md`](../../create-lock.md) § "lockScopes env config" for how scopes get into the registry (`add_lock_to_workflow.py` auto-appends static scopes; dynamic scopes need manual entries).
 
 ## Key namespace
 
 | Key shape | Operation | Set by | Cleared by |
 |---|---|---|---|
-| `lock-<scope>` (e.g. `lock-excel-fileId-123`) | Plain integer counter | `lock_acquisition.INCR Acquire Attempt` (INCR + EXPIRE) | `lock_release.DEL Lock` (DEL) OR Redis EXPIRE after `ttl_seconds` |
-| `ratelimit-<scope>-<bucket>` | Rate-limit counter | `rate_limit_check.Redis INCR` (INCR + EXPIRE) | EXPIRE after `windowSeconds` |
+| `n8n-lock-<scope>` (e.g. `n8n-lock-excel-fileId-123`) | Plain integer counter | `lock_acquisition.INCR Acquire Attempt` (INCR + EXPIRE) | `lock_release.DEL Lock Counter` (on ownership match), `error_handler_lock_cleanup.DEL Owned Counter` (on crash, owned scope), OR Redis EXPIRE after `ttl_seconds` |
+| `n8n-lock-<scope>:meta` | JSON sidecar — `{lock_id, workflow_id, workflow_name, execution_id, locked_at}` | `lock_acquisition.Set Lock Meta` (SET + EXPIRE, same TTL as counter) | `lock_release.DEL Lock Meta` (on ownership match), `error_handler_lock_cleanup.DEL Owned Meta` (on crash, owned scope), OR Redis EXPIRE alongside the counter |
+| `n8n-ratelimit-<scope>-<bucket>` | Rate-limit counter | `rate_limit_check.Redis INCR` (INCR + EXPIRE) | EXPIRE after `windowSeconds` |
 
 `<bucket>` for rate-limit is `floor(Date.now() / (windowSeconds * 1000))` — an integer that increments once per window.
 

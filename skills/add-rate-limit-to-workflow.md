@@ -40,7 +40,7 @@ Refuses if `rate_limit_check.template.json` isn't yet in the workspace — run `
 
 ## Redis namespace
 
-The rate-limit primitive writes its counter under the `n8n-ratelimit-<scope>-<bucket>` Redis key (post-task-13 namespace; was `ratelimit-<scope>-<bucket>` before). The bucket is `Math.floor(Date.now() / (windowSeconds * 1000))` so it auto-rolls every window. No action needed from the caller — the namespace change is internal to the primitive.
+The rate-limit primitive writes its counter under the `n8n-ratelimit-<scope>-<bucket>` Redis key. The bucket is `Math.floor(Date.now() / (windowSeconds * 1000))` so it auto-rolls every window.
 
 ## Worked example
 
@@ -65,7 +65,7 @@ Result on the wire:
 - If `allowed === true` → original downstream nodes (your handler logic).
 - Else → `Rate Limit Denied` (Set) outputs `{ allowed: false, scope: "api-v1-<userId>", count: <count>, limit: 100 }` and the workflow returns that payload to the caller.
 
-The bucket key is `ratelimit-api-v1-<userId>-<bucket>` where `<bucket>` rotates every 60 s. EXPIRE only fires on the first INCR per bucket so within-window calls don't reset TTL.
+The bucket key is `n8n-ratelimit-api-v1-<userId>-<bucket>` where `<bucket>` rotates every 60 s. EXPIRE only fires on the first INCR per bucket so within-window calls don't reset TTL.
 
 ## Caveats
 

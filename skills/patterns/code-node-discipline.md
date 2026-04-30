@@ -264,22 +264,6 @@ Runs both `node --test` (over `*.test.js`) and `pytest` (over `test_*.py`) under
 
 ---
 
-## Migration: existing inlined-JS workflows
-
-If a Code node still has its function body inlined inside `jsCode`, `validate.py` will reject the template after this pattern lands. Surgery (manual, one-time):
-
-1. Open `n8n-workflows-template/<key>.template.json`.
-2. Cut the function body out of `parameters.jsCode` into a new file at `n8n-functions/js/<name>.js`. Preserve the `function <name>(...) { ... }` declaration; add `if (typeof module !== "undefined") module.exports = { <name> };` as the last line.
-3. Replace the cut text in `jsCode` with `{{@:js:n8n-functions/js/<name>.js}}\n\n` followed by the n8n-glue (the `$input` / `return [{json:...}]` lines).
-4. Write `n8n-functions-tests/<name>.test.js` with at least one assertion against the function.
-5. Re-run `validate.py` then `deploy.py`.
-
-For a Python equivalent, swap `js` → `py`, `<camelCaseName>` → `<snake_case_name>`, and skip the trailer step.
-
-There is no helper script — this is a per-workflow migration done by hand.
-
----
-
 ## Primitive exemption
 
 Harness-maintained primitive Code nodes (lock acquisition, lock release, rate-limit check, error-handler cleanup) begin their body with `// @n8n-evol-I:primitive`. This marker suppresses the placeholder and purity checks in `validate.py` — the validator's `_validate_code_node` short-circuits with no errors as soon as it sees the marker as the first non-whitespace characters of the code field.

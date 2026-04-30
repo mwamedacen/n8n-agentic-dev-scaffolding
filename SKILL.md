@@ -32,6 +32,8 @@ This is the entry point. When the user asks anything n8n-related, route to the m
 | [deploy.md](skills/deploy.md) | Deploy one workflow to one env. |
 | [activate-single-workflow-in-env.md](skills/activate-single-workflow-in-env.md) | Activate after deploy. |
 | [deactivate-single-workflow-in-env.md](skills/deactivate-single-workflow-in-env.md) | Pause triggers (commonly during dev). |
+| [archive-workflow.md](skills/archive-workflow.md) | Retire a deployed workflow (hidden + read-only on the live instance). |
+| [unarchive-workflow.md](skills/unarchive-workflow.md) | Restore a previously-archived workflow so it accepts updates again. |
 | [deploy_all.md](skills/deploy_all.md) | Roll out an entire env in tier order. |
 | [resync.md](skills/resync.md) | Pull live state of one workflow back into its template. |
 | [resync_all.md](skills/resync_all.md) | Snapshot a full env back to templates. |
