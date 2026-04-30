@@ -1,7 +1,7 @@
 
 <img width="1376" height="768" alt="n8n_evol_I_hero" src="https://github.com/user-attachments/assets/0a28f1f6-106f-4f84-9ce1-cf7eebcf4cd6" />
 
-# n8n-evol-I
+# N8N EVOL I
 
 A skill package for driving n8n from code. Designed to be read by a coding agent.
 
