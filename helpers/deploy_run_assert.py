@@ -25,6 +25,13 @@ def main() -> None:
     parser.add_argument("--payload", default="{}")
     parser.add_argument("--timeout", type=int, default=30)
     parser.add_argument("--no-activate", action="store_true")
+    parser.add_argument(
+        "--expect-status",
+        default="success",
+        dest="expect_status",
+        choices=("success", "error"),
+        help="Expected terminal status of the run (default: success).",
+    )
     args = parser.parse_args()
 
     ws = workspace_root(args.workspace)
@@ -55,7 +62,7 @@ def main() -> None:
         "--env", args.env, "--workflow-key", args.workflow_key,
         "--payload", args.payload,
         "--timeout", str(args.timeout),
-        "--expect-status", "success",
+        "--expect-status", args.expect_status,
     ]
     _run(run_cmd, stage="run")
 

@@ -91,7 +91,15 @@ def cmd_create(args) -> None:
 
     env_var_names = [v.strip() for v in (args.env_vars or "").split(",") if v.strip()]
     data_payload = _build_data_payload(env_var_names)
-    missing = [v for v in env_var_names if not data_payload.get(v.split("=")[0])]
+    # Detect-by-env-var-presence: a token like `field=ENV_VAR` is "missing" iff
+    # ENV_VAR isn't set in os.environ. Avoids false positives on legitimately
+    # falsy values (empty string, "0", "false") and reports the env-var name
+    # the user needs to set, not the raw `field=ENV_VAR` token.
+    missing = []
+    for raw in env_var_names:
+        env_name = raw.split("=", 1)[1].strip() if "=" in raw else raw.strip()
+        if env_name not in os.environ:
+            missing.append(env_name)
     if missing:
         print(f"WARNING: missing env vars: {missing}. Add them to .env.{args.env}.", file=sys.stderr)
 

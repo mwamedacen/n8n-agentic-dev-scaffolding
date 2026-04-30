@@ -13,11 +13,17 @@ from helpers.config import load_yaml, flatten_config
 from helpers.placeholder import js_resolver, py_resolver
 
 # Volatile / runtime-only fields that must not appear in templates.
+# (Live n8n GET /workflows/:id returns these alongside the canonical template
+# fields. NEVER add `name`, `nodes`, `connections`, or `settings` here — those
+# are the workflow's actual content.)
 _METADATA_FIELDS = frozenset({
     "id", "active", "versionId", "createdAt", "updatedAt",
     "tags", "shared", "isArchived", "triggerCount", "homeProject",
     "scopes", "meta", "usedCredentials", "sharedWithProjects",
     "pinData",
+    # Added 2026-04: n8n's response shape grew with the publish/version model.
+    "activeVersion", "activeVersionId", "versionCounter",
+    "description", "staticData",
 })
 
 

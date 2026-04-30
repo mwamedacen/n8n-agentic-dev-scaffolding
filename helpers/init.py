@@ -156,6 +156,11 @@ def _scaffold(ws: Path, force: bool) -> None:
         "from pathlib import Path\n"
         'sys.path.insert(0, str(Path(__file__).parent.parent / "n8n-functions" / "py"))\n'
     )
+    (ws / "cloud-functions-tests" / "conftest.py").write_text(
+        "import sys\n"
+        "from pathlib import Path\n"
+        'sys.path.insert(0, str(Path(__file__).parent.parent / "cloud-functions"))\n'
+    )
 
     # Write alias files at project root if this is the default workspace location.
     if ws.name == "n8n-evol-I-workspace" and ws.parent == Path.cwd():

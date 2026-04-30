@@ -76,10 +76,28 @@ def main() -> None:
         key, name = _RATE_LIMIT
         primitives[key] = name
 
-    for key, name in primitives.items():
+    # Two-pass: copy all primitives first, then attempt registrations. If a
+    # registration fails (e.g. transient n8n API hiccup or expired API key),
+    # the workspace is at least left with all template files on disk so a
+    # later re-run can resume by registering only the un-registered keys.
+    for key, _ in primitives.items():
         _copy_primitive(ws, key, force_overwrite=args.force_overwrite)
-        _register_via_create_workflow(ws, key, name, "Tier 0a: leaves")
 
+    failures: list[tuple[str, Exception]] = []
+    for key, name in primitives.items():
+        try:
+            _register_via_create_workflow(ws, key, name, "Tier 0a: leaves")
+        except SystemExit as e:
+            failures.append((key, e))
+            print(f"  WARNING: registration failed for '{key}'; continuing.", file=sys.stderr)
+
+    if failures:
+        print(
+            f"create-lock partial: {len(primitives) - len(failures)}/{len(primitives)} registered. "
+            f"Re-run after fixing the underlying issue (commonly: invalid N8N_API_KEY).",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     print("create-lock complete.")
 
 

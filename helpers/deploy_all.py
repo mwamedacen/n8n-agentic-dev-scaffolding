@@ -46,7 +46,14 @@ def main() -> None:
     parser.add_argument("--workspace", default=None)
     parser.add_argument("--env", required=True)
     parser.add_argument("--keep-active", action="store_true", dest="keep_active")
-    parser.add_argument("--continue-on-failure", action="store_true", dest="continue_on_failure")
+    parser.add_argument("--continue-on-failure", action="store_true", dest="continue_on_failure",
+                        help="Continue past PUT failures (exit=1). Activate-only failures (exit=2) "
+                             "are warned-and-continued by default; pass --strict-activate to escalate.")
+    parser.add_argument("--strict-activate", action="store_true", dest="strict_activate",
+                        help="Treat 'deployed-but-not-activated' (deploy.py exit=2) as a hard tier-stop "
+                             "failure. Without this flag, activate failures are warned and the rollout "
+                             "continues — a workflow whose PUT succeeded is fine to leave inactive while "
+                             "the operator follows up (e.g. activate sub-workflows manually first).")
     args = parser.parse_args()
 
     ws = workspace_root(args.workspace)
@@ -55,6 +62,7 @@ def main() -> None:
     helpers = Path(__file__).parent
 
     failures: list[tuple[str, int]] = []
+    activate_warnings: list[str] = []
     for tier in sorted(tiers.keys()):
         keys = tiers[tier] or []
         if not keys:
@@ -64,6 +72,15 @@ def main() -> None:
             cmd = [sys.executable, str(helpers / "deploy.py"),
                    "--workspace", str(ws), "--env", args.env, "--workflow-key", key]
             r = subprocess.run(cmd)
+            if r.returncode == 2 and not args.strict_activate:
+                # PUT succeeded; only activate failed. Warn and continue —
+                # downstream tiers may not need this workflow to be active
+                # (e.g. it's a sub-workflow whose parent will trigger a retry
+                # at activate time once dependencies are publish/active).
+                activate_warnings.append(key)
+                print(f"WARN: '{key}' deployed but not activated (continuing; pass "
+                      f"--strict-activate to fail-fast).", file=sys.stderr)
+                continue
             if r.returncode != 0:
                 failures.append((key, r.returncode))
                 if not args.continue_on_failure:
@@ -93,6 +110,9 @@ def main() -> None:
                    "--workspace", str(ws), "--env", args.env, "--workflow-key", key]
             subprocess.run(cmd)
 
+    if activate_warnings:
+        print(f"deploy_all: {len(activate_warnings)} workflow(s) deployed but not activated: "
+              f"{activate_warnings}", file=sys.stderr)
     if failures:
         print(f"deploy_all complete with {len(failures)} failure(s): {failures}", file=sys.stderr)
         sys.exit(1)

@@ -26,22 +26,22 @@ class N8nClient:
     def get(self, path: str, params: Optional[dict] = None) -> Any:
         resp = requests.get(self._url(path), headers=self._headers, params=params)
         resp.raise_for_status()
-        return resp.json()
+        return resp.json() if resp.content else None
 
     def post(self, path: str, body: Any = None) -> Any:
         resp = requests.post(self._url(path), headers=self._headers, json=body)
         resp.raise_for_status()
-        return resp.json()
+        return resp.json() if resp.content else None
 
     def put(self, path: str, body: Any) -> Any:
         resp = requests.put(self._url(path), headers=self._headers, json=body)
         resp.raise_for_status()
-        return resp.json()
+        return resp.json() if resp.content else None
 
     def delete(self, path: str) -> Any:
         resp = requests.delete(self._url(path), headers=self._headers)
         resp.raise_for_status()
-        return resp.json()
+        return resp.json() if resp.content else None
 
     def get_workflow(self, workflow_id: str) -> dict:
         return self.get(f"workflows/{workflow_id}")

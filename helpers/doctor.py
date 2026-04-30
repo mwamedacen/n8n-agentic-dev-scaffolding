@@ -79,6 +79,76 @@ def _check_n8n_api(ws: Path, env: str) -> list:
         return [_row(FAIL, f"{env} n8n API", str(e))]
 
 
+def _check_lock_scopes(ws: Path, env: str) -> list:
+    """For every workspace template that wires Lock Acquire, verify its
+    static-scope literal (if any) is registered in <env>.yml.lockScopes.
+
+    Dynamic scopes (containing `$json`, etc.) are skipped — they require
+    operator-managed lockScopes entries by definition. Static scopes that
+    aren't registered get a WARN row pointing the operator at the gap; the
+    error-handler cleanup will silently skip those workflows otherwise.
+
+    Returns [] if no locked workflows are found.
+    """
+    template_dir = ws / "n8n-workflows-template"
+    if not template_dir.is_dir():
+        return []
+    yaml_file = ws / "n8n-config" / f"{env}.yml"
+    if not yaml_file.exists():
+        return []
+    try:
+        with open(yaml_file) as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return []
+    registered = set(data.get("lockScopes") or [])
+    unregistered: list[tuple[str, str]] = []
+    for tpl in sorted(template_dir.glob("*.template.json")):
+        try:
+            t = json.loads(tpl.read_text())
+        except Exception:
+            continue
+        for node in t.get("nodes", []):
+            if node.get("name") != "Lock Acquire":
+                continue
+            inputs = (node.get("parameters") or {}).get("workflowInputs") or {}
+            scope_expr = ((inputs.get("value") or {}).get("scope") or "")
+            # Reuse the helper's static-scope extractor without importing the
+            # whole module (keep doctor's import surface minimal).
+            static = _extract_static_scope_for_doctor(scope_expr)
+            if static is None:
+                continue  # dynamic — operator's responsibility
+            if static not in registered:
+                unregistered.append((tpl.stem.replace(".template", ""), static))
+            break
+    if unregistered:
+        detail = ", ".join(f"{wf}→{s!r}" for wf, s in unregistered)
+        return [_row(WARN, f"{env} lockScopes", f"unregistered: {detail}")]
+    return []
+
+
+def _extract_static_scope_for_doctor(scope_expr: str):
+    """Mirror of helpers/add_lock_to_workflow.py:_extract_static_scope; kept
+    inline here so doctor doesn't need to import the lock helper module."""
+    import re as _re
+    if not scope_expr:
+        return None
+    s = scope_expr.strip()
+    if not s.startswith("="):
+        return s
+    m = _re.match(r"^=\{\{\s*(.+?)\s*\}\}$", s, _re.DOTALL)
+    if not m:
+        return None
+    inner = m.group(1).strip()
+    qm = _re.match(r'^([\'"])(.*)\1$', inner, _re.DOTALL)
+    if not qm:
+        return None
+    literal = qm.group(2)
+    if "${" in literal:
+        return None
+    return literal
+
+
 def _check_templates(ws: Path) -> list:
     template_dir = ws / "n8n-workflows-template"
     templates = list(template_dir.glob("*.template.json")) if template_dir.is_dir() else []
@@ -182,6 +252,37 @@ def _check_audit(ws: Path, env: str) -> list:
     return rows
 
 
+def _derive_verdict(rows: list) -> str:
+    """Reduce a row list to a single machine-readable verdict.
+
+    Verdicts (priority order — first match wins):
+      - "api-unreachable"     : the n8n API row failed (auth, network, instance)
+      - "needs-bootstrap"     : env yaml is missing entirely
+      - "needs-mint"          : env yaml present but workflows.* still hold sentinel ids
+      - "audit-findings"      : audit ran and at least one risk category is non-empty
+      - "ok"                  : every row green or warn-only
+
+    Used by CI / agent dispatch — stable schema, separate from the human report.
+    """
+    fail_labels = [label for state, label, _ in rows if state == FAIL]
+    warn_labels = [label for state, label, _ in rows if state == WARN]
+    for label in fail_labels:
+        if "n8n API" in label:
+            return "api-unreachable"
+        if label.endswith(".yml") and "not found" in str(label):
+            return "needs-bootstrap"
+    for label in warn_labels:
+        if "workflow IDs" in label and "placeholder" in label:
+            return "needs-mint"
+        if " audit / " in label:
+            return "audit-findings"
+        if "lockScopes" in label:
+            return "lock-scopes-unregistered"
+    if fail_labels:
+        return "fail"
+    return "ok"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace", default=None, help="Workspace path. Default: ${PWD}/n8n-evol-I-workspace, or ${PWD} if its basename is already n8n-evol-I-workspace.")
@@ -190,6 +291,10 @@ def main() -> None:
                         help="Also run POST /audit and report risk categories. Off by default.")
     parser.add_argument("--audit-only", action="store_true", dest="audit_only",
                         help="Run only the audit phase (skips workspace / env / template checks). Implies --with-audit.")
+    parser.add_argument("--json", action="store_true", dest="json_mode",
+                        help="Emit a structured {verdict, checks} JSON object instead of the human report. "
+                             "Verdict values: ok | needs-bootstrap | needs-mint | api-unreachable | "
+                             "audit-findings | lock-scopes-unregistered | fail. Stable for CI / agent dispatch.")
     args = parser.parse_args()
 
     if args.audit_only:
@@ -218,16 +323,23 @@ def main() -> None:
             if not args.audit_only:
                 rows += _check_env_yaml(ws, env)
                 rows += _check_n8n_api(ws, env)
+                rows += _check_lock_scopes(ws, env)
             if args.with_audit:
                 rows += _check_audit(ws, env)
 
     if not args.audit_only:
         rows += _check_templates(ws)
 
-    print("\nn8n-evol-I doctor report:")
-    for state, label, detail in rows:
-        print(_fmt(state, label, detail))
-    print()
+    if args.json_mode:
+        print(json.dumps({
+            "verdict": _derive_verdict(rows),
+            "checks": [{"state": s, "label": l, "detail": d} for s, l, d in rows],
+        }, indent=2))
+    else:
+        print("\nn8n-evol-I doctor report:")
+        for state, label, detail in rows:
+            print(_fmt(state, label, detail))
+        print()
 
     if any(state == FAIL for state, _, _ in rows):
         sys.exit(1)

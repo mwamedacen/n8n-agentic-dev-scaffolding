@@ -136,8 +136,18 @@ def main() -> None:
                 _write_debug(args.env, args.workflow_key, {}, act_resp, "activate")
             print(f"Activated workflow '{args.workflow_key}'")
         except Exception as e:
+            # The PUT (deploy) succeeded — only the trigger flip failed. Common
+            # causes: a sub-workflow target isn't yet activated (n8n Cloud
+            # rejects with "Cannot publish workflow: Node X references workflow
+            # Y which is not published"), invalid credential ref, etc.
+            #
+            # Severity policy (per task #9 deploy_all decision): exit code 2
+            # signals "deployed-but-not-activated" — distinct from PUT failure
+            # (1). deploy_all treats 2 as warn-and-continue by default and 1
+            # as tier-stop. Use --strict-activate on deploy_all to escalate 2
+            # to fail-fast.
             print(f"WARNING: activate failed for '{args.workflow_key}': {e}", file=sys.stderr)
-            sys.exit(1)
+            sys.exit(2)
 
 
 if __name__ == "__main__":
