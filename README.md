@@ -7,9 +7,9 @@ A skill package for driving n8n from code. Designed to be read by a coding agent
 
 ## Why
 
-n8n is a capable workflow automation platform, but operating it at scale from code requires the same boilerplate on every project: REST-API wrappers, per-environment config management, a way to keep workflow logic in version control, and enough structural discipline that a coding agent can author and deploy without re-learning the API surface every session.
+Operating n8n past the toy stage exposes the same gaps on every project. The UI editor is fine for a demo and tedious by the third workflow — every code change is click-paste-save, every refactor is manual, every diff is a 200KB JSON blob with code, prompts, schemas, and HTML inlined. A coding agent burns half its context window parsing one file. Two scheduled runs can quietly race on the same record. When something fails at 2am, the execution log tells you *what* broke, not *why*.
 
-n8n-evol-I provides that structure. It is a read-only skill package: the agent reads markdown sub-skills from `skills/` and invokes Python helpers from `helpers/` against a separate per-project workspace. Workflow templates live in the workspace, not in the harness, so the harness can be updated with `git pull` without touching user content. The agent needs to know only one thing: read `SKILL.md` first.
+N8N EVOL I is the structure that takes those problems off the table. Here's what's in the box.
 
 ## Features
 
