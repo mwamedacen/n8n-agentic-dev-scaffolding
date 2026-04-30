@@ -3,7 +3,7 @@
 
 # N8N EVOL I
 
-A skill package for driving n8n from code. Designed to be read by a coding agent.
+A harness to help coding agents build, deploy, maintain, and debug multi-workflow n8n-powered automation systems.
 
 ## Why
 
