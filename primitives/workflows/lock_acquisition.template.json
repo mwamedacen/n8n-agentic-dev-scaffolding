@@ -14,7 +14,10 @@
             { "name": "ttl_seconds", "type": "number" },
             { "name": "execution_id" },
             { "name": "wait_till_lock_released", "type": "boolean" },
-            { "name": "max_wait_seconds", "type": "number" }
+            { "name": "max_wait_seconds", "type": "number" },
+            { "name": "lock_id" },
+            { "name": "workflow_id" },
+            { "name": "workflow_name" }
           ]
         }
       }
@@ -27,7 +30,7 @@
       "position": [208, 0],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\n// Build a stable context object referenced throughout the acquire flow (including the\n// wait-loop, where node('Build Lock Context').first().json gives us deadline_ms even\n// after multiple loop iterations).\nconst scope = $json.scope || 'default';\nconst ttl = typeof $json.ttl_seconds === 'number' ? $json.ttl_seconds : 60;\nconst executionId = $json.execution_id || $execution.id;\nconst waitTillReleased = $json.wait_till_lock_released !== false;  // default true\nconst maxWaitSeconds = typeof $json.max_wait_seconds === 'number' ? $json.max_wait_seconds : 86400;\nconst key = `lock-${scope}`;\nreturn [{\n  json: {\n    scope,\n    ttl,\n    executionId,\n    wait_till_lock_released: waitTillReleased,\n    max_wait_seconds: maxWaitSeconds,\n    key,\n    lock_id: executionId,\n    deadline_ms: Date.now() + (maxWaitSeconds * 1000),\n  },\n}];\n"
+        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\n// Build a stable context object referenced throughout the acquire flow (including\n// the wait-loop, where node('Build Lock Context').first().json gives us\n// deadline_ms even after multiple loop iterations).\n//\n// Key namespacing: 'n8n-lock-' prefix scopes our keys away from any unrelated\n// Redis traffic on the same instance. The ':meta' sidecar carries identity so\n// release can verify ownership and the error handler can clean up only the\n// failed execution's locks.\nconst scope = $json.scope || 'default';\nconst ttl = typeof $json.ttl_seconds === 'number' ? $json.ttl_seconds : 60;\nconst executionId = $json.execution_id || $execution.id;\nconst waitTillReleased = $json.wait_till_lock_released !== false;  // default true\nconst maxWaitSeconds = typeof $json.max_wait_seconds === 'number' ? $json.max_wait_seconds : 86400;\n// Prefer caller-supplied lock_id (lets multiple acquires within one execution\n// each have a distinct identity); fall back to a fresh UUID, then to executionId\n// for back-compat with pre-task-13 callers that didn't pass lock_id.\nconst lockId = $json.lock_id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : executionId);\nconst workflowId = $json.workflow_id || 'unknown';\nconst workflowName = $json.workflow_name || 'unknown';\nconst key = `n8n-lock-${scope}`;\nconst metaKey = `${key}:meta`;\nconst lockedAt = new Date().toISOString();\nreturn [{\n  json: {\n    scope,\n    ttl,\n    executionId,\n    wait_till_lock_released: waitTillReleased,\n    max_wait_seconds: maxWaitSeconds,\n    key,\n    meta_key: metaKey,\n    lock_id: lockId,\n    workflow_id: workflowId,\n    workflow_name: workflowName,\n    locked_at: lockedAt,\n    deadline_ms: Date.now() + (maxWaitSeconds * 1000),\n  },\n}];\n"
       }
     },
     {
@@ -58,7 +61,39 @@
       "position": [656, 0],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\n// Read the post-INCR count for our key and decide if this caller acquired the lock.\n// `count === 1` means our INCR was the one that created the key — we hold the lock.\n// Any other count means a concurrent caller got there first.\nconst ctx = $('Build Lock Context').first().json;\nconst incrOut = $json;\nconst count = typeof incrOut[ctx.key] === 'number' ? incrOut[ctx.key] : 0;\nconst acquired = count === 1;\nreturn [{ json: { acquired, count, scope: ctx.scope, lock_id: ctx.lock_id, key: ctx.key } }];\n"
+        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\n// Read the post-INCR count for our key and decide if this caller acquired the lock.\n// `count === 1` means our INCR was the one that created the key — we hold the lock.\n// Any other count means a concurrent caller got there first.\nconst ctx = $('Build Lock Context').first().json;\nconst incrOut = $json;\nconst count = typeof incrOut[ctx.key] === 'number' ? incrOut[ctx.key] : 0;\nconst acquired = count === 1;\nreturn [{ json: { acquired, count, scope: ctx.scope, lock_id: ctx.lock_id, key: ctx.key, meta_key: ctx.meta_key } }];\n"
+      }
+    },
+    {
+      "id": "{{@:uuid:la-set-meta}}",
+      "name": "Set Lock Meta",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1104, -160],
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $('Build Lock Context').first().json.meta_key }}",
+        "value": "={{ JSON.stringify({lock_id: $('Build Lock Context').first().json.lock_id, workflow_id: $('Build Lock Context').first().json.workflow_id, workflow_name: $('Build Lock Context').first().json.workflow_name, execution_id: $('Build Lock Context').first().json.executionId, locked_at: $('Build Lock Context').first().json.locked_at}) }}",
+        "keyType": "string",
+        "expire": true,
+        "ttl": "={{ $('Build Lock Context').first().json.ttl }}"
+      },
+      "credentials": {
+        "redis": {
+          "id": "{{@:env:credentials.redis.id}}",
+          "name": "{{@:env:credentials.redis.name}}"
+        }
+      }
+    },
+    {
+      "id": "{{@:uuid:la-build-output}}",
+      "name": "Build Acquire Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1328, -160],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\n// Surface the lock_id (and full identity) in the output so the calling workflow\n// can pass lock_id back to lock_release for ownership-verified DEL.\nconst ctx = $('Build Lock Context').first().json;\nconst eval_ = $('Evaluate Acquired').first().json;\nreturn [{\n  json: {\n    acquired: true,\n    count: eval_.count,\n    scope: ctx.scope,\n    lock_id: ctx.lock_id,\n    key: ctx.key,\n    meta_key: ctx.meta_key,\n    workflow_id: ctx.workflow_id,\n    workflow_name: ctx.workflow_name,\n    execution_id: ctx.executionId,\n    locked_at: ctx.locked_at,\n  },\n}];\n"
       }
     },
     {
@@ -264,9 +299,12 @@
     },
     "Acquired?": {
       "main": [
-        [],
+        [{ "node": "Set Lock Meta", "type": "main", "index": 0 }],
         [{ "node": "Should Wait?", "type": "main", "index": 0 }]
       ]
+    },
+    "Set Lock Meta": {
+      "main": [[{ "node": "Build Acquire Output", "type": "main", "index": 0 }]]
     },
     "Should Wait?": {
       "main": [

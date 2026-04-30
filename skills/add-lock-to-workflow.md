@@ -52,10 +52,12 @@ The acquire output's `lock_id` field equals the calling workflow's `$execution.i
 
 The Redis key suffix for the lock. Default: `={{ $execution.id }}` (one-execution-at-a-time semantics).
 
+**Always use the canonical `={{ <expression> }}` form.** Bare `=<expr>` (without `{{ }}`) is treated by `executeWorkflow@1.2` as a literal string — your lock will silently degrade to a single global lock keyed on the raw expression text. The helper auto-wraps bare-`=` and literal forms (with a deprecation warning) as of post-finding-#15 builds, but the rule is: write the canonical form yourself to keep deployed templates clean.
+
 For per-resource locking pick a stable string per protected thing:
-- One Excel file at a time: `="excel-" + $json.fileId`.
-- One CMS row at a time: `="cms-" + $json.rowId`.
-- Single global lock across all callers: `="global"`.
+- One Excel file at a time: `={{ "excel-" + $json.fileId }}`.
+- One CMS row at a time: `={{ "cms-" + $json.rowId }}`.
+- Single global lock across all callers: `={{ "global" }}` (or simply `global` as a literal — the helper wraps it).
 
 ### `--ttl-seconds <int>`
 
@@ -95,7 +97,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/helpers/create_lock.py
 # 2. Wrap your workflow with a 10-minute TTL, scoping per Excel file.
 python3 ${CLAUDE_PLUGIN_ROOT}/helpers/add_lock_to_workflow.py \
   --workflow-key sharepoint_writeback \
-  --scope-expression "='excel-' + $json.fileId" \
+  --scope-expression "={{ 'excel-' + \$json.fileId }}" \
   --ttl-seconds 600 \
   --max-wait-seconds 60
 ```
@@ -115,12 +117,16 @@ Two simultaneous webhooks for the same `fileId` race at Lock Acquire. The first 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/helpers/add_lock_to_workflow.py \
   --workflow-key user_facing_api \
-  --scope-expression "='user-' + $json.userId" \
+  --scope-expression "={{ 'user-' + \$json.userId }}" \
   --ttl-seconds 60 \
   --max-wait-seconds 5
 ```
 
 The `max_wait_seconds 5` means a contended call gives up after 5 seconds — short enough that the user doesn't notice but long enough to absorb sub-second contention bursts.
+
+## Migration note (post-task-13)
+
+The release primitive's input contract gained a `lock_id` field. Workspace templates locked under the pre-task-13 harness (release inputs = `{scope}` only) still work — n8n tolerates the missing field — but the release becomes effectively unverified (matches whatever lock_id is stored, defaults to none). To upgrade an existing locked workflow to the ownership-checked form: re-run `add_lock_to_workflow.py` once on its key. The helper rewrites the Lock Release node's `workflowInputs.value` with the new `lock_id: ={{ $execution.id }}` mapping. No live-state migration needed — Redis keys are namespaced separately (`n8n-lock-` vs the old `lock-`), so old locks expire via TTL and new acquires write to the new namespace cleanly.
 
 ## Pattern + caveats
 

@@ -53,8 +53,10 @@ def _release_node(template: dict) -> dict:
     return next(n for n in template["nodes"] if n["name"] == _LOCK_RELEASE_NODE_NAME)
 
 
-def test_default_acquire_inputs_are_five_field_incr_contract():
-    """Default flags emit the INCR-pattern 5-field acquire contract; wait_till_lock_released defaults to true."""
+def test_default_acquire_inputs_are_eight_field_incr_meta_contract():
+    """Task-13 INCR + sidecar-meta primitive takes 8 fields. lock_id, workflow_id,
+    and workflow_name flow through so the meta sidecar carries identity for
+    ownership-checked release and active error-handler cleanup."""
     tpl = _insert_lock(_minimal_template(), "={{ $execution.id }}")
     inputs = _acquire_node(tpl)["parameters"]["workflowInputs"]["value"]
     assert inputs == {
@@ -63,6 +65,9 @@ def test_default_acquire_inputs_are_five_field_incr_contract():
         "execution_id": "={{ $execution.id }}",
         "wait_till_lock_released": True,
         "max_wait_seconds": _DEFAULT_MAX_WAIT_SECONDS,
+        "lock_id": "={{ $execution.id }}",
+        "workflow_id": "={{ $workflow.id }}",
+        "workflow_name": "={{ $workflow.name }}",
     }
 
 
@@ -87,18 +92,21 @@ def test_max_wait_seconds_overridable():
     assert inputs["max_wait_seconds"] == 30
 
 
-def test_release_inputs_are_just_scope():
-    """The B-16 INCR-based release does a plain DEL — no lock_id needed."""
+def test_release_inputs_carry_scope_and_lock_id():
+    """Task-13 ownership-checked release takes scope + lock_id. The release
+    primitive GETs the meta sidecar, compares lock_id, and DELs only on match."""
     tpl = _insert_lock(_minimal_template(), "={{ 'sx' }}")
     inputs = _release_node(tpl)["parameters"]["workflowInputs"]["value"]
-    assert inputs == {"scope": "={{ 'sx' }}"}
+    assert inputs == {"scope": "={{ 'sx' }}", "lock_id": "={{ $execution.id }}"}
 
 
-def test_release_does_not_carry_workflow_metadata_or_lock_id():
-    """The B-9-era thread-through of lock_id/workflow_id/etc. is gone."""
+def test_release_does_not_carry_full_workflow_metadata():
+    """Release input contract is minimal: scope + lock_id only. Identity comes
+    from the meta sidecar Redis key written at acquire-time, not threaded
+    through the release call."""
     tpl = _insert_lock(_minimal_template(), "={{ 'a' }}")
     inputs = _release_node(tpl)["parameters"]["workflowInputs"]["value"]
-    for forbidden in ("lock_id", "workflow_id", "workflow_name", "execution_id", "ttl_seconds", "wait_till_lock_released", "max_wait_seconds"):
+    for forbidden in ("workflow_id", "workflow_name", "execution_id", "ttl_seconds", "wait_till_lock_released", "max_wait_seconds"):
         assert forbidden not in inputs, f"Release should not carry {forbidden!r}, got {inputs}"
 
 

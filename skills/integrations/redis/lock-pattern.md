@@ -16,18 +16,24 @@ The harness ships four primitives backed by the dedicated `n8n-nodes-base.redis`
 
 | Primitive | Trigger | Output |
 |---|---|---|
-| `lock_acquisition` | `executeWorkflowTrigger` (inputs: `scope, ttl_seconds, execution_id, wait_till_lock_released, max_wait_seconds`) | `{ acquired, count, scope, lock_id, key }` |
-| `lock_release` | `executeWorkflowTrigger` (inputs: `scope`) | `{ released: true, scope }` |
-| `error_handler_lock_cleanup` | `errorTrigger` | `{ cleaned: false, reason, executionId }` (no-op stub; TTL handles cleanup) |
+| `lock_acquisition` | `executeWorkflowTrigger` (inputs: `scope, ttl_seconds, execution_id, wait_till_lock_released, max_wait_seconds, lock_id, workflow_id, workflow_name`) | `{ acquired, count, scope, lock_id, key, meta_key, workflow_id, workflow_name, execution_id, locked_at }` |
+| `lock_release` | `executeWorkflowTrigger` (inputs: `scope, lock_id`) | `{ released: true, idempotent: bool, scope, lock_id }` — or StopAndError on ownership mismatch |
+| `error_handler_lock_cleanup` | `errorTrigger` | `{ cleaned: bool, cleaned_count, scopes }` — actively iterates `<env>.yml.lockScopes`, GETs each `:meta`, DELs only the failed-execution-owned ones |
 | `rate_limit_check` | `executeWorkflowTrigger` (inputs: `scope, limit, windowSeconds`) | `{ allowed, scope, count, limit }` |
 
 Every Code-node body inside these primitives starts with `// @n8n-evol-I:primitive` to bypass `validate.py`'s pure-function discipline. **Do not copy that marker into user Code nodes** — it silently disables validation.
 
-## Lock value: just an integer
+## Lock storage: counter + identity sidecar
 
-The lock value at the Redis key `lock-<scope>` is a plain integer counter (Redis-native semantics). The first caller's INCR creates the key with value 1; concurrent callers' INCRs return 2, 3, …. Whoever sees `count === 1` holds the lock.
+Two Redis keys per held lock:
+- `n8n-lock-<scope>` — plain integer counter (set via INCR, expires via EXPIRE). Atomic acquire: whoever sees `count === 1` after the INCR holds the lock.
+- `n8n-lock-<scope>:meta` — JSON sidecar written by `Set Lock Meta` immediately after the count===1 branch. Contains `{lock_id, workflow_id, workflow_name, execution_id, locked_at}`. Same TTL as the counter so they expire together.
 
-There is no JSON metadata stored in Redis — earlier B-9-era versions stored `{ lock_id, workflow_id, ... }` for client-side stale-check, but with INCR the staleness check moved to Redis itself (server-side EXPIRE), so the metadata is unnecessary for correctness. The `lock_id` returned to the caller is set to `execution_id` in the primitive's `Build Lock Context` Code node, useful for caller-side correlation but not stored in Redis.
+The sidecar exists so:
+- **Release can verify ownership** — the release primitive GETs the meta, parses, compares the caller-supplied `lock_id` to the stored one, and DELs both keys only on match. Mismatch → StopAndError with a `LOGIC ERROR:` prefix that names the actual holder. This catches bugs where workflow A tries to release a lock workflow B is holding.
+- **Active error-handler cleanup** — `error_handler_lock_cleanup` iterates `<env>.yml.lockScopes`, GETs each meta, finds the entries whose `execution_id` matches the failed execution, and DELs only those. Avoids the TTL-window block from the previous no-op stub design.
+
+The bare `n8n-lock-` namespace prevents collisions with any unrelated Redis traffic on the same instance. (Pre-task-13 the prefix was `lock-` — short and collision-prone.)
 
 ## `lock_acquisition` node graph (13 nodes)
 

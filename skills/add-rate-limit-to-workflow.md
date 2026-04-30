@@ -29,12 +29,18 @@ Edits `<workspace>/n8n-workflows-template/<wf>.template.json`:
 - Inserts an `If` node testing `={{ $json.allowed === true }}`.
 - Wires the **allowed** branch (`main[0]`) to whatever the trigger originally connected to.
 - Wires the **denied** branch (`main[1]`) per `--on-denied`:
-  - `passthrough` (default) → a `Set` node returning `{ allowed: false, scope, count, limit }`. Workflow exits cleanly with that payload.
-  - `stop` → a `stopAndError` node. Workflow halts with an error message including scope/count/limit.
-  - `error` → same `stopAndError` node — the only difference is intent: pair with `register-workflow-to-error-handler.md` so an error workflow picks up the failure.
+  - `passthrough` (default) → a `Set` node returning `{ allowed: false, scope, count, limit }`. Workflow exits cleanly with that payload. **HTTP-level signal:** if the workflow has a `respondToWebhook` node downstream of the gate, the caller receives a 200 with that JSON body. Without one, the caller sees an empty 200.
+  - `stop` → a `stopAndError` node. Workflow halts with an error message including scope/count/limit. **HTTP-level signal:** webhook callers see HTTP 500 with `{"message":"Error in workflow"}`. The denial is observable at the HTTP layer.
+  - `error` → same `stopAndError` node, paired with `register-workflow-to-error-handler.md` so an error workflow picks up the failure. **HTTP-level signal:** same as `stop` (HTTP 500). Caller-side observability is identical; the difference is server-side routing of the error to a handler.
+
+> **Caller observability note:** with `passthrough`, distinguishing a rate-limit denial from a normal success requires inspecting the response body (`allowed === false`). With `stop`/`error`, distinguish denial from any other workflow error by inspecting `/api/v1/executions` — both produce HTTP 500 with the same error envelope.
 - Recalculates downstream node positions (660 px right shift to make room for the rate-limit + If nodes).
 
 Refuses if `rate_limit_check.template.json` isn't yet in the workspace — run `create-lock --include-rate-limit` first.
+
+## Redis namespace
+
+The rate-limit primitive writes its counter under the `n8n-ratelimit-<scope>-<bucket>` Redis key (post-task-13 namespace; was `ratelimit-<scope>-<bucket>` before). The bucket is `Math.floor(Date.now() / (windowSeconds * 1000))` so it auto-rolls every window. No action needed from the caller — the namespace change is internal to the primitive.
 
 ## Worked example
 
@@ -47,7 +53,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/helpers/create_lock.py --include-rate-limit
 # 2. wire the gate
 python3 ${CLAUDE_PLUGIN_ROOT}/helpers/add_rate_limit_to_workflow.py \
   --workflow-key api_v1_handler \
-  --scope-expression "=api-v1-{{ $json.userId }}" \
+  --scope-expression "={{ 'api-v1-' + \$json.userId }}" \
   --limit 100 \
   --window-seconds 60 \
   --on-denied passthrough
@@ -64,7 +70,7 @@ The bucket key is `ratelimit-api-v1-<userId>-<bucket>` where `<bucket>` rotates 
 ## Caveats
 
 - **Fixed-window boundary burst.** A user can hit `limit=100` near the end of one window and `limit=100` again at the start of the next — up to `2 × limit` across the boundary. Token-bucket is deferred. If you need strict ceiling-per-rolling-window, you'll need an external solution.
-- **Per-scope keys.** Choose `--scope-expression` carefully: a scope of `={{ 'global' }}` rate-limits all callers together; `=api-v1-{{ $json.userId }}` rate-limits per user. Bad scopes either over- or under-throttle.
+- **Per-scope keys.** Choose `--scope-expression` carefully: a scope of `={{ 'global' }}` rate-limits all callers together; `={{ 'api-v1-' + $json.userId }}` rate-limits per user. Bad scopes either over- or under-throttle. Always use the canonical `={{ ... }}` form — bare `=<expr>` is auto-wrapped with a deprecation warning (the helper saves you from the literal-string trap, but write the canonical form anyway).
 - **Redis required.** The rate-limit primitive uses `this.helpers.redis.call('INCR', ...)`. The Redis credential must be reachable from your n8n instance.
 
 ## Pattern

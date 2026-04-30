@@ -37,17 +37,31 @@ After this skill, the user owns the primitives in their workspace. The harness's
 
 The four primitives are sub-workflows that wrap the dedicated `n8n-nodes-base.redis` node:
 
-- `lock_acquisition` uses Redis-native atomic INCR + EXPIRE for acquire, with a GET-poll wait loop for retry-on-contention. 13 nodes total.
-- `lock_release` does a plain Redis DEL. 4 nodes.
-- `error_handler_lock_cleanup` is a no-op stub — orphans self-heal via Redis-side EXPIRE.
-- `rate_limit_check` is a fixed-window INCR counter, 4 nodes.
+- `lock_acquisition` uses Redis-native atomic INCR + EXPIRE for acquire, with a GET-poll wait loop for retry-on-contention. After a successful acquire it writes a JSON identity sidecar at `n8n-lock-<scope>:meta` (lock_id, workflow_id, workflow_name, execution_id, locked_at) for ownership-checked release. 15 nodes total.
+- `lock_release` GETs the meta sidecar, parses, verifies the caller's `lock_id` matches, then DELs both `n8n-lock-<scope>` (counter) and `n8n-lock-<scope>:meta` (identity). Mismatch → StopAndError with `LOGIC ERROR` prefix. Absent meta → idempotent success.
+- `error_handler_lock_cleanup` actively iterates `<env>.yml.lockScopes`, GETs each scope's `:meta`, and DELs only the entries owned by the failed execution (matched by `execution_id`). Empty/missing `lockScopes` → graceful no-op with a config-gap log entry.
+- `rate_limit_check` is a fixed-window INCR counter at `n8n-ratelimit-<scope>-<bucket>`, 4 nodes.
+
+### `lockScopes` env config
+
+For active error-handler cleanup to work, every static lock scope used in your workflows must be registered in `<env>.yml.lockScopes`. `add_lock_to_workflow.py` auto-appends static literal scopes (`={{ "foo" }}`-form) here on each invocation; dynamic scopes (`={{ "lock-" + $json.x }}`) require manual maintenance. Example:
+
+```yaml
+# n8n-config/dev.yml
+lockScopes:
+  - excel-sharepoint-write
+  - cms-row-update
+  - global
+```
+
+`doctor.py` will WARN with verdict `lock-scopes-unregistered` when a deployed workflow's Lock Acquire scope is missing from this list.
 
 For node-graph diagrams + the Redis key namespace, see [`skills/integrations/redis/lock-pattern.md`](integrations/redis/lock-pattern.md). For the safety model (atomic INCR prevents race-on-acquire) and when this pattern is NOT safe enough (multi-region Redis, fairness-required), see [`skills/patterns/locking.md`](patterns/locking.md).
 
 | Primitive | Used by |
 |---|---|
 | `lock_acquisition` + `lock_release` | `add-lock-to-workflow.md` (the standard wrap-a-workflow flow) |
-| `error_handler_lock_cleanup` | `add-lock-to-workflow.md --lock-on-error` (currently a no-op stub; orphans clean up via TTL) |
+| `error_handler_lock_cleanup` | `add-lock-to-workflow.md --lock-on-error` (active cleanup; iterates `<env>.yml.lockScopes`) |
 | `rate_limit_check` | `add-rate-limit-to-workflow.md` |
 
 ## Flag details
