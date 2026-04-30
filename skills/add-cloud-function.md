@@ -1,10 +1,12 @@
 ---
 name: add-cloud-function
-description: Scaffold a Python cloud function under <workspace>/cloud-functions/.
+description: Scaffold a Python serverless function / cloud function / serverless API under <workspace>/cloud-functions/.
 user-invocable: false
 ---
 
 # add-cloud-function
+
+> The terms **serverless function**, **cloud function**, and **serverless API** are used interchangeably here. Internally the harness calls them "cloud functions" because the directory is `cloud-functions/`; pick whichever name your team prefers.
 
 ## When
 

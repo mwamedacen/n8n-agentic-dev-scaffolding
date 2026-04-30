@@ -44,7 +44,7 @@ This is the entry point. When the user asks anything n8n-related, route to the m
 | [deploy-run-assert.md](skills/deploy-run-assert.md) | One-shot validate → deploy → run verify. |
 | [find-skills.md](skills/find-skills.md) | While authoring, find applicable patterns/integrations. |
 | [manage-credentials.md](skills/manage-credentials.md) | Create or link n8n credentials (Path A from `.env.<env>` / Path B from existing UI credential). |
-| [add-cloud-function.md](skills/add-cloud-function.md) | Scaffold a Python cloud function under `<workspace>/cloud-functions/`. |
+| [add-cloud-function.md](skills/add-cloud-function.md) | Scaffold a Python serverless function / cloud function / serverless API under `<workspace>/cloud-functions/`. |
 | [iterate-prompt.md](skills/iterate-prompt.md) | Optimize a prompt against a paired schema + dataset using DSPy. |
 | [test.md](skills/test.md) | Run unit tests over n8n Code-node JS and / or cloud-function Python. |
 

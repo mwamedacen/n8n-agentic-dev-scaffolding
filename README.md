@@ -37,7 +37,7 @@ N8N EVOL I is the structure that takes those problems off the table. Here's what
 
 - **Error handling + observability.** Three-step paradigm — capture (Error Trigger), log (Sentry / Datadog / Slack), process (lock cleanup, DB invalidation, compensating workflows). Sinks fan out in parallel branches so a single sink failing doesn't block the others. `register-workflow-to-error-handler.md` wires any workflow into a workspace's central handler. See [`skills/patterns/error-handling.md`](skills/patterns/error-handling.md) and [`skills/integrations/datadog/README.md`](skills/integrations/datadog/README.md).
 
-- **Cloud function scaffolding.** `add-cloud-function.md` scaffolds a Python function into a FastAPI service in `cloud-functions/` and auto-registers it in the app's router. The service ships with Railway deployment config (`railpack.json`); callable from n8n via HTTP Request nodes. See [`skills/add-cloud-function.md`](skills/add-cloud-function.md).
+- **Serverless functions (a.k.a. cloud functions / serverless APIs).** `add-cloud-function.md` scaffolds a Python function into a FastAPI service in `cloud-functions/` and auto-registers it in the app's router. The service ships with Railway deployment config (`railpack.json`); callable from n8n via HTTP Request nodes. See [`skills/add-cloud-function.md`](skills/add-cloud-function.md).
 
 - **Prompt optimization with DSPy.** `iterate-prompt.md` runs BootstrapFewShot or MIPROv2 against a workspace prompt + schema + dataset, evaluates on structural correctness, and optionally exports the optimized prompt back to disk. Requires `pip install dspy litellm`. See [`skills/iterate-prompt.md`](skills/iterate-prompt.md).
 
