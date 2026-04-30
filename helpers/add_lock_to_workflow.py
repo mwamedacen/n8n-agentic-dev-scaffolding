@@ -2,6 +2,7 @@
 """Insert lock acquire / release Execute Workflow nodes around a workflow's main flow."""
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -14,6 +15,47 @@ _LOCK_ACQUIRE_NODE_NAME = "Lock Acquire"
 _LOCK_RELEASE_NODE_NAME = "Lock Release"
 _DEFAULT_TTL_SECONDS = 86400  # 24h — Redis-side EXPIRE on the lock key
 _DEFAULT_MAX_WAIT_SECONDS = 86400  # 24h — wait-loop deadline; effectively unbounded by default
+
+
+def _normalize_n8n_expression(expr) -> tuple[str, bool]:
+    """Normalize a user-supplied n8n expression for executeWorkflow defineBelow inputs.
+
+    n8n's `executeWorkflow@1.2` in `defineBelow` mode requires the canonical
+    `={{ <js> }}` form for expression evaluation. The bare `=<js>` prefix is
+    treated as a literal string and silently degrades — e.g. `--scope-expression
+    "='foo-' + $json.x"` becomes the literal scope `'foo-' + $json.x`, so every
+    caller hits the same lock regardless of payload. Skill MD historically
+    documented both forms inconsistently; finding #15 from the deep-dive.
+
+    Input shapes:
+      (a) `={{ <js> }}`   — already canonical; pass through, no warning.
+      (b) `=<js>` (bare)  — wrap into `={{ <js> }}`; emit a one-shot deprecation
+                           warning the first time normalization happens.
+      (c) `<literal>`     — no leading `=`; treat as a static scope and wrap as
+                           `={{ "<literal>" }}` (escaped) so the deployed
+                           workflow consistently uses the canonical form.
+      (d) `""` / `None`   — reject with a clear error pointing to the canonical
+                           form. Avoids silent empty-scope-string bugs from
+                           unset env vars.
+
+    Returns `(normalized, was_normalized)`. `was_normalized=True` only for (b)
+    and (c), so the caller can emit the deprecation/auto-wrap notice once.
+    """
+    if expr is None or (isinstance(expr, str) and expr.strip() == ""):
+        raise ValueError(
+            "--scope-expression must be a non-empty string. Use "
+            "'={{ $execution.id }}' for a per-execution scope, "
+            "'={{ \"foo-\" + $json.fileId }}' for a per-resource scope, "
+            "or pass a literal scope like 'global'."
+        )
+    s = str(expr)
+    if s.startswith("={{") and s.rstrip().endswith("}}"):
+        return (s, False)
+    if s.startswith("="):
+        return ("={{ " + s[1:].strip() + " }}", True)
+    # Pure literal — wrap as a JS string expression so the field always uses
+    # the canonical `={{ ... }}` form on the wire.
+    return ('={{ ' + json.dumps(s) + ' }}', True)
 
 
 def _make_execute_workflow_node(
@@ -88,14 +130,30 @@ def _insert_lock(
         pos = n.get("position") or [0, 0]
         n["position"] = [pos[0] + 440, pos[1]]
 
-    # Acquire input contract — the INCR-based lock_acquisition primitive (B-16) takes
-    # five fields. execution_id becomes the lock_id in the primitive's output.
+    # Normalize the user's scope expression to the canonical n8n form.
+    normalized_scope, was_normalized = _normalize_n8n_expression(scope_expr)
+    if was_normalized:
+        print(
+            f"WARNING: --scope-expression normalized to canonical form: {normalized_scope!r}. "
+            "Bare '=<expr>' or literal scopes are auto-wrapped to '={{{{ <expr> }}}}'. "
+            "Update calls to pass the canonical form directly to silence this warning.",
+            file=sys.stderr,
+        )
+
+    # Acquire input contract — task-13 INCR + sidecar-meta primitive takes 8
+    # fields. lock_id is a per-acquire UUID minted in Build Lock Context if not
+    # supplied; we let the primitive default it. workflow_id/name flow through
+    # so the meta sidecar carries identity for ownership-checked release and
+    # active error-handler cleanup.
     acquire_inputs = {
-        "scope": scope_expr,
+        "scope": normalized_scope,
         "ttl_seconds": ttl_seconds,
         "execution_id": "={{ $execution.id }}",
         "wait_till_lock_released": not fail_fast,
         "max_wait_seconds": max_wait_seconds,
+        "lock_id": "={{ $execution.id }}",
+        "workflow_id": "={{ $workflow.id }}",
+        "workflow_name": "={{ $workflow.name }}",
     }
     acquire = _make_execute_workflow_node(
         _LOCK_ACQUIRE_NODE_NAME,
@@ -104,12 +162,13 @@ def _insert_lock(
         acquire_inputs,
     )
 
-    # Release input contract — just scope. The B-16 INCR-based release does a plain DEL;
-    # there's no lock_id ownership check anymore (race-on-acquire is now PREVENTED at
-    # acquire time via INCR atomicity, not detected at release time).
+    # Release input contract — task-13 ownership-checked: pass scope + lock_id.
+    # The release primitive GETs the meta sidecar, compares lock_id, and DELs
+    # only on match. lock_id matches what acquire used ($execution.id by default).
     release_pos = [trigger_pos[0] + 880, trigger_pos[1]]
     release_inputs = {
-        "scope": scope_expr,
+        "scope": normalized_scope,
+        "lock_id": "={{ $execution.id }}",
     }
     release = _make_execute_workflow_node(
         _LOCK_RELEASE_NODE_NAME,
@@ -136,6 +195,70 @@ def _insert_lock(
         connections[_LOCK_ACQUIRE_NODE_NAME] = {"main": [[{"node": _LOCK_RELEASE_NODE_NAME, "type": "main", "index": 0}]]}
 
     return template
+
+
+def _extract_static_scope(scope_expr: str) -> str | None:
+    """Return the static literal scope from a normalized expression, or None.
+
+    Recognized static patterns:
+      - Pure literals (no leading `=`): `"global"` → `"global"`.
+      - Quoted literals inside `={{ "..." }}` or `={{ '...' }}`: `={{ "foo" }}` → `"foo"`.
+    Anything else (template literals with `${...}`, `+ $json...`, function calls)
+    is treated as dynamic and returns None.
+    """
+    if not scope_expr:
+        return None
+    s = scope_expr.strip()
+    if not s.startswith("="):
+        # pure literal (post-normalize this gets wrapped, but we handle pre-wrap too)
+        return s
+    # ={{ <expr> }} canonical form
+    inner_match = re.match(r"^=\{\{\s*(.+?)\s*\}\}$", s, re.DOTALL)
+    if not inner_match:
+        return None
+    inner = inner_match.group(1).strip()
+    # Match a single-quoted or double-quoted string with NO concatenation / interpolation
+    quote_match = re.match(r'^([\'"])(.*)\1$', inner, re.DOTALL)
+    if not quote_match:
+        return None
+    literal = quote_match.group(2)
+    # Reject if backticks/template-literals appear — those imply interpolation
+    if "${" in literal:
+        return None
+    return literal
+
+
+def _auto_register_lock_scopes(workspace: Path, scope_expr: str) -> None:
+    """Append the static literal scope to every <env>.yml.lockScopes (idempotent)."""
+    import re as _re  # local alias to keep this fn dependency-tight
+    static = _extract_static_scope(scope_expr)
+    if static is None:
+        print(
+            "  NOTE: --scope-expression is dynamic (depends on $json or runtime data). "
+            "Active error-handler cleanup requires manual lockScopes maintenance — "
+            "add the resolved scope strings to <env>.yml.lockScopes by hand.",
+            file=sys.stderr,
+        )
+        return
+    config_dir = workspace / "n8n-config"
+    if not config_dir.is_dir():
+        return
+    import yaml as _yaml
+    for yml in sorted(config_dir.glob("*.yml")):
+        if yml.stem in ("common", "deployment_order"):
+            continue
+        try:
+            data = _yaml.safe_load(yml.read_text()) or {}
+        except Exception:
+            continue
+        scopes = data.setdefault("lockScopes", [])
+        if not isinstance(scopes, list):
+            scopes = []
+            data["lockScopes"] = scopes
+        if static not in scopes:
+            scopes.append(static)
+            yml.write_text(_yaml.dump(data, default_flow_style=False, sort_keys=False))
+            print(f"  Registered lockScopes += {static!r} in {yml.name}")
 
 
 def main() -> None:
@@ -189,6 +312,13 @@ def main() -> None:
     )
     template_path.write_text(json.dumps(template, indent=2))
     print(f"  Inserted lock acquire/release in {template_path}")
+
+    # Auto-register the static portion of the scope in <env>.yml.lockScopes so
+    # the active error-handler cleanup can iterate it and DEL only the failed
+    # execution's lock keys. Only static literals are appended — dynamic
+    # expressions (anything containing $json or other runtime refs) are skipped
+    # because there's no way to enumerate them from a static config.
+    _auto_register_lock_scopes(ws, args.scope_expression)
 
     if args.lock_on_error:
         import subprocess

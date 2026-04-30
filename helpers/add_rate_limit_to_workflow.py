@@ -152,6 +152,17 @@ def _insert_rate_limit(
     if on_denied not in _VALID_ON_DENIED:
         raise SystemExit(f"--on-denied must be one of {_VALID_ON_DENIED}; got {on_denied!r}")
 
+    # Reuse the lock helper's normalizer — same n8n expression-form constraints
+    # apply to executeWorkflow defineBelow inputs in this primitive.
+    from helpers.add_lock_to_workflow import _normalize_n8n_expression
+    scope_expr, was_normalized = _normalize_n8n_expression(scope_expr)
+    if was_normalized:
+        print(
+            f"WARNING: --scope-expression normalized to canonical form: {scope_expr!r}. "
+            "Bare '=<expr>' or literal scopes are auto-wrapped to '={{{{ <expr> }}}}'.",
+            file=sys.stderr,
+        )
+
     nodes = template.setdefault("nodes", [])
     connections = template.setdefault("connections", {})
 
