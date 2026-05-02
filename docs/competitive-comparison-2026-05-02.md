@@ -1,7 +1,7 @@
 # Competitive comparison — n8n-evol-I vs n8n-as-code vs @n8n/workflow-sdk
 
 > **Date**: 2026-05-02
-> **Reviewer**: Claude Opus 4.7 (running as `comparator`, an autonomous agent on team `n8n-evol-audit`)
+> **Reviewer**: Claude Opus 4.7
 > **Scope**: side-by-side architectural comparison of three projects in the n8n authoring/ops space — read-only, code-and-design driven.
 > **Methodology**: code + docs only (no live signals)
 
