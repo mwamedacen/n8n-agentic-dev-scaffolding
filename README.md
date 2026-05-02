@@ -5,6 +5,15 @@
 
 A harness to help coding agents build, deploy, maintain, and debug multi-workflow n8n-powered automation systems.
 
+Nothing about the harness is one-way. Build with your agent and push upstream to n8n; tweak directly in the n8n UI and pull downstream back into your workspace. Round-trips are template-stable, so humans and agents can work the same project in parallel without stepping on each other's edits.
+
+```mermaid
+flowchart LR
+    Agent <-->|edits / resync| Workspace
+    Workspace <-->|deploy / resync| n8n[(n8n instance)]
+    n8n <-->|UI edits| Human
+```
+
 ## Features
 
 - **Multi-environment workflows.** Per-env YAML in `n8n-config/<env>.yml` (instance URL, workflow IDs, credential refs); every helper accepts `--env`. See [`bootstrap-env.md`](skills/bootstrap-env.md).
