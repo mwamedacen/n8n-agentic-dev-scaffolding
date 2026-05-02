@@ -165,7 +165,7 @@ graph LR
 
 ## Workspace layout
 
-`init.py` scaffolds an opinionated workspace. Every project has the same shape so the agent never asks where a thing lives:
+`init.py` scaffolds the opinionated default below. If your project already has its own layout, document the mapping in `N8N-WORKSPACE-MEMORY.md` — the agent reads that journal each session and reconciles, so most non-default shapes work fine as long as it can see where each thing actually lives:
 
 ```
 {YOUR_N8N_PROJECT_DIR}/
