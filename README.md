@@ -5,7 +5,7 @@
 
 A harness to help coding agents build, deploy, maintain, and debug multi-workflow n8n-powered automation systems.
 
-Nothing about the harness is one-way. Build with your agent and push upstream to n8n; tweak directly in the n8n UI and pull downstream back into your workspace. Round-trips are template-stable, so humans and agents can work the same project in parallel without stepping on each other's edits.
+No lock-in. Build with your agent and push upstream to n8n; tweak directly in the n8n UI and pull downstream back into your workspace. Round-trips are template-stable, so humans and agents can work the same project in parallel without stepping on each other's edits.
 
 ```mermaid
 flowchart LR
