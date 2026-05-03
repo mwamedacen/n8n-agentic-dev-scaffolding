@@ -37,14 +37,14 @@ n8n/environments/attached.*.yaml
 __pycache__
 
 # Reference inputs for the implementation phase — kept locally, never committed.
-n8n-harness-plan.md
-browser-harness-study.md
-review-issues-log.md
-n8n-harness-rebuild-plan.md
-n8n-harness-code-node-discipline-plan.md
-n8n-harness-coordination-primitives-plan.md
-n8n-harness-debug-plan.md
-n8n-harness-readme-revision-plan.md
-n8n-harness-agents-md-migration-plan.md
-n8n-harness-placeholder-rename-plan.md
-n8n-harness-tidy-and-plugin-plan.md
+docs/n8n-harness-plan.md
+docs/browser-harness-study.md
+docs/review-issues-log.md
+docs/n8n-harness-rebuild-plan.md
+docs/n8n-harness-code-node-discipline-plan.md
+docs/n8n-harness-coordination-primitives-plan.md
+docs/n8n-harness-debug-plan.md
+docs/n8n-harness-readme-revision-plan.md
+docs/n8n-harness-agents-md-migration-plan.md
+docs/n8n-harness-placeholder-rename-plan.md
+docs/n8n-harness-tidy-and-plugin-plan.md
