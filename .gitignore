@@ -31,6 +31,9 @@ n8n/environments/attached.*.yaml
 # n8n-evol-I debug deploys
 .cache/n8n-evol-I/
 
+# Build output
+skill-dist/
+
 # Python build/install artifacts
 *.lock
 *.egg-info
