@@ -1,6 +1,6 @@
 ---
 name: n8n-evol-I
-description: Read-only skill package for authoring, deploying, and operating n8n workflows from code. Routes user requests to lifecycle skills (init, bootstrap-env, create-new-workflow, deploy, run, resync, etc.).
+description: A harness to help coding agents build, deploy, maintain, and debug multi-workflow n8n-powered automation systems. No lock-in — work from the agent, continue from the n8n UI, hand back to the agent at any time.
 ---
 
 # n8n-evol-I skill router
