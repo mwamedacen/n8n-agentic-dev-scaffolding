@@ -76,7 +76,11 @@ def main() -> None:
                         help="Comma-separated env names (default: all envs with a YAML present)")
     parser.add_argument("--with-error-handler", default=None, dest="with_error_handler",
                         help="Workflow key of an existing error handler to wire as settings.errorWorkflow")
-    parser.add_argument("--tier", default=None, help="Tier name in deployment_order.yml (e.g. 'Tier 1')")
+    parser.add_argument("--tier", default="Tier 1",
+                        help="Tier name in deployment_order.yml. Defaults to 'Tier 1' so deploy_all.py "
+                             "picks the workflow up out of the box. Pass an explicit tier name "
+                             "('Tier 0a: leaves' for primitives, 'Tier 2' for downstream callers, etc.) "
+                             "or 'none' to skip deployment_order registration entirely.")
     parser.add_argument("--no-mint", action="store_true", help="Skip the n8n POST step")
     parser.add_argument("--no-template", action="store_true", help="Skip the template-write step")
     args = parser.parse_args()
@@ -108,8 +112,9 @@ def main() -> None:
             print(f"  ERROR registering in env '{env}': {e}", file=sys.stderr)
             sys.exit(1)
 
-    # Step 3: deployment order
-    if args.tier:
+    # Step 3: deployment order. `--tier none` opts out (e.g. workflows you
+    # deploy manually outside deploy_all.py); any other value registers.
+    if args.tier and args.tier.lower() != "none":
         _add_to_deployment_order(ws, args.key, args.tier)
         print(f"  Added '{args.key}' to deployment_order.yml under '{args.tier}'")
 

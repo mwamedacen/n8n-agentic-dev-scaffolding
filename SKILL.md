@@ -28,6 +28,9 @@ This is the entry point. When the user asks anything n8n-related, route to the m
 | [copy-primitive.md](skills/copy-primitive.md) | Copy a single primitive (any) into the workspace. General-purpose; doesn't register. |
 | [add-lock-to-workflow.md](skills/add-lock-to-workflow.md) | Wrap a workflow's main flow in lock acquire/release. |
 | [add-rate-limit-to-workflow.md](skills/add-rate-limit-to-workflow.md) | Gate a workflow's main flow with a Redis-backed fixed-window rate-limit check. |
+| [create-queue.md](skills/create-queue.md) | First-time setup for queue primitive (Redis Streams + atomic-INCR semaphore). |
+| [add-queue-publish-to-workflow.md](skills/add-queue-publish-to-workflow.md) | Wrap a workflow with a producer-side XADD call. |
+| [add-queue-consumer-to-workflow.md](skills/add-queue-consumer-to-workflow.md) | Turn a workflow into a schedule-polled queue consumer with bounded concurrency. |
 | [tidy-workflow.md](skills/tidy-workflow.md) | Apply n8n's canvas-layout algorithm to a workflow template to clean up node positions. |
 | [deploy.md](skills/deploy.md) | Deploy one workflow to one env. |
 | [activate-single-workflow-in-env.md](skills/activate-single-workflow-in-env.md) | Activate after deploy. |
@@ -44,6 +47,7 @@ This is the entry point. When the user asks anything n8n-related, route to the m
 | [deploy-run-assert.md](skills/deploy-run-assert.md) | One-shot validate → deploy → run verify. |
 | [find-skills.md](skills/find-skills.md) | While authoring, find applicable patterns/integrations. |
 | [manage-credentials.md](skills/manage-credentials.md) | Create or link n8n credentials (Path A from `.env.<env>` / Path B from existing UI credential). |
+| [manage-variables.md](skills/manage-variables.md) | Lifecycle for n8n Variables (`$vars.*` — non-credential runtime values, or secret fallback when `$env` is blocked). |
 | [add-cloud-function.md](skills/add-cloud-function.md) | Scaffold a Python serverless function / cloud function / serverless API under `<workspace>/cloud-functions/`. |
 | [iterate-prompt.md](skills/iterate-prompt.md) | Optimize a prompt against a paired schema + dataset using DSPy. |
 | [test.md](skills/test.md) | Run unit tests over n8n Code-node JS and / or cloud-function Python. |
@@ -60,6 +64,7 @@ These are reference docs, not action triggers. Read them while authoring.
 - [skills/patterns/code-node-discipline.md](skills/patterns/code-node-discipline.md)
 - [skills/patterns/llm-providers.md](skills/patterns/llm-providers.md)
 - [skills/patterns/locking.md](skills/patterns/locking.md)
+- [skills/patterns/queues.md](skills/patterns/queues.md)
 - [skills/patterns/pindata-hygiene.md](skills/patterns/pindata-hygiene.md)
 - [skills/patterns/position-recalculation.md](skills/patterns/position-recalculation.md)
 - [skills/patterns/prompt-and-schema-conventions.md](skills/patterns/prompt-and-schema-conventions.md)

@@ -52,5 +52,6 @@ Re-running with the same `--key` against an already-populated YAML row is a no-o
 ## See also
 
 - `skills/patterns/credential-refs.md` — YAML shape + placeholder syntax (reference pattern).
+- [`skills/manage-variables.md`](manage-variables.md) — sibling skill for **n8n Variables** (non-credential runtime values, or secret fallback when `$env` is blocked). Variables ≠ credentials; do not conflate.
 - `skills/integrations/<service>/...md` — per-service `type` strings + service-specific gotchas.
 - [`skills/patterns/agent-api-discipline.md`](patterns/agent-api-discipline.md) — verify `GET /credentials` filter parameters and response shape via Context7 before relying on training-data recall.
