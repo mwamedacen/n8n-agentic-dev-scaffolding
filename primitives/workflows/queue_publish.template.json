@@ -1,8 +1,8 @@
 {
-  "name": "{{@:env:displayName}} Queue Publish{{@:env:workflowNamePostfix}}",
+  "name": "{{@env:displayName}} Queue Publish{{@env:workflowNamePostfix}}",
   "nodes": [
     {
-      "id": "{{@:uuid:qp-trigger}}",
+      "id": "{{@uuid:qp-trigger}}",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -12,7 +12,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qp-context}}",
+      "id": "{{@uuid:qp-context}}",
       "name": "Build Publish Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -23,7 +23,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qp-xadd}}",
+      "id": "{{@uuid:qp-xadd}}",
       "name": "XADD Message",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -41,13 +41,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:qp-output}}",
+      "id": "{{@uuid:qp-output}}",
       "name": "Build Publish Output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

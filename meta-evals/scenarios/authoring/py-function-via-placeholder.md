@@ -4,7 +4,7 @@ category: authoring
 difficulty: medium
 ---
 
-# Python Code node with `{{@:py:...}}` (post-Pyodide caveat)
+# Python Code node with `{{@py:...}}` (post-Pyodide caveat)
 
 ## Prompt
 
@@ -24,7 +24,7 @@ difficulty: medium
 
 - `n8n-functions/py/normalize_label.py` — pure functions only, no top-level statements.
 - `n8n-functions-tests/test_normalize_label.py` — pytest-style.
-- Code node body referencing `{{@:py:n8n-functions/py/normalize_label.py}}`.
+- Code node body referencing `{{@py:n8n-functions/py/normalize_label.py}}`.
 
 ## Expected state changes
 

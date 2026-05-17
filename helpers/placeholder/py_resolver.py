@@ -1,4 +1,4 @@
-"""Resolve {{INTERPOLATE:py:path}} (alias `{{@:py:path}}`) placeholders; emit `MATCH` markers for round-trip.
+"""Resolve {{INTERPOLATE_py:path}} (alias `{{@py:path}}`) placeholders; emit `MATCH` markers for round-trip.
 
 Marker forms:
   - `# MATCH:py:path` — what `resolve()` writes; canonical and only writeable form for
@@ -10,7 +10,7 @@ import json
 import re
 from pathlib import Path
 
-PATTERN = re.compile(r"\{\{(?:INTERPOLATE|@):py:([^}]+)\}\}")
+PATTERN = re.compile(r"\{\{(?:INTERPOLATE_|@)py:([^}]+)\}\}")
 MATCH_OPEN = "# MATCH:py:{path}"
 MATCH_CLOSE = "# /MATCH:py:{path}"
 
@@ -29,13 +29,13 @@ _FORBIDDEN_MARKER_SUBSTRINGS = (
 
 
 def resolve(text: str, workspace: Path) -> str:
-    """Replace {{INTERPOLATE:py:path}} / {{@:py:path}} with JSON-escaped Python content wrapped in `MATCH` markers."""
+    """Replace {{INTERPOLATE_py:path}} / {{@py:path}} with JSON-escaped Python content wrapped in `MATCH` markers."""
 
     def _replace(match: re.Match) -> str:
         rel_path = match.group(1).strip()
         if rel_path.startswith("/"):
             raise ValueError(
-                f"Absolute paths in placeholders are forbidden: {{{{@:py:{rel_path}}}}}"
+                f"Absolute paths in placeholders are forbidden: {{{{@py:{rel_path}}}}}"
             )
         full = workspace / rel_path
         if not full.exists():
@@ -68,12 +68,12 @@ def _walk_strings(obj, fn):
 
 
 def dehydrate(text: str) -> str:
-    """Collapse `MATCH`/`DEHYDRATE`-wrapped Python blocks back to `{{@:py:...}}` placeholders. JSON-aware."""
+    """Collapse `MATCH`/`DEHYDRATE`-wrapped Python blocks back to `{{@py:...}}` placeholders. JSON-aware."""
     data = json.loads(text)
     data = _walk_strings(
         data,
         lambda s: _MARKER_PATTERN.sub(
-            lambda m: "{{@:py:" + m.group(2).strip() + "}}", s
+            lambda m: "{{@py:" + m.group(2).strip() + "}}", s
         ),
     )
     return json.dumps(data, indent=2)

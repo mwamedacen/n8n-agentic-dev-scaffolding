@@ -25,7 +25,7 @@ difficulty: hard
 ## Expected artifacts
 
 - `n8n-config/dev.yml.lockScopes` includes `global` (auto-appended).
-- `risky_workflow.template.json` has `settings.errorWorkflow` pointing at `{{@:env:workflows.error_handler_lock_cleanup.id}}`.
+- `risky_workflow.template.json` has `settings.errorWorkflow` pointing at `{{@env:workflows.error_handler_lock_cleanup.id}}`.
 
 ## Expected state changes
 

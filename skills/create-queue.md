@@ -28,7 +28,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/helpers/create_queue.py \
   - `queue_pop.template.json` (always)
   - `queue_ack.template.json` (always)
   - `error_handler_queue_cleanup.template.json` (with `--include-error-handler`)
-- Registers each in every configured env's YAML (delegates to `create_workflow.py --no-template`). This mints placeholder workflow IDs that callers reference via `{{@:env:workflows.queue_publish.id}}` etc.
+- Registers each in every configured env's YAML (delegates to `create_workflow.py --no-template`). This mints placeholder workflow IDs that callers reference via `{{@env:workflows.queue_publish.id}}` etc.
 - Adds them to `deployment_order.yml` under "Tier 0a: leaves" so they deploy before any caller workflow that depends on them.
 
 ## What you're actually deploying

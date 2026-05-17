@@ -1,8 +1,8 @@
 {
-  "name": "{{@:env:displayName}} Queue Sample Producer{{@:env:workflowNamePostfix}}",
+  "name": "{{@env:displayName}} Queue Sample Producer{{@env:workflowNamePostfix}}",
   "nodes": [
     {
-      "id": "{{@:uuid:qsp-webhook}}",
+      "id": "{{@uuid:qsp-webhook}}",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -13,10 +13,10 @@
         "responseMode": "lastNode",
         "options": {}
       },
-      "webhookId": "{{@:uuid:qsp-webhook-public}}"
+      "webhookId": "{{@uuid:qsp-webhook-public}}"
     },
     {
-      "id": "{{@:uuid:qsp-generate}}",
+      "id": "{{@uuid:qsp-generate}}",
       "name": "Generate Test Payloads",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -27,7 +27,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qsp-publish}}",
+      "id": "{{@uuid:qsp-publish}}",
       "name": "Queue Publish",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -36,7 +36,7 @@
         "source": "database",
         "workflowId": {
           "__rl": true,
-          "value": "{{@:env:workflows.queue_publish.id}}",
+          "value": "{{@env:workflows.queue_publish.id}}",
           "mode": "id"
         },
         "workflowInputs": {
@@ -52,7 +52,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qsp-summary}}",
+      "id": "{{@uuid:qsp-summary}}",
       "name": "Build Summary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

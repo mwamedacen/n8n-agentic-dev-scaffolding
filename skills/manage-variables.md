@@ -24,7 +24,7 @@ Four distinct mechanisms. Pick by what the value is and where it must resolve.
 | **Credential** | n8n DB (encrypted) | Workflow execution (n8n injects per-node) | `credentials.<type>.{id,name}` block on the node | Auth material (API keys, OAuth tokens, DB passwords, header tokens) |
 | **n8n Variable** | n8n DB (plaintext, instance-scoped) | Workflow execution (expression engine) | `={{ $vars.NAME }}` | Runtime non-secret values, OR secrets when `$env` is blocked |
 | **`$env` (host env-var)** | OS env-var passed to the n8n process | Workflow execution (expression engine) | `={{ $env.NAME }}` | Runtime values on self-hosted instances with env access enabled |
-| **Harness env-YAML** | `<workspace>/n8n-config/<env>.yml` | Hydrate time (before deploy — value baked into JSON) | `{{@:env:dotted.path}}` | Deploy-time config that's the same across every execution (workflow IDs, display names, credential IDs) |
+| **Harness env-YAML** | `<workspace>/n8n-config/<env>.yml` | Hydrate time (before deploy — value baked into JSON) | `{{@env:dotted.path}}` | Deploy-time config that's the same across every execution (workflow IDs, display names, credential IDs) |
 
 The big practical split between `$env` and `$vars`: `$env` is the cleanest expression-side mechanism, but **n8n Cloud blocks it by default** and self-hosted instances often lock it down via `N8N_BLOCK_ENV_ACCESS_IN_NODE=true`. When blocked, every reference throws `ExpressionError: access to env vars denied`. Variables are the supported fallback.
 
@@ -67,7 +67,7 @@ Resolution paths, in preference order:
 
 1. **Self-host with env enabled.** Set `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` on the n8n process and restart. Cleanest fix if you control the deployment.
 2. **Replace the `$env.*` reference with `$vars.*`** in the affected templates (the workflow-level change) AND mint the variable via `manage_variables.py create` (the n8n-instance-level change). The harness's primitives stay `$env`-first; per-deployment overrides live in the user's workspace.
-3. **Bake the value at hydrate time** via `{{@:env:...}}` reading from `<env>.yml`. Only works for deploy-time-stable values — every workflow execution reads the value frozen at deploy time, not at execution time.
+3. **Bake the value at hydrate time** via `{{@env:...}}` reading from `<env>.yml`. Only works for deploy-time-stable values — every workflow execution reads the value frozen at deploy time, not at execution time.
 
 Do not switch the shipped primitives from `$env` to `$vars` to work around (2) — that would force every operator onto the variable-creation step even on instances where `$env` works. Variables are an opt-in deployment-specific fallback, not the default.
 

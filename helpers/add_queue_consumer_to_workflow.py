@@ -82,7 +82,7 @@ def _make_schedule_trigger_node(name: str, position: list, interval_expr: str) -
     """Build a scheduleTrigger@1.3 node with rule.interval[0] populated."""
     interval = _parse_schedule_interval(interval_expr)
     return {
-        "id": "{{@:uuid:" + name.lower().replace(" ", "-") + "}}",
+        "id": "{{@uuid:" + name.lower().replace(" ", "-") + "}}",
         "name": name,
         "type": _SCHEDULE_TRIGGER_TYPE,
         "typeVersion": 1.3,
@@ -99,7 +99,7 @@ def _make_if_has_message(name: str, position: list) -> dict:
     """If gate: route on whether the Queue Pop returned a usable message."""
     base_id = name.lower().replace(" ", "-").replace("?", "")
     return {
-        "id": "{{@:uuid:" + base_id + "}}",
+        "id": "{{@uuid:" + base_id + "}}",
         "name": name,
         "type": "n8n-nodes-base.if",
         "typeVersion": 2.2,
@@ -114,7 +114,7 @@ def _make_if_has_message(name: str, position: list) -> dict:
                 },
                 "conditions": [
                     {
-                        "id": "{{@:uuid:" + base_id + "-cond}}",
+                        "id": "{{@uuid:" + base_id + "-cond}}",
                         "leftValue": "={{ $json.empty !== true && $json.at_capacity !== true && $json.dlq_routed !== true }}",
                         "rightValue": True,
                         "operator": {
@@ -287,7 +287,7 @@ def _insert_consumer(
     }
     pop_node = _make_execute_workflow_node(
         _POP_NODE_NAME,
-        "{{@:env:workflows.queue_pop.id}}",
+        "{{@env:workflows.queue_pop.id}}",
         [pop_x, anchor_y],
         pop_inputs,
     )
@@ -301,7 +301,7 @@ def _insert_consumer(
     }
     ack_node = _make_execute_workflow_node(
         _ACK_NODE_NAME,
-        "{{@:env:workflows.queue_ack.id}}",
+        "{{@env:workflows.queue_ack.id}}",
         [ack_x + (shift_amount if not inserted_schedule else 0), anchor_y],
         ack_inputs,
     )

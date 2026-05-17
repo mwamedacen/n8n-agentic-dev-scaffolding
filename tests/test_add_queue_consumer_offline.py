@@ -197,10 +197,10 @@ def test_make_schedule_trigger_node_shape():
 def test_pop_targets_correct_primitive():
     tpl = _insert_consumer(_minimal_template_no_trigger(), **_kwargs())
     pop = next(n for n in tpl["nodes"] if n["name"] == _POP_NODE_NAME)
-    assert pop["parameters"]["workflowId"]["value"] == "{{@:env:workflows.queue_pop.id}}"
+    assert pop["parameters"]["workflowId"]["value"] == "{{@env:workflows.queue_pop.id}}"
 
 
 def test_ack_targets_correct_primitive():
     tpl = _insert_consumer(_minimal_template_no_trigger(), **_kwargs())
     ack = next(n for n in tpl["nodes"] if n["name"] == _ACK_NODE_NAME)
-    assert ack["parameters"]["workflowId"]["value"] == "{{@:env:workflows.queue_ack.id}}"
+    assert ack["parameters"]["workflowId"]["value"] == "{{@env:workflows.queue_ack.id}}"

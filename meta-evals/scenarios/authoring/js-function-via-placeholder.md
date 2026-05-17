@@ -4,7 +4,7 @@ category: authoring
 difficulty: easy
 ---
 
-# Workflow with a JS function injected via `{{@:js:...}}`
+# Workflow with a JS function injected via `{{@js:...}}`
 
 ## Prompt
 
@@ -30,7 +30,7 @@ difficulty: easy
 - `n8n-functions-tests/groupCostByTenant.test.js` with `node:test` cases.
 - Code node body in template:
   ```
-  {{@:js:n8n-functions/js/groupCostByTenant.js}}
+  {{@js:n8n-functions/js/groupCostByTenant.js}}
   const events = $input.all().map(i => i.json);
   return [{ json: { byTenant: groupCostByTenant(events) } }];
   ```

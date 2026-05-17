@@ -39,5 +39,5 @@ difficulty: medium
 ## Pitfalls
 
 - `n8n-workflows-template/daily_report.template.json` is shared across envs. Per-env divergence comes ONLY from `<env>.yml` (workflow ids, credential ids, displayName, postfix).
-- If `daily_report` references a credential like `{{@:env:credentials.shop_api.id}}`, that credential must also exist on staging. Run `manage_credentials.py list-link --env staging --type ... --from-name ...` first if not.
+- If `daily_report` references a credential like `{{@env:credentials.shop_api.id}}`, that credential must also exist on staging. Run `manage_credentials.py list-link --env staging --type ... --from-name ...` first if not.
 - Don't manually copy a deployed workflow's JSON from dev to staging — that bakes in dev's credential ids. Always hydrate per-env.

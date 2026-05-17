@@ -35,7 +35,7 @@ slack:
 {
   "type": "n8n-nodes-base.slack",
   "parameters": {
-    "channel": "{{@:env:slack.alertsChannel}}"
+    "channel": "{{@env:slack.alertsChannel}}"
   }
 }
 ```
@@ -54,7 +54,7 @@ Used inside an n8n error handler, fed by the `Build Context` Code node from [`pa
     "select": "channel",
     "channelId": {
       "__rl": true,
-      "value": "{{@:env:slack.alertsChannel}}",
+      "value": "{{@env:slack.alertsChannel}}",
       "mode": "id"
     },
     "messageType": "block",
@@ -63,8 +63,8 @@ Used inside an n8n error handler, fed by the `Build Context` Code node from [`pa
   },
   "credentials": {
     "slackApi": {
-      "id": "{{@:env:credentials.slack.id}}",
-      "name": "{{@:env:credentials.slack.name}}"
+      "id": "{{@env:credentials.slack.id}}",
+      "name": "{{@env:credentials.slack.name}}"
     }
   }
 }
@@ -98,7 +98,7 @@ When the cleanup step finishes (lock released, DB invalidated, etc.), reply in-t
     "select": "channel",
     "channelId": {
       "__rl": true,
-      "value": "{{@:env:slack.alertsChannel}}",
+      "value": "{{@env:slack.alertsChannel}}",
       "mode": "id"
     },
     "text": "={{ ':white_check_mark: Cleanup complete: ' + $json.cleanup_summary }}",

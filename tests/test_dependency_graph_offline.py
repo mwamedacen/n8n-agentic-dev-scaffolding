@@ -51,7 +51,7 @@ def _alpha_template_calling_beta() -> dict:
                 "parameters": {
                     "workflowId": {
                         "__rl": True,
-                        "value": "{{@:env:workflows.beta.id}}",
+                        "value": "{{@env:workflows.beta.id}}",
                         "mode": "id",
                     },
                 },
@@ -67,7 +67,7 @@ def _alpha_template_calling_beta() -> dict:
             },
         ],
         "settings": {
-            "errorWorkflow": "{{@:env:workflows.handler.id}}",
+            "errorWorkflow": "{{@env:workflows.handler.id}}",
         },
     }
 
@@ -246,34 +246,8 @@ class TestUnknownIdsFallThrough:
         assert g["calls"]["alpha"] == ["wf-mystery-id"]
 
 
-class TestLegacyHydrateFormStillResolved:
-    """Read-side compat: a template that hasn't been migrated still resolves correctly."""
-
-    def test_legacy_HYDRATE_placeholder_still_resolves_to_key(self, tmp_path):
-        ws = _make_workspace(tmp_path)
-        body = {
-            "name": "alpha",
-            "nodes": [
-                {
-                    "name": "Run Beta",
-                    "type": "n8n-nodes-base.executeWorkflow",
-                    "parameters": {
-                        "workflowId": {
-                            "__rl": True,
-                            "value": "{{HYDRATE:env:workflows.beta.id}}",
-                            "mode": "id",
-                        },
-                    },
-                },
-            ],
-            "settings": {"errorWorkflow": "{{HYDRATE:env:workflows.handler.id}}"},
-        }
-        _write_template(ws, "alpha", body)
-
-        from helpers.dependency_graph import build_graph
-        g = build_graph("dev", ws, "template")
-        assert g["calls"]["alpha"] == ["beta"]
-        assert g["error_handlers"]["alpha"] == "handler"
+class TestCanonicalLongFormResolved:
+    """Canonical long-form (INTERPOLATE_) placeholders resolve identically to the short @ alias."""
 
     def test_canonical_INTERPOLATE_form_resolves_to_key(self, tmp_path):
         ws = _make_workspace(tmp_path)
@@ -286,7 +260,7 @@ class TestLegacyHydrateFormStillResolved:
                     "parameters": {
                         "workflowId": {
                             "__rl": True,
-                            "value": "{{INTERPOLATE:env:workflows.beta.id}}",
+                            "value": "{{INTERPOLATE_env:workflows.beta.id}}",
                             "mode": "id",
                         },
                     },

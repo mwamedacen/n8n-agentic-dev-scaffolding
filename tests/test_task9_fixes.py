@@ -33,7 +33,7 @@ def test_finding2_sentinel_guard_blocks_placeholder_value(tmp_path: Path) -> Non
     }))
     (tmp_path / "n8n-config" / ".env.dev").write_text("N8N_API_KEY=test\n")
 
-    text = '{"workflowId":"{{@:env:workflows.foo.id}}"}'
+    text = '{"workflowId":"{{@env:workflows.foo.id}}"}'
     with pytest.raises(ValueError, match=r"[Ss]entinel"):
         resolve(text, "dev", tmp_path)
 
@@ -52,7 +52,7 @@ def test_finding2_sentinel_guard_allows_real_id(tmp_path: Path) -> None:
     }))
     (tmp_path / "n8n-config" / ".env.dev").write_text("N8N_API_KEY=test\n")
 
-    text = '{"workflowId":"{{@:env:workflows.foo.id}}"}'
+    text = '{"workflowId":"{{@env:workflows.foo.id}}"}'
     out = resolve(text, "dev", tmp_path)
     assert out == '{"workflowId":"AB12cdEFghI3JkLm"}'
 
@@ -72,7 +72,7 @@ def test_finding2_sentinel_guard_skips_non_id_paths(tmp_path: Path) -> None:
     }))
     (tmp_path / "n8n-config" / ".env.dev").write_text("N8N_API_KEY=test\n")
 
-    out = resolve('{"name":"{{@:env:displayName}}"}', "dev", tmp_path)
+    out = resolve('{"name":"{{@env:displayName}}"}', "dev", tmp_path)
     assert out == '{"name":"placeholder"}'
 
 

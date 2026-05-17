@@ -1,12 +1,12 @@
-"""Resolve {{INTERPOLATE:uuid:identifier}} (alias `{{@:uuid:identifier}}`) placeholders with fresh UUIDs."""
+"""Resolve {{INTERPOLATE_uuid:identifier}} (alias `{{@uuid:identifier}}`) placeholders with fresh UUIDs."""
 import re
 import uuid
 
-PATTERN = re.compile(r"\{\{(?:INTERPOLATE|@):uuid:([^}]+)\}\}")
+PATTERN = re.compile(r"\{\{(?:INTERPOLATE_|@)uuid:([^}]+)\}\}")
 
 
 def resolve(text: str) -> str:
-    """Replace each {{INTERPOLATE:uuid:identifier}} / {{@:uuid:identifier}} with a fresh UUID v4.
+    """Replace each {{INTERPOLATE_uuid:identifier}} / {{@uuid:identifier}} with a fresh UUID v4.
 
     Each unique identifier gets one consistent UUID within a single resolve call.
     Different identifiers always get different UUIDs.

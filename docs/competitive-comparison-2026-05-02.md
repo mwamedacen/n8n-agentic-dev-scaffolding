@@ -37,7 +37,7 @@ The honest framing: this is not three competitors. **`@n8n/workflow-sdk` is the 
 
 - SDK: fluent builder. `workflow().withName(…).addTrigger(manual()).then(httpRequest({…})).build()` — exported as `workflow`, `node`, `trigger`, `ifElse`, `switchCase`, `merge`, `splitInBatches`, plus AI subnode builders (`languageModel`, `memory`, `tool`, `outputParser`, `embedding`, `vectorStore`, `retriever`, `documentLoader`, `textSplitter`, `fromAi`).
 - n8n-as-code: TypeScript classes with `@workflow` / `@node` decorators (older framing) bridged to an installable ontology of every node and property (current framing). Effectively a typed builder *plus* embedded reference data.
-- n8n-evol-I: JSON template files with `{{@:js|py|txt|json|html|env|uuid:...}}` placeholders that hydrate at deploy time. Lower-level than a typed builder; higher-level than raw n8n JSON because of the placeholder layer.
+- n8n-evol-I: JSON template files with `{{@js|py|txt|json|html|env|uuid:...}}` placeholders that hydrate at deploy time. Lower-level than a typed builder; higher-level than raw n8n JSON because of the placeholder layer.
 
 ### 4. Code-and-data segmentation
 

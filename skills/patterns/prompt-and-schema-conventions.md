@@ -32,18 +32,18 @@ In a workflow template, inject the prompt + schema with placeholders:
   "parameters": {
     "messages": {
       "values": [
-        {"role": "system", "content": "{{@:txt:n8n-prompts/prompts/summary_prompt.txt}}"}
+        {"role": "system", "content": "{{@txt:n8n-prompts/prompts/summary_prompt.txt}}"}
       ]
     },
     "options": {
       "responseFormat": "json_object",
-      "jsonSchema": "{{@:json:n8n-prompts/prompts/summary_schema.json}}"
+      "jsonSchema": "{{@json:n8n-prompts/prompts/summary_schema.json}}"
     }
   }
 }
 ```
 
-`{{@:txt:...}}` inlines text. `{{@:json:...}}` inlines a JSON-stringified version (so it embeds correctly in another JSON value).
+`{{@txt:...}}` inlines text. `{{@json:...}}` inlines a JSON-stringified version (so it embeds correctly in another JSON value).
 
 ## Schema shape
 

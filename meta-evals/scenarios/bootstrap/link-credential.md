@@ -28,7 +28,7 @@ None — `list-link` is read-only on the n8n instance (no credential creation, j
 
 ## Success criteria
 
-- [ ] After the helper, workflows can reference the credential via `{{@:env:credentials.slack.id}}` and `{{@:env:credentials.slack.name}}` placeholders.
+- [ ] After the helper, workflows can reference the credential via `{{@env:credentials.slack.id}}` and `{{@env:credentials.slack.name}}` placeholders.
 - [ ] Re-running with same `--key` is idempotent.
 
 ## Pitfalls

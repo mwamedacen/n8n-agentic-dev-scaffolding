@@ -1,8 +1,8 @@
 {
-  "name": "{{@:env:displayName}} Error Handler Queue Cleanup{{@:env:workflowNamePostfix}}",
+  "name": "{{@env:displayName}} Error Handler Queue Cleanup{{@env:workflowNamePostfix}}",
   "nodes": [
     {
-      "id": "{{@:uuid:eqc-trigger}}",
+      "id": "{{@uuid:eqc-trigger}}",
       "name": "Error Trigger",
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
@@ -10,18 +10,18 @@
       "parameters": {}
     },
     {
-      "id": "{{@:uuid:eqc-prep}}",
+      "id": "{{@uuid:eqc-prep}}",
       "name": "Prepare Stream List",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [208, 0],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\n// Active cleanup: iterate every queue stream the env has registered, KEYS\n// the q:<stream>:permits:* glob, then GET each sidecar and DECR inflight +\n// DEL the permit only when sidecar.execution_id matches the failed run.\n// We deliberately do NOT XACK — the message stays in the PEL and is\n// redelivered by the next XAUTOCLAIM. The failed run's work was\n// incomplete; let the redelivery decide whether to retry or DLQ.\nlet QUEUE_SCOPES;\ntry {\n  QUEUE_SCOPES = {{@:env:queueScopes}};\n} catch (e) {\n  QUEUE_SCOPES = [];\n}\nif (!Array.isArray(QUEUE_SCOPES)) QUEUE_SCOPES = [];\n\nconst errorData = $('Error Trigger').first().json || {};\nconst failed_execution_id = errorData.execution?.id || errorData.executionId || $execution.id || 'unknown';\nconst failed_workflow_id = errorData.workflow?.id || 'unknown';\nconst failed_workflow_name = errorData.workflow?.name || 'unknown';\nconst failed_error_message = errorData.execution?.error?.message || errorData.error?.message || 'unknown';\n\nif (QUEUE_SCOPES.length === 0) {\n  return [{\n    json: {\n      cleaned: false,\n      reason: 'no queueScopes registered in env yaml — add to queueScopes list to enable active cleanup',\n      failed_execution_id,\n      failed_workflow_id,\n      failed_workflow_name,\n      failed_error_message,\n      cleanup_terminal: true,\n    },\n  }];\n}\n\nreturn QUEUE_SCOPES.map(stream => ({\n  json: {\n    stream,\n    permits_glob: `q:${stream}:permits:*`,\n    inflight_key: `q:${stream}:inflight`,\n    failed_execution_id,\n    failed_workflow_id,\n    failed_workflow_name,\n    failed_error_message,\n    cleanup_terminal: false,\n  },\n}));\n"
+        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\n// Active cleanup: iterate every queue stream the env has registered, KEYS\n// the q:<stream>:permits:* glob, then GET each sidecar and DECR inflight +\n// DEL the permit only when sidecar.execution_id matches the failed run.\n// We deliberately do NOT XACK — the message stays in the PEL and is\n// redelivered by the next XAUTOCLAIM. The failed run's work was\n// incomplete; let the redelivery decide whether to retry or DLQ.\nlet QUEUE_SCOPES;\ntry {\n  QUEUE_SCOPES = {{@env:queueScopes}};\n} catch (e) {\n  QUEUE_SCOPES = [];\n}\nif (!Array.isArray(QUEUE_SCOPES)) QUEUE_SCOPES = [];\n\nconst errorData = $('Error Trigger').first().json || {};\nconst failed_execution_id = errorData.execution?.id || errorData.executionId || $execution.id || 'unknown';\nconst failed_workflow_id = errorData.workflow?.id || 'unknown';\nconst failed_workflow_name = errorData.workflow?.name || 'unknown';\nconst failed_error_message = errorData.execution?.error?.message || errorData.error?.message || 'unknown';\n\nif (QUEUE_SCOPES.length === 0) {\n  return [{\n    json: {\n      cleaned: false,\n      reason: 'no queueScopes registered in env yaml — add to queueScopes list to enable active cleanup',\n      failed_execution_id,\n      failed_workflow_id,\n      failed_workflow_name,\n      failed_error_message,\n      cleanup_terminal: true,\n    },\n  }];\n}\n\nreturn QUEUE_SCOPES.map(stream => ({\n  json: {\n    stream,\n    permits_glob: `q:${stream}:permits:*`,\n    inflight_key: `q:${stream}:inflight`,\n    failed_execution_id,\n    failed_workflow_id,\n    failed_workflow_name,\n    failed_error_message,\n    cleanup_terminal: false,\n  },\n}));\n"
       }
     },
     {
-      "id": "{{@:uuid:eqc-if-empty}}",
+      "id": "{{@uuid:eqc-if-empty}}",
       "name": "Has Streams?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -36,7 +36,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:eqc-cond-empty}}",
+              "id": "{{@uuid:eqc-cond-empty}}",
               "leftValue": "={{ $json.cleanup_terminal !== true }}",
               "rightValue": true,
               "operator": {
@@ -52,7 +52,7 @@
       }
     },
     {
-      "id": "{{@:uuid:eqc-keys}}",
+      "id": "{{@uuid:eqc-keys}}",
       "name": "KEYS Permits",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -70,13 +70,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:eqc-fan-out}}",
+      "id": "{{@uuid:eqc-fan-out}}",
       "name": "Fan Out Permit Keys",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -87,7 +87,7 @@
       }
     },
     {
-      "id": "{{@:uuid:eqc-if-keys}}",
+      "id": "{{@uuid:eqc-if-keys}}",
       "name": "Has Permit Keys?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -102,7 +102,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:eqc-cond-keys}}",
+              "id": "{{@uuid:eqc-cond-keys}}",
               "leftValue": "={{ $json.cleanup_terminal !== true }}",
               "rightValue": true,
               "operator": {
@@ -118,7 +118,7 @@
       }
     },
     {
-      "id": "{{@:uuid:eqc-get-permit}}",
+      "id": "{{@uuid:eqc-get-permit}}",
       "name": "GET Permit Body",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -136,13 +136,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:eqc-filter}}",
+      "id": "{{@uuid:eqc-filter}}",
       "name": "Filter Owned Permits",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -153,7 +153,7 @@
       }
     },
     {
-      "id": "{{@:uuid:eqc-if-owned}}",
+      "id": "{{@uuid:eqc-if-owned}}",
       "name": "Owned?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -168,7 +168,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:eqc-cond-owned}}",
+              "id": "{{@uuid:eqc-cond-owned}}",
               "leftValue": "={{ $json.should_release === true }}",
               "rightValue": true,
               "operator": {
@@ -184,7 +184,7 @@
       }
     },
     {
-      "id": "{{@:uuid:eqc-decr}}",
+      "id": "{{@uuid:eqc-decr}}",
       "name": "DECR Inflight",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -202,13 +202,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:eqc-del}}",
+      "id": "{{@uuid:eqc-del}}",
       "name": "DEL Owned Permit",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -226,13 +226,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:eqc-log}}",
+      "id": "{{@uuid:eqc-log}}",
       "name": "Log Cleanup",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

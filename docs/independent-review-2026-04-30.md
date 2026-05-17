@@ -21,7 +21,7 @@ Concrete first-hand evidence:
 - `primitives/workflows/lock_acquisition.template.json:36` is a real `n8n-nodes-base.redis` INCR node with `expire` + `ttl`; full wait-loop at `:137-250`.
 - `helpers/iterate_prompt.py:92` actually `import dspy`, builds a `dspy.Signature` subclass dynamically at `:128-141`, runs `dspy.BootstrapFewShot` or `dspy.MIPROv2`.
 - `primitives/cloud-functions/app.py:7` is a real FastAPI app with `POST /{name}` dispatcher; `railpack.json` ships for Railway deploy.
-- `helpers/validate.py:166-244` has teeth — every code node must reference `{{@:js|py:...}}` file, file must exist, JS must have export trailer, paired test file required.
+- `helpers/validate.py:166-244` has teeth — every code node must reference `{{@js|py:...}}` file, file must exist, JS must have export trailer, paired test file required.
 
 ---
 
@@ -118,7 +118,7 @@ A real, currently-painful gap that the harness does **not** address: **n8n inter
 | Feature | n8n-evol-I | n8n-as-code | Better — why |
 |---|---|---|---|
 | Multi-env config | ✅ YAML + `.env.<env>` | ✅ multi-instance | **n8n-evol-I** — explicit secret segregation |
-| Code/prompt extraction from JSON | ✅ `{{@:js\|py\|html\|...}}` files | ⚠ code lives in TS source | **n8n-evol-I** — separate-files discipline |
+| Code/prompt extraction from JSON | ✅ `{{@js\|py\|html\|...}}` files | ⚠ code lives in TS source | **n8n-evol-I** — separate-files discipline |
 | Type safety on workflow shape | ❌ JSON only | ✅ TS decorators + 537 typed node schemas | **n8n-as-code** — major DX win |
 | Dependency-ordered deploy | ✅ tier YAML | ❌ | **n8n-evol-I** |
 | Distributed locking (Redis) | ✅ acquire/release primitives | ❌ | **n8n-evol-I** |
@@ -154,7 +154,7 @@ A real, currently-painful gap that the harness does **not** address: **n8n inter
 - **Author identity & maturity**: rebrand commit `50d142c rebrand: n8n-harness → n8n-evol-I` is from this week, version is `1.0.0` in `.claude-plugin/plugin.json`, no public release tags. Treat as v0.x in spirit.
 
 Security audit:
-- **Historical CVE — patched, but with a lasting capability asymmetry**: `CVE-2025-68668` (CVSS 9.9, post-auth RCE via Pyodide sandbox escape in n8n's Python Code node, disclosed by @cyera_io 2026-01-16, surfaced via X sweep). **n8n patched this**; Python Code nodes are safe to use today, and the harness's `{{@:py:...}}` placeholder path carries no inherited CVE risk. The lasting consequence is operational, not security: post-patch, **n8n Cloud's Python runtime disallows arbitrary library imports**, while self-hosted users can still install whatever libraries they want in the runtime container. That asymmetry is exactly what `helpers/add_cloud_function.py` + `primitives/cloud-functions/app.py` + `railpack.json` are sized for — Cloud users who need pandas, OCR, ffmpeg, etc. defer that work to an external FastAPI service, callable from n8n via HTTP Request nodes. The harness's cloud-functions feature, previously read as a quirky differentiator, is **load-bearing for Cloud users**.
+- **Historical CVE — patched, but with a lasting capability asymmetry**: `CVE-2025-68668` (CVSS 9.9, post-auth RCE via Pyodide sandbox escape in n8n's Python Code node, disclosed by @cyera_io 2026-01-16, surfaced via X sweep). **n8n patched this**; Python Code nodes are safe to use today, and the harness's `{{@py:...}}` placeholder path carries no inherited CVE risk. The lasting consequence is operational, not security: post-patch, **n8n Cloud's Python runtime disallows arbitrary library imports**, while self-hosted users can still install whatever libraries they want in the runtime container. That asymmetry is exactly what `helpers/add_cloud_function.py` + `primitives/cloud-functions/app.py` + `railpack.json` are sized for — Cloud users who need pandas, OCR, ffmpeg, etc. defer that work to an external FastAPI service, callable from n8n via HTTP Request nodes. The harness's cloud-functions feature, previously read as a quirky differentiator, is **load-bearing for Cloud users**.
 - No `shell=True` anywhere in `helpers/` or `hooks/` (grep verified). `subprocess.run` calls in `deploy_all.py:64`, `add_lock_to_workflow.py:194`, `create_lock.py:53` use arg arrays — no command-injection vector inside the harness itself.
 - `helpers/bootstrap_env.py:36` chmods `.env` to `0600` — good.
 

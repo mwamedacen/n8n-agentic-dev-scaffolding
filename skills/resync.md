@@ -20,6 +20,6 @@ python3 ${CLAUDE_PLUGIN_ROOT}/helpers/resync.py --env <env> --workflow-key <key>
 - Runs the dehydrate pipeline:
   - Strips volatile metadata (id, active, versionId, createdAt, updatedAt, tags, pinData).
   - Restores UUID placeholders by node-name lookup against the existing template.
-  - Reverse-substitutes env values back into `{{@:env:...}}` placeholders.
+  - Reverse-substitutes env values back into `{{@env:...}}` placeholders.
   - Restores JS / Python code blocks by collapsing the round-trip markers (`#:js:` / `MATCH:js:` for JS, `MATCH:py:` for Python; legacy `DEHYDRATE` markers also accepted on read for rollforward).
 - Writes `<workspace>/n8n-workflows-template/<key>.template.json`.

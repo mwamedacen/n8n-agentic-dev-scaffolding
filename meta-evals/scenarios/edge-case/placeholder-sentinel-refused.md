@@ -31,7 +31,7 @@ After bootstrap: a fresh placeholder workflow is minted on n8n with the right id
 
 ## Success criteria
 
-- [ ] Hydrate fails with `ValueError: Sentinel value 'placeholder' resolved for {{@:env:workflows.pricing_calc.id}} in dev.yml. Run \`python3 <harness>/helpers/bootstrap_env.py --env dev\` to mint real IDs.`
+- [ ] Hydrate fails with `ValueError: Sentinel value 'placeholder' resolved for {{@env:workflows.pricing_calc.id}} in dev.yml. Run \`python3 <harness>/helpers/bootstrap_env.py --env dev\` to mint real IDs.`
 - [ ] Agent reads the remediation and runs bootstrap-env, NOT some other workaround.
 - [ ] After bootstrap, deploy succeeds.
 

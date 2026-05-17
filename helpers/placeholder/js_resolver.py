@@ -1,4 +1,4 @@
-"""Resolve {{INTERPOLATE:js:path}} (alias `{{@:js:path}}`) placeholders; emit `#` markers for round-trip.
+"""Resolve {{INTERPOLATE_js:path}} (alias `{{@js:path}}`) placeholders; emit `#` markers for round-trip.
 
 Marker forms:
   - `/* #:js:path */` — preferred form, what `resolve()` writes (and what primitives use).
@@ -10,7 +10,7 @@ import json
 import re
 from pathlib import Path
 
-PATTERN = re.compile(r"\{\{(?:INTERPOLATE|@):js:([^}]+)\}\}")
+PATTERN = re.compile(r"\{\{(?:INTERPOLATE_|@)js:([^}]+)\}\}")
 MATCH_OPEN = "/* #:js:{path} */"
 MATCH_CLOSE = "/* /#:js:{path} */"
 
@@ -26,13 +26,13 @@ _MARKER_PATTERN = re.compile(
 
 
 def resolve(text: str, workspace: Path) -> str:
-    """Replace {{INTERPOLATE:js:path}} / {{@:js:path}} with JSON-escaped file content wrapped in `#` markers."""
+    """Replace {{INTERPOLATE_js:path}} / {{@js:path}} with JSON-escaped file content wrapped in `#` markers."""
 
     def _replace(match: re.Match) -> str:
         rel_path = match.group(1).strip()
         if rel_path.startswith("/"):
             raise ValueError(
-                f"Absolute paths in placeholders are forbidden: {{{{@:js:{rel_path}}}}}"
+                f"Absolute paths in placeholders are forbidden: {{{{@js:{rel_path}}}}}"
             )
         full = workspace / rel_path
         if not full.exists():
@@ -59,12 +59,12 @@ def _walk_strings(obj, fn):
 
 
 def dehydrate(text: str) -> str:
-    """Collapse `#` / `MATCH` / `DEHYDRATE`-wrapped JS blocks back to `{{@:js:...}}` placeholders. JSON-aware."""
+    """Collapse `#` / `MATCH` / `DEHYDRATE`-wrapped JS blocks back to `{{@js:...}}` placeholders. JSON-aware."""
     data = json.loads(text)
     data = _walk_strings(
         data,
         lambda s: _MARKER_PATTERN.sub(
-            lambda m: "{{@:js:" + m.group(2).strip() + "}}", s
+            lambda m: "{{@js:" + m.group(2).strip() + "}}", s
         ),
     )
     return json.dumps(data, indent=2)

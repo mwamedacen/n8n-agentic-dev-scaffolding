@@ -39,7 +39,7 @@ None on the n8n instance.
 ## Pitfalls
 
 - The harness can't tell you WHO edited the workflow or WHEN — that's not in `GET /workflows/{id}`'s response. Operator must check n8n's UI activity log.
-- If the UI editor added a node that the workspace doesn't know about (e.g. a new credential reference), the resynced template will reference a real n8n credential id — which is workspace-non-portable. Either link the credential to the workspace YAML (`manage_credentials.py list-link`) or replace the literal id with a `{{@:env:credentials.<key>.id}}` placeholder by hand.
+- If the UI editor added a node that the workspace doesn't know about (e.g. a new credential reference), the resynced template will reference a real n8n credential id — which is workspace-non-portable. Either link the credential to the workspace YAML (`manage_credentials.py list-link`) or replace the literal id with a `{{@env:credentials.<key>.id}}` placeholder by hand.
 - Round-trip noise (whitespace, leaf UUIDs) inflates the diff. Use `git diff -w` to ignore whitespace-only changes for a quick read.
 
 ## Notes

@@ -122,12 +122,12 @@ def test_release_stop_message_uses_logic_error_prefix() -> None:
 
 def test_error_handler_iterates_lockscopes() -> None:
     """The error handler must reference the `lockScopes` env config (via
-    `{{@:env:lockScopes}}` placeholder) and have a per-scope GET → filter → DEL flow."""
+    `{{@env:lockScopes}}` placeholder) and have a per-scope GET → filter → DEL flow."""
     primitive = _load_primitive("error_handler_lock_cleanup")
     prep = _node(primitive, "Prepare Scope List")
     assert prep is not None
-    assert "{{@:env:lockScopes}}" in prep["parameters"]["jsCode"], (
-        "Error handler must read scopes from env config via {{@:env:lockScopes}} placeholder"
+    assert "{{@env:lockScopes}}" in prep["parameters"]["jsCode"], (
+        "Error handler must read scopes from env config via {{@env:lockScopes}} placeholder"
     )
     # Per-scope GET node must exist
     assert _node(primitive, "GET Scope Meta") is not None

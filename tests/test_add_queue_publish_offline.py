@@ -51,7 +51,7 @@ def test_publish_node_inserted_with_default_inputs():
     tpl = _insert_publish(_minimal_template(), "={{ 'orders' }}")
     pub = _publish_node(tpl)
     assert pub["type"] == "n8n-nodes-base.executeWorkflow"
-    assert pub["parameters"]["workflowId"]["value"] == "{{@:env:workflows.queue_publish.id}}"
+    assert pub["parameters"]["workflowId"]["value"] == "{{@env:workflows.queue_publish.id}}"
     inputs = pub["parameters"]["workflowInputs"]["value"]
     assert inputs["stream"] == "={{ 'orders' }}"
     assert inputs["payload"] == "={{ $json }}"

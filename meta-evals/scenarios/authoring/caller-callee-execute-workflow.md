@@ -28,7 +28,7 @@ difficulty: medium
 ## Expected artifacts
 
 - `n8n-workflows-template/pricing_calc.template.json` with `executeWorkflowTrigger` head + Set or Code body returning `{price: <n>}`.
-- `n8n-workflows-template/order_processing.template.json` with Webhook head and an `executeWorkflow` node referencing `{{@:env:workflows.pricing_calc.id}}` via `mode: id` `__rl: true` shape.
+- `n8n-workflows-template/order_processing.template.json` with Webhook head and an `executeWorkflow` node referencing `{{@env:workflows.pricing_calc.id}}` via `mode: id` `__rl: true` shape.
 - `n8n-config/deployment_order.yml` updated so `pricing_calc` is in Tier 0a and `order_processing` in Tier 1.
 
 ## Expected state changes
@@ -44,5 +44,5 @@ difficulty: medium
 ## Pitfalls
 
 - **n8n Cloud sub-workflow caveat**: callee must be active (n8n's "publish" state) before caller can be activated. n8n's public REST API has NO `/publish` endpoint — `POST /workflows/{id}/activate` IS the publish action. The caveat is documented in `skills/deploy.md`. `deploy_all.py` with proper tier ordering handles this automatically; deploying the caller first directly will 400 on activate.
-- Inside the caller, the executeWorkflow node's `parameters.workflowId` should be in `__rl: true, value: "{{@:env:workflows.pricing_calc.id}}", mode: "id"` shape. typeVersion 1.2 in `defineBelow` mode for `workflowInputs.value` requires expressions in canonical `={{ ... }}` form.
+- Inside the caller, the executeWorkflow node's `parameters.workflowId` should be in `__rl: true, value: "{{@env:workflows.pricing_calc.id}}", mode: "id"` shape. typeVersion 1.2 in `defineBelow` mode for `workflowInputs.value` requires expressions in canonical `={{ ... }}` form.
 - If the agent passes the caller-callee mapping incorrectly and dependency_graph shows no edge, double-check the executeWorkflow node's `workflowId` field — the parser keys on placeholder name, not literal id.
