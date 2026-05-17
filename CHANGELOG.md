@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added `{{@md:...}}` placeholder type alongside `{{@txt:...}}`. Same raw-text semantics, but signals markdown-formatted content to reviewers. Prompt convention is now `<name>_prompt.md` (preferred); `<name>_prompt.txt` still resolves for legacy workspaces. `iterate-prompt --export` mirrors the source extension when writing the optimized variant.
+
 ## v1.0.0 — Read-only skill package + external workspace
 
 The repo is now a **read-only skill package**. All user project state (templates, env config, builds, prompts, JS, assets, cloud functions) lives in a separate workspace at `${PWD}/n8n-evol-I-workspace/`. The harness directory is never modified by the agent at runtime.
@@ -28,7 +32,7 @@ Integrations (per-service quirks): `microsoft-365`, `gmail`, `redis`, `slack`, `
 
 `primitives/cloud-functions/{app, registry}.py + functions/hello_world.py + requirements.txt + railway.toml + railpack.json` — seed for `add-cloud-function`.
 
-`primitives/prompts/{example_summary_prompt.txt, example_summary_schema.json}` — seed for `iterate-prompt`.
+`primitives/prompts/{example_summary_prompt.md, example_summary_schema.json}` — seed for `iterate-prompt`.
 
 ### New workspace contracts
 

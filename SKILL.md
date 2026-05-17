@@ -91,7 +91,8 @@ Templates use `{{@type:path}}` (preferred form) or the canonical long form `{{IN
 | Type | Syntax | Source |
 |---|---|---|
 | `env` | `{{@env:key.path}}` | YAML config value (dot notation) |
-| `txt` | `{{@txt:relative/path.txt}}` | Text file in workspace |
+| `txt` | `{{@txt:relative/path.txt}}` | Plain-text file in workspace |
+| `md` | `{{@md:relative/path.md}}` | Markdown file (preferred for prompts) |
 | `json` | `{{@json:relative/path.json}}` | JSON file (stringified) |
 | `html` | `{{@html:relative/path.html}}` | HTML file |
 | `js` | `{{@js:relative/path.js}}` | JavaScript file |
