@@ -1,13 +1,13 @@
-"""Resolve {{INTERPOLATE_txt|json|html:path}} (alias `{{@...}}`) placeholders against workspace files."""
+"""Resolve {{INTERPOLATE_txt|md|json|html:path}} (alias `{{@...}}`) placeholders against workspace files."""
 import json
 import re
 from pathlib import Path
 
-PATTERN = re.compile(r"\{\{(?:INTERPOLATE_|@)(txt|json|html):([^}]+)\}\}")
+PATTERN = re.compile(r"\{\{(?:INTERPOLATE_|@)(txt|md|json|html):([^}]+)\}\}")
 
 
 def resolve(text: str, workspace: Path) -> str:
-    """Replace all {{INTERPOLATE_txt|json|html:...}} / {{@...}} tokens with file contents."""
+    """Replace all {{INTERPOLATE_txt|md|json|html:...}} / {{@...}} tokens with file contents."""
 
     def _replace(match: re.Match) -> str:
         kind = match.group(1)

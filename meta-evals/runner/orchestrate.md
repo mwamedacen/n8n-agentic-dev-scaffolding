@@ -251,7 +251,7 @@ non-empty `{SCENARIO_RIDER}` for each:
 | Scenario | Rider |
 |---|---|
 | `debug/debug-failed-execution-yesterday` | "Yesterday's failed execution doesn't exist yet — set it up first. Create a workflow with a Code node that throws (`throw new Error('eval test')`). Deploy + activate it. Fire the webhook once. Wait 5 seconds for the execution to be recorded as `error`. THEN proceed as if that execution were 'yesterday's failure' and walk through the debug investigation rubric." |
-| `prompt-iteration/dspy-optimize-prompt-vs-dataset` | "Set up minimal inputs first: write a 5-example dataset to `n8n-prompts/datasets/sample.jsonl`, a small prompt template to `n8n-prompts/prompts/sample.txt`, and a paired schema. Run `iterate_prompt.py` with `--budget 5` to bound LLM cost. Skip if `OPENROUTER_API_KEY` isn't in the env — emit a `## Self-report` noting the skip and explain you would have run the helper otherwise." |
+| `prompt-iteration/dspy-optimize-prompt-vs-dataset` | "Set up minimal inputs first: write a 5-example dataset to `n8n-prompts/datasets/sample.jsonl`, a small prompt template to `n8n-prompts/prompts/sample.md`, and a paired schema. Run `iterate_prompt.py` with `--budget 5` to bound LLM cost. Skip if `OPENROUTER_API_KEY` isn't in the env — emit a `## Self-report` noting the skip and explain you would have run the helper otherwise." |
 | `cloud-functions/deploy-cloud-fn-service` | "You don't have Railway CLI auth. Don't attempt `railway up`. Instead, walk through what you'd tell the user step-by-step (login, link, up, capture URL). Identify the exact `cloudFunctionsBaseUrl` placeholder pattern they should add to their env yaml. Document the manual step in your self-report." |
 
 ## Anti-gaming check

@@ -2,7 +2,9 @@
 """Optimize a prompt against a paired schema + dataset using DSPy.
 
 Pre-call setup the agent must do:
-  - <workspace>/n8n-prompts/prompts/<prompt>_prompt.txt (the prompt body)
+  - <workspace>/n8n-prompts/prompts/<prompt>_prompt.md (the prompt body;
+    `.txt` is also accepted for legacy workspaces — `.md` takes precedence
+    when both exist)
   - <workspace>/n8n-prompts/prompts/<prompt>_schema.json (JSON schema for output)
   - <workspace>/n8n-prompts/datasets/<dataset>.json (list of {input, expected})
 
@@ -32,6 +34,15 @@ def _check_dspy() -> bool:
             file=sys.stderr,
         )
         return False
+
+
+def _resolve_prompt_file(prompts_dir: Path, name: str) -> Path | None:
+    """Return the first existing prompt file for `name`, preferring .md over .txt."""
+    for suffix in (".md", ".txt"):
+        candidate = prompts_dir / f"{name}_prompt{suffix}"
+        if candidate.exists():
+            return candidate
+    return None
 
 
 def _load_dataset(workspace: Path, name: str) -> list:
@@ -94,19 +105,24 @@ def main() -> None:
 
     ws = workspace_root(args.workspace)
     prompts_dir = ws / "n8n-prompts" / "prompts"
-    prompt_file = prompts_dir / f"{args.prompt}_prompt.txt"
+    prompt_file = _resolve_prompt_file(prompts_dir, args.prompt)
     schema_file = prompts_dir / f"{args.prompt}_schema.json"
 
-    if not prompt_file.exists():
+    if prompt_file is None:
         # Fall back to the example primitive prompt (so smoke runs even with empty workspace)
         from helpers.workspace import harness_root
-        seed_prompt = harness_root() / "primitives" / "prompts" / f"{args.prompt}_prompt.txt"
-        seed_schema = harness_root() / "primitives" / "prompts" / f"{args.prompt}_schema.json"
-        if seed_prompt.exists() and seed_schema.exists():
+        seed_dir = harness_root() / "primitives" / "prompts"
+        seed_prompt = _resolve_prompt_file(seed_dir, args.prompt)
+        seed_schema = seed_dir / f"{args.prompt}_schema.json"
+        if seed_prompt is not None and seed_schema.exists():
             instructions = seed_prompt.read_text()
             schema = json.loads(seed_schema.read_text())
+            prompt_file = seed_prompt
         else:
-            print(f"ERROR: prompt file not found: {prompt_file}", file=sys.stderr)
+            print(
+                f"ERROR: prompt file not found: {prompts_dir / (args.prompt + '_prompt.md')}",
+                file=sys.stderr,
+            )
             sys.exit(1)
     else:
         instructions = prompt_file.read_text()
@@ -142,7 +158,7 @@ def main() -> None:
         print(f"Optimized score: {opt_score:.3f}")
 
         if args.export and opt_score >= base_score:
-            out = prompts_dir / f"{args.prompt}_prompt_optimized.txt"
+            out = prompts_dir / f"{args.prompt}_prompt_optimized{prompt_file.suffix}"
             out.write_text(instructions + "\n\n# (optimized via DSPy " + args.optimizer + ")\n")
             print(f"Wrote {out}")
     else:

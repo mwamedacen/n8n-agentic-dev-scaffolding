@@ -38,7 +38,7 @@ n8n-evol-I-workspace/
 │   └── py/                 # pure Python functions injected via {{@py:...}}
 ├── n8n-functions-tests/    # *.test.js / test_*.py — paired tests, required by validator
 ├── n8n-prompts/
-│   ├── prompts/            # *_prompt.txt + *_schema.json
+│   ├── prompts/            # *_prompt.md (or .txt) + *_schema.json
 │   ├── datasets/           # *.json for iterate-prompt
 │   └── evals/
 ├── n8n-assets/

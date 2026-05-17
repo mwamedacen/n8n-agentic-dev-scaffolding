@@ -8,7 +8,7 @@ difficulty: hard
 
 ## Prompt
 
-> "I have a prompt at `n8n-prompts/prompts/categorize_email.txt`, a paired schema at `n8n-prompts/schemas/categorize_email_schema.json`, and 50 labeled examples at `n8n-prompts/datasets/categorize_email.jsonl`. Optimize the prompt for accuracy against the dataset."
+> "I have a prompt at `n8n-prompts/prompts/categorize_email.md`, a paired schema at `n8n-prompts/schemas/categorize_email_schema.json`, and 50 labeled examples at `n8n-prompts/datasets/categorize_email.jsonl`. Optimize the prompt for accuracy against the dataset."
 
 ## Expected skills consulted
 
@@ -22,7 +22,7 @@ difficulty: hard
 ## Expected artifacts
 
 - `n8n-prompts/evals/categorize_email_<timestamp>.md` — the run report (baseline vs optimized scores, exemplars, per-example correctness).
-- `n8n-prompts/prompts/categorize_email.txt` may be updated with the optimized version (depending on `--apply` flag — confirm with user before clobbering).
+- `n8n-prompts/prompts/categorize_email.md` may be updated with the optimized version (depending on `--apply` flag — confirm with user before clobbering).
 
 ## Expected state changes
 
@@ -42,4 +42,4 @@ None on the n8n instance. The optimization is purely prompt-iteration in the wor
 
 ## Notes
 
-This is an LLM-prompt-engineering loop — not an n8n-workflow loop. The optimized prompt eventually gets dropped into a workflow's Code node or HTTP Request body via `{{@txt:n8n-prompts/prompts/categorize_email.txt}}`.
+This is an LLM-prompt-engineering loop — not an n8n-workflow loop. The optimized prompt eventually gets dropped into a workflow's Code node or HTTP Request body via `{{@md:n8n-prompts/prompts/categorize_email.md}}`.

@@ -12,7 +12,7 @@ A prompt under `n8n-prompts/prompts/` needs measurable improvement.
 
 ## Pre-call setup (the agent must do these)
 
-1. Write the prompt body to `<workspace>/n8n-prompts/prompts/<name>_prompt.txt`.
+1. Write the prompt body to `<workspace>/n8n-prompts/prompts/<name>_prompt.md` (preferred; `.txt` is still accepted for legacy workspaces — `.md` wins if both exist).
 2. Write the JSON output schema to `<workspace>/n8n-prompts/prompts/<name>_schema.json`.
 3. Build a dataset of `[{input, expected}]` pairs at `<workspace>/n8n-prompts/datasets/<dataset>.json`.
 
@@ -29,7 +29,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/helpers/iterate_prompt.py --prompt <name> [--datas
 - Loads the prompt, schema, and dataset.
 - Configures DSPy via `OPENAI_API_KEY` / `OPENROUTER_API_KEY` / `ANTHROPIC_API_KEY`.
 - Evaluates baseline, optimizes via the chosen optimizer, evaluates again.
-- With `--export`, if the optimized score ≥ baseline, writes `<name>_prompt_optimized.txt` next to the prompt.
+- With `--export`, if the optimized score ≥ baseline, writes `<name>_prompt_optimized.<ext>` next to the prompt (the extension mirrors the source: `.md` source → `_optimized.md`, `.txt` source → `_optimized.txt`).
 
 ## Optional dep
 

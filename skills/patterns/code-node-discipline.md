@@ -39,7 +39,7 @@ Test files are required and the validator errors if missing. The directory names
 
 ### Path resolution
 
-`{{@js:...}}`, `{{@py:...}}`, `{{@txt:...}}`, `{{@json:...}}`, `{{@html:...}}` placeholder paths are **relative to the workspace root** (the directory containing `n8n-config/`, `n8n-functions/`, `cloud-functions/`, …). They are NOT relative to a default `n8n-functions/js/` prefix.
+`{{@js:...}}`, `{{@py:...}}`, `{{@txt:...}}`, `{{@md:...}}`, `{{@json:...}}`, `{{@html:...}}` placeholder paths are **relative to the workspace root** (the directory containing `n8n-config/`, `n8n-functions/`, `cloud-functions/`, …). They are NOT relative to a default `n8n-functions/js/` prefix.
 
 So `{{@js:n8n-functions/js/aggregate.js}}` resolves to `<workspace>/n8n-functions/js/aggregate.js`. Writing `{{@js:aggregate.js}}` would look for `<workspace>/aggregate.js` — usually a mistake. The validator's `referenced file not found` error reports the full resolved path, so always include the `n8n-functions/js/` (or `n8n-functions/py/`, `n8n-prompts/`, etc.) prefix.
 

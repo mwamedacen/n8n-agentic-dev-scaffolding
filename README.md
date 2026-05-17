@@ -48,7 +48,7 @@ flowchart LR
         "type": "@n8n/n8n-nodes-langchain.openAi",
         "parameters": {
           "messages": [
-            { "role": "system", "content": "{{@txt:n8n-prompts/prompts/score_lead.txt}}" }
+            { "role": "system", "content": "{{@md:n8n-prompts/prompts/score_lead.md}}" }
           ]
         }
       },
@@ -188,7 +188,7 @@ graph LR
 │   └── py/                  # pure Python injected via {{@py:...}}
 ├── n8n-functions-tests/     # *.test.js / test_*.py — paired tests, validator-required
 ├── n8n-prompts/
-│   ├── prompts/             # *_prompt.txt + *_schema.json
+│   ├── prompts/             # *_prompt.md (or .txt) + *_schema.json
 │   ├── datasets/            # *.json for iterate-prompt
 │   └── evals/
 ├── n8n-assets/
