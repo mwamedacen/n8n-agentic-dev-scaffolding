@@ -105,6 +105,37 @@ class TestHydrate:
         data = json.loads((ws / "n8n-build" / "dev" / "smoke.generated.json").read_text())
         assert data["nodes"][0]["parameters"]["prompt"] == "You are a summarizer."
 
+    def test_file_resolver_resolves_markdown(self, tmp_path):
+        ws = _make_workspace(tmp_path)
+        prompts_dir = ws / "n8n-prompts" / "prompts"
+        prompts_dir.mkdir(parents=True)
+        md_body = "# Summarizer — return a title and summary as bullets."
+        (prompts_dir / "summary.md").write_text(md_body)
+
+        template = {
+            "name": "Smoke",
+            "nodes": [
+                {
+                    "name": "Set",
+                    "type": "n8n-nodes-base.set",
+                    "parameters": {"prompt": "{{@md:n8n-prompts/prompts/summary.md}}"},
+                }
+            ],
+            "connections": {},
+            "settings": {},
+        }
+        (ws / "n8n-workflows-template" / "smoke.template.json").write_text(json.dumps(template))
+
+        r = run(
+            str(_harness() / "helpers" / "hydrate.py"),
+            "--workspace", str(ws),
+            "--env", "dev",
+            "--workflow-key", "smoke",
+        )
+        assert r.returncode == 0, r.stderr
+        data = json.loads((ws / "n8n-build" / "dev" / "smoke.generated.json").read_text())
+        assert data["nodes"][0]["parameters"]["prompt"] == md_body
+
     def test_uuid_resolver_consistent_within_template(self, tmp_path):
         ws = _make_workspace(tmp_path)
         template = {
