@@ -10,7 +10,7 @@ The harness ships four primitives backed by the dedicated `n8n-nodes-base.redis`
 
 ## Credential
 
-`redis` credential type. See [`skills/manage-credentials.md`](../../manage-credentials.md). The four primitives all reference it via `{{@:env:credentials.redis.{id,name}}}` placeholders.
+`redis` credential type. See [`skills/manage-credentials.md`](../../manage-credentials.md). The four primitives all reference it via `{{@env:credentials.redis.{id,name}}}` placeholders.
 
 ## Shipped primitives
 
@@ -165,7 +165,7 @@ Boundary-burst caveat: a caller can hit `limit` near the end of one window and `
 Error Trigger
        │
        ▼
-Prepare Scope List (Code: read <env>.yml.lockScopes via {{@:env:lockScopes}};
+Prepare Scope List (Code: read <env>.yml.lockScopes via {{@env:lockScopes}};
                     fan out one item per registered scope with key + meta_key + failed_execution_id;
                     if list is empty, terminate with cleanup_terminal:true and a config-gap log entry)
        │

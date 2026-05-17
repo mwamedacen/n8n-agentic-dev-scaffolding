@@ -1,8 +1,8 @@
 {
-  "name": "{{@:env:displayName}} Queue Pop{{@:env:workflowNamePostfix}}",
+  "name": "{{@env:displayName}} Queue Pop{{@env:workflowNamePostfix}}",
   "nodes": [
     {
-      "id": "{{@:uuid:qpop-trigger}}",
+      "id": "{{@uuid:qpop-trigger}}",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -24,7 +24,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-context}}",
+      "id": "{{@uuid:qpop-context}}",
       "name": "Build Pop Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -35,7 +35,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-xgroup}}",
+      "id": "{{@uuid:qpop-xgroup}}",
       "name": "XGROUP CREATE (idempotent)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -59,13 +59,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:qpop-xautoclaim}}",
+      "id": "{{@uuid:qpop-xautoclaim}}",
       "name": "XAUTOCLAIM Stale",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -83,13 +83,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:qpop-parse-claim}}",
+      "id": "{{@uuid:qpop-parse-claim}}",
       "name": "Parse Claim Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -100,7 +100,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-if-claimed}}",
+      "id": "{{@uuid:qpop-if-claimed}}",
       "name": "Has Claimed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -115,7 +115,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:qpop-cond-claimed}}",
+              "id": "{{@uuid:qpop-cond-claimed}}",
               "leftValue": "={{ $json.has_claimed === true }}",
               "rightValue": true,
               "operator": {
@@ -131,7 +131,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-xreadgroup}}",
+      "id": "{{@uuid:qpop-xreadgroup}}",
       "name": "XREADGROUP Fresh",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -149,13 +149,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:qpop-parse-read}}",
+      "id": "{{@uuid:qpop-parse-read}}",
       "name": "Parse Read Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -166,7 +166,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-merge}}",
+      "id": "{{@uuid:qpop-merge}}",
       "name": "Merge Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -177,7 +177,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-if-message}}",
+      "id": "{{@uuid:qpop-if-message}}",
       "name": "Has Message?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -192,7 +192,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:qpop-cond-message}}",
+              "id": "{{@uuid:qpop-cond-message}}",
               "leftValue": "={{ $json.has_message === true }}",
               "rightValue": true,
               "operator": {
@@ -208,7 +208,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-empty}}",
+      "id": "{{@uuid:qpop-empty}}",
       "name": "Empty Output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -219,7 +219,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-xpending}}",
+      "id": "{{@uuid:qpop-xpending}}",
       "name": "XPENDING Lookup",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -237,13 +237,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:qpop-check-dlq}}",
+      "id": "{{@uuid:qpop-check-dlq}}",
       "name": "Check DLQ Threshold",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -254,7 +254,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-if-dlq}}",
+      "id": "{{@uuid:qpop-if-dlq}}",
       "name": "Should DLQ?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -269,7 +269,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:qpop-cond-dlq}}",
+              "id": "{{@uuid:qpop-cond-dlq}}",
               "leftValue": "={{ $json.should_dlq === true }}",
               "rightValue": true,
               "operator": {
@@ -285,7 +285,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-xadd-dlq}}",
+      "id": "{{@uuid:qpop-xadd-dlq}}",
       "name": "XADD to DLQ",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -303,13 +303,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:qpop-xack-dlq}}",
+      "id": "{{@uuid:qpop-xack-dlq}}",
       "name": "XACK Off Main (DLQ path)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -327,13 +327,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:qpop-dlq-output}}",
+      "id": "{{@uuid:qpop-dlq-output}}",
       "name": "DLQ-Routed Output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -344,7 +344,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-incr}}",
+      "id": "{{@uuid:qpop-incr}}",
       "name": "INCR Inflight",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -362,13 +362,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:qpop-cap-gate}}",
+      "id": "{{@uuid:qpop-cap-gate}}",
       "name": "Capacity Gate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -379,7 +379,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-if-cap}}",
+      "id": "{{@uuid:qpop-if-cap}}",
       "name": "Over Capacity?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -394,7 +394,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:qpop-cond-cap}}",
+              "id": "{{@uuid:qpop-cond-cap}}",
               "leftValue": "={{ $json.over_capacity === true }}",
               "rightValue": true,
               "operator": {
@@ -410,7 +410,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-decr-rollback}}",
+      "id": "{{@uuid:qpop-decr-rollback}}",
       "name": "DECR Rollback",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -428,13 +428,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:qpop-at-cap}}",
+      "id": "{{@uuid:qpop-at-cap}}",
       "name": "At-Capacity Output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -445,7 +445,7 @@
       }
     },
     {
-      "id": "{{@:uuid:qpop-set-permit}}",
+      "id": "{{@uuid:qpop-set-permit}}",
       "name": "SET Permit Sidecar",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -463,13 +463,13 @@
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "{{@:env:credentials.redis_rest.id}}",
-          "name": "{{@:env:credentials.redis_rest.name}}"
+          "id": "{{@env:credentials.redis_rest.id}}",
+          "name": "{{@env:credentials.redis_rest.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:qpop-success}}",
+      "id": "{{@uuid:qpop-success}}",
       "name": "Build Success Output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

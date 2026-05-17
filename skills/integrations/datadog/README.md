@@ -23,7 +23,7 @@ Store as `.env.<env>`:
 DD_API_KEY=<your-key>
 ```
 
-Resolve via `{{@:env:credentials.datadog.id}}` / `{{@:env:credentials.datadog.name}}` after running `manage-credentials` to register the n8n credential. See [`skills/manage-credentials.md`](../../manage-credentials.md).
+Resolve via `{{@env:credentials.datadog.id}}` / `{{@env:credentials.datadog.name}}` after running `manage-credentials` to register the n8n credential. See [`skills/manage-credentials.md`](../../manage-credentials.md).
 
 ## Endpoint
 
@@ -61,7 +61,7 @@ datadog:
   apiKeyEnv: "DD_API_KEY"
 ```
 
-Then `={{ $env.DD_ENDPOINT || 'https://api.datadoghq.com' }}` in the URL field, or use a `{{@:env:datadog.endpoint}}` placeholder.
+Then `={{ $env.DD_ENDPOINT || 'https://api.datadoghq.com' }}` in the URL field, or use a `{{@env:datadog.endpoint}}` placeholder.
 
 ## Worked example: HTTP Request POST event
 
@@ -90,8 +90,8 @@ Inside an n8n error handler, fed by the `Build Context` Code node from [`pattern
   },
   "credentials": {
     "httpHeaderAuth": {
-      "id": "{{@:env:credentials.datadog.id}}",
-      "name": "{{@:env:credentials.datadog.name}}"
+      "id": "{{@env:credentials.datadog.id}}",
+      "name": "{{@env:credentials.datadog.name}}"
     }
   }
 }
@@ -148,7 +148,7 @@ The standard tags from [`patterns/error-handling.md`](../../patterns/error-handl
 | `workflow:` | `={{ $workflow.name }}` |
 | `workflow_id:` | `={{ $workflow.id }}` |
 | `execution:` | `={{ $workflow.errorData?.execution?.id || $execution.id }}` |
-| `env:` | `{{@:env:name}}` |
+| `env:` | `{{@env:name}}` |
 | `last_node:` | `={{ $workflow.errorData?.lastNodeExecuted }}` |
 
 Add business-relevant tags (`scope:`, `user_id:`, `tenant_id:`) for triage filtering.
@@ -172,8 +172,8 @@ If you'd rather ship to Datadog Logs (full-text search, longer retention):
   },
   "credentials": {
     "httpHeaderAuth": {
-      "id": "{{@:env:credentials.datadog.id}}",
-      "name": "{{@:env:credentials.datadog.name}}"
+      "id": "{{@env:credentials.datadog.id}}",
+      "name": "{{@env:credentials.datadog.name}}"
     }
   }
 }

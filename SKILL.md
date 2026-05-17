@@ -86,14 +86,14 @@ These are reference docs, not action triggers. Read them while authoring.
 
 ## Placeholder syntax (workflow templates)
 
-Templates use `{{@:type:path}}` (preferred form) or the canonical long form `{{INTERPOLATE:type:path}}`. The two are equivalent — `@` is an alias for `INTERPOLATE`. Examples below use the `@` form.
+Templates use `{{@type:path}}` (preferred form) or the canonical long form `{{INTERPOLATE_type:path}}`. The two are equivalent — `@` is an alias for `INTERPOLATE_`. Examples below use the `@` form.
 
 | Type | Syntax | Source |
 |---|---|---|
-| `env` | `{{@:env:key.path}}` | YAML config value (dot notation) |
-| `txt` | `{{@:txt:relative/path.txt}}` | Text file in workspace |
-| `json` | `{{@:json:relative/path.json}}` | JSON file (stringified) |
-| `html` | `{{@:html:relative/path.html}}` | HTML file |
-| `js` | `{{@:js:relative/path.js}}` | JavaScript file |
-| `py` | `{{@:py:relative/path.py}}` | Python file (Code-node `language: python`) |
-| `uuid` | `{{@:uuid:identifier}}` | Fresh UUID v4 (consistent within one hydration) |
+| `env` | `{{@env:key.path}}` | YAML config value (dot notation) |
+| `txt` | `{{@txt:relative/path.txt}}` | Text file in workspace |
+| `json` | `{{@json:relative/path.json}}` | JSON file (stringified) |
+| `html` | `{{@html:relative/path.html}}` | HTML file |
+| `js` | `{{@js:relative/path.js}}` | JavaScript file |
+| `py` | `{{@py:relative/path.py}}` | Python file (Code-node `language: python`) |
+| `uuid` | `{{@uuid:identifier}}` | Fresh UUID v4 (consistent within one hydration) |

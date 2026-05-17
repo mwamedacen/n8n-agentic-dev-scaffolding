@@ -22,8 +22,8 @@ difficulty: easy
 
 - `n8n-workflows-template/report_v2.template.json` updated with the staging-side changes, with:
   - Volatile metadata stripped (id, active, versionId, createdAt, updatedAt, tags, pinData, description, staticData, activeVersionId, versionCounter, activeVersion).
-  - Env values reverse-substituted back to `{{@:env:displayName}}`, `{{@:env:workflowNamePostfix}}`, etc.
-  - JS / Python code blocks collapsed back to `{{@:js:...}}` / `{{@:py:...}}` placeholders via round-trip markers.
+  - Env values reverse-substituted back to `{{@env:displayName}}`, `{{@env:workflowNamePostfix}}`, etc.
+  - JS / Python code blocks collapsed back to `{{@js:...}}` / `{{@py:...}}` placeholders via round-trip markers.
   - UUID placeholders restored on top-level node `id` fields by node-name lookup against the prior template.
 
 ## Expected state changes
@@ -34,7 +34,7 @@ None on the n8n instance — resync is GET-only.
 
 - [ ] `git diff n8n-workflows-template/report_v2.template.json` shows only the meaningful changes from staging (typically <30 meaningful lines after task-9 metadata strip extension).
 - [ ] No leaked `description: null`, `staticData: null`, etc. in the diff.
-- [ ] The existing `{{@:env:...}}` and `{{@:js:...}}` placeholders are preserved — not replaced with their substituted values.
+- [ ] The existing `{{@env:...}}` and `{{@js:...}}` placeholders are preserved — not replaced with their substituted values.
 
 ## Pitfalls
 

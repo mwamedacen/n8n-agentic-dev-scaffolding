@@ -13,7 +13,7 @@ difficulty: easy
 ## Expected skills consulted
 
 1. `skills/create-new-workflow.md`
-2. `skills/patterns/code-node-discipline.md` (for the `{{@:js:...}}` placeholder + paired test convention)
+2. `skills/patterns/code-node-discipline.md` (for the `{{@js:...}}` placeholder + paired test convention)
 3. `skills/validate.md` and `skills/deploy.md`
 
 ## Expected helpers invoked
@@ -42,7 +42,7 @@ difficulty: easy
 
 ## Pitfalls
 
-- The `{{@:js:...}}` path must be relative to the workspace root: `{{@:js:n8n-functions/js/greet.js}}`, not `{{@:js:greet.js}}`. Validator catches the latter with a clear "file not found" error reporting the resolved path.
+- The `{{@js:...}}` path must be relative to the workspace root: `{{@js:n8n-functions/js/greet.js}}`, not `{{@js:greet.js}}`. Validator catches the latter with a clear "file not found" error reporting the resolved path.
 - Code-node body must keep n8n glue (`$input`, `return [{json: ...}]`) OUTSIDE the function file. Validator rejects top-level statements in the pure-function file.
 - Without the `module.exports` trailer, validator hard-fails — the trailer is mandatory for the paired test to import the function.
 

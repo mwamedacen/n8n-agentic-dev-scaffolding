@@ -1,8 +1,8 @@
 {
-  "name": "{{@:env:displayName}} Lock Release{{@:env:workflowNamePostfix}}",
+  "name": "{{@env:displayName}} Lock Release{{@env:workflowNamePostfix}}",
   "nodes": [
     {
-      "id": "{{@:uuid:lr-trigger}}",
+      "id": "{{@uuid:lr-trigger}}",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -17,7 +17,7 @@
       }
     },
     {
-      "id": "{{@:uuid:lr-prep}}",
+      "id": "{{@uuid:lr-prep}}",
       "name": "Build Release Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -28,7 +28,7 @@
       }
     },
     {
-      "id": "{{@:uuid:lr-get-meta}}",
+      "id": "{{@uuid:lr-get-meta}}",
       "name": "GET Lock Meta",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
@@ -42,13 +42,13 @@
       },
       "credentials": {
         "redis": {
-          "id": "{{@:env:credentials.redis.id}}",
-          "name": "{{@:env:credentials.redis.name}}"
+          "id": "{{@env:credentials.redis.id}}",
+          "name": "{{@env:credentials.redis.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:lr-parse}}",
+      "id": "{{@uuid:lr-parse}}",
       "name": "Parse + Verify Ownership",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -59,7 +59,7 @@
       }
     },
     {
-      "id": "{{@:uuid:lr-if-match}}",
+      "id": "{{@uuid:lr-if-match}}",
       "name": "Match?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -74,7 +74,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:lr-cond-match}}",
+              "id": "{{@uuid:lr-cond-match}}",
               "leftValue": "={{ $json.is_match }}",
               "rightValue": true,
               "operator": {
@@ -90,7 +90,7 @@
       }
     },
     {
-      "id": "{{@:uuid:lr-del-counter}}",
+      "id": "{{@uuid:lr-del-counter}}",
       "name": "DEL Lock Counter",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
@@ -101,13 +101,13 @@
       },
       "credentials": {
         "redis": {
-          "id": "{{@:env:credentials.redis.id}}",
-          "name": "{{@:env:credentials.redis.name}}"
+          "id": "{{@env:credentials.redis.id}}",
+          "name": "{{@env:credentials.redis.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:lr-del-meta}}",
+      "id": "{{@uuid:lr-del-meta}}",
       "name": "DEL Lock Meta",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
@@ -118,13 +118,13 @@
       },
       "credentials": {
         "redis": {
-          "id": "{{@:env:credentials.redis.id}}",
-          "name": "{{@:env:credentials.redis.name}}"
+          "id": "{{@env:credentials.redis.id}}",
+          "name": "{{@env:credentials.redis.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:lr-result}}",
+      "id": "{{@uuid:lr-result}}",
       "name": "Build Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -135,7 +135,7 @@
       }
     },
     {
-      "id": "{{@:uuid:lr-stop-mismatch}}",
+      "id": "{{@uuid:lr-stop-mismatch}}",
       "name": "Ownership Mismatch — Stop",
       "type": "n8n-nodes-base.stopAndError",
       "typeVersion": 1,

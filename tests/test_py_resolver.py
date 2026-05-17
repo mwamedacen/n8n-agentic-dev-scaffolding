@@ -45,7 +45,7 @@ def test_multiline_python_with_docstring_produces_valid_json(tmp_path):
     py_file = fn_dir / "calculate_stats_by_category.py"
     py_file.write_text(CALC_STATS_PY)
 
-    raw = _workflow_json("{{@:py:n8n-functions/py/calculate_stats_by_category.py}}")
+    raw = _workflow_json("{{@py:n8n-functions/py/calculate_stats_by_category.py}}")
     out = py_resolver.resolve(raw, tmp_path)
 
     data = json.loads(out)
@@ -63,7 +63,7 @@ def test_canonical_INTERPOLATE_form_also_accepted(tmp_path):
     fn_dir.mkdir(parents=True)
     (fn_dir / "calculate_stats_by_category.py").write_text(CALC_STATS_PY)
 
-    raw = _workflow_json("{{INTERPOLATE:py:n8n-functions/py/calculate_stats_by_category.py}}")
+    raw = _workflow_json("{{INTERPOLATE_py:n8n-functions/py/calculate_stats_by_category.py}}")
     out = py_resolver.resolve(raw, tmp_path)
     data = json.loads(out)
     assert "def calculate_stats_by_category(articles):" in data["nodes"][0]["parameters"]["pythonCode"]
@@ -88,7 +88,7 @@ def test_glue_survives_hydrate(tmp_path):
     (fn_dir / "calculate_stats_by_category.py").write_text(CALC_STATS_PY)
 
     glue = (
-        "{{@:py:n8n-functions/py/calculate_stats_by_category.py}}\n"
+        "{{@py:n8n-functions/py/calculate_stats_by_category.py}}\n"
         "\n"
         'body = items[0]["json"]\n'
         'articles = body.get("articles", [])\n'
@@ -112,7 +112,7 @@ def test_round_trip_restores_placeholder_and_glue(tmp_path):
     (fn_dir / "calculate_stats_by_category.py").write_text(CALC_STATS_PY)
 
     glue = (
-        "{{@:py:n8n-functions/py/calculate_stats_by_category.py}}\n"
+        "{{@py:n8n-functions/py/calculate_stats_by_category.py}}\n"
         "\n"
         'articles = items[0]["json"].get("articles", [])\n'
         'return [{"json": {"stats": calculate_stats_by_category(articles)}}]\n'
@@ -123,7 +123,7 @@ def test_round_trip_restores_placeholder_and_glue(tmp_path):
 
     data = json.loads(dehydrated)
     code = data["nodes"][0]["parameters"]["pythonCode"]
-    assert "{{@:py:n8n-functions/py/calculate_stats_by_category.py}}" in code
+    assert "{{@py:n8n-functions/py/calculate_stats_by_category.py}}" in code
     assert 'articles = items[0]["json"].get("articles", [])' in code
     assert 'return [{"json": {"stats": calculate_stats_by_category(articles)}}]' in code
     assert "# MATCH:py:" not in code
@@ -131,7 +131,7 @@ def test_round_trip_restores_placeholder_and_glue(tmp_path):
 
 
 def test_legacy_DEHYDRATE_marker_collapses_on_dehydrate(tmp_path):
-    """A workflow with the old `# DEHYDRATE:py:...` markers must still collapse back to a `{{@:py:...}}` placeholder."""
+    """A workflow with the old `# DEHYDRATE:py:...` markers must still collapse back to a `{{@py:...}}` placeholder."""
     rel_path = "n8n-functions/py/calculate_stats_by_category.py"
     legacy_pycode = (
         f"# DEHYDRATE:py:{rel_path}\n"
@@ -143,7 +143,7 @@ def test_legacy_DEHYDRATE_marker_collapses_on_dehydrate(tmp_path):
     raw = _workflow_json(legacy_pycode)
     dehydrated = py_resolver.dehydrate(raw)
     code = json.loads(dehydrated)["nodes"][0]["parameters"]["pythonCode"]
-    assert "{{@:py:" + rel_path + "}}" in code
+    assert "{{@py:" + rel_path + "}}" in code
     assert "# DEHYDRATE:py:" not in code
 
 
@@ -156,7 +156,7 @@ def test_resolve_raises_on_legacy_DEHYDRATE_marker_collision(tmp_path):
         "    # DEHYDRATE:py:somewhere this is bad\n"
         "    return 1\n"
     )
-    raw = _workflow_json("{{@:py:n8n-functions/py/naughty.py}}")
+    raw = _workflow_json("{{@py:n8n-functions/py/naughty.py}}")
     with pytest.raises(ValueError, match="MATCH/DEHYDRATE marker"):
         py_resolver.resolve(raw, tmp_path)
 
@@ -165,7 +165,7 @@ def test_resolve_raises_on_close_marker_collision(tmp_path):
     fn_dir = tmp_path / "n8n-functions" / "py"
     fn_dir.mkdir(parents=True)
     (fn_dir / "naughty.py").write_text("# /DEHYDRATE:py:trailing\n")
-    raw = _workflow_json("{{@:py:n8n-functions/py/naughty.py}}")
+    raw = _workflow_json("{{@py:n8n-functions/py/naughty.py}}")
     with pytest.raises(ValueError, match="MATCH/DEHYDRATE marker"):
         py_resolver.resolve(raw, tmp_path)
 
@@ -179,7 +179,7 @@ def test_resolve_raises_on_new_MATCH_marker_collision(tmp_path):
         "    # MATCH:py:somewhere this is bad\n"
         "    return 1\n"
     )
-    raw = _workflow_json("{{@:py:n8n-functions/py/naughty.py}}")
+    raw = _workflow_json("{{@py:n8n-functions/py/naughty.py}}")
     with pytest.raises(ValueError, match="MATCH/DEHYDRATE marker"):
         py_resolver.resolve(raw, tmp_path)
 
@@ -206,13 +206,13 @@ def test_dehydrate_leaves_unrelated_strings_alone(tmp_path):
 
 
 def test_resolve_rejects_absolute_paths(tmp_path):
-    raw = _workflow_json("{{@:py:/abs/path.py}}")
+    raw = _workflow_json("{{@py:/abs/path.py}}")
     with pytest.raises(ValueError, match="Absolute paths"):
         py_resolver.resolve(raw, tmp_path)
 
 
 def test_resolve_raises_on_missing_file(tmp_path):
-    raw = _workflow_json("{{@:py:n8n-functions/py/missing.py}}")
+    raw = _workflow_json("{{@py:n8n-functions/py/missing.py}}")
     with pytest.raises(FileNotFoundError):
         py_resolver.resolve(raw, tmp_path)
 
@@ -239,7 +239,7 @@ def test_hydrate_dehydrate_full_round_trip(tmp_path):
     (ws / "n8n-config" / ".env.dev").write_text("N8N_API_KEY=fake\n")
 
     glue = (
-        "{{@:py:n8n-functions/py/calculate_stats_by_category.py}}\n"
+        "{{@py:n8n-functions/py/calculate_stats_by_category.py}}\n"
         "\n"
         'body = items[0]["json"]\n'
         'articles = body.get("articles", [])\n'
@@ -250,7 +250,7 @@ def test_hydrate_dehydrate_full_round_trip(tmp_path):
         "name": "Smoke",
         "nodes": [
             {
-                "id": "{{@:uuid:code-id}}",
+                "id": "{{@uuid:code-id}}",
                 "name": "Code",
                 "type": "n8n-nodes-base.code",
                 "parameters": {"language": "python", "pythonCode": glue},
@@ -273,7 +273,7 @@ def test_hydrate_dehydrate_full_round_trip(tmp_path):
     # Residual catcher: no INTERPOLATE/@/HYDRATE form should survive a successful hydrate.
     built_text = json.dumps(built)
     assert "{{INTERPOLATE" not in built_text
-    assert "{{@:" not in built_text
+    assert "{{@" not in built_text
     assert "{{HYDRATE" not in built_text
 
     live_returned = dict(built)
@@ -286,7 +286,7 @@ def test_hydrate_dehydrate_full_round_trip(tmp_path):
     round_tripped = json.loads(dehydrated_text)
     code_after_dehydrate = round_tripped["nodes"][0]["parameters"]["pythonCode"]
 
-    assert "{{@:py:n8n-functions/py/calculate_stats_by_category.py}}" in code_after_dehydrate
+    assert "{{@py:n8n-functions/py/calculate_stats_by_category.py}}" in code_after_dehydrate
     assert 'body = items[0]["json"]' in code_after_dehydrate
     assert "# MATCH:py:" not in code_after_dehydrate
     assert "# DEHYDRATE:py:" not in code_after_dehydrate

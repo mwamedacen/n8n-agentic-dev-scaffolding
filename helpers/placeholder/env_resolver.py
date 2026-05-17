@@ -1,4 +1,4 @@
-"""Resolve {{INTERPOLATE:env:key.path}} (alias `{{@:env:key.path}}`) placeholders against loaded YAML config."""
+"""Resolve {{INTERPOLATE_env:key.path}} (alias `{{@env:key.path}}`) placeholders against loaded YAML config."""
 import json
 import re
 from pathlib import Path
@@ -6,7 +6,7 @@ from typing import Any
 
 from helpers.config import get_config_value, load_yaml, load_env
 
-PATTERN = re.compile(r"\{\{(?:INTERPOLATE|@):env:([^}]+)\}\}")
+PATTERN = re.compile(r"\{\{(?:INTERPOLATE_|@)env:([^}]+)\}\}")
 
 # Bootstrap-env writes these sentinel ids into a workflow YAML row before
 # the n8n placeholder workflow has actually been minted. If hydrate sees
@@ -23,7 +23,7 @@ def _is_sentinel(val: str) -> bool:
 
 
 def resolve(text: str, env_name: str, workspace: Path) -> str:
-    """Replace all {{INTERPOLATE:env:...}} / {{@:env:...}} tokens in text with config values."""
+    """Replace all {{INTERPOLATE_env:...}} / {{@env:...}} tokens in text with config values."""
     data = load_yaml(env_name, workspace)
     load_env(env_name, workspace)
 
@@ -32,7 +32,7 @@ def resolve(text: str, env_name: str, workspace: Path) -> str:
         try:
             val = get_config_value(data, dot_path)
         except KeyError:
-            raise ValueError(f"Placeholder {{{{@:env:{dot_path}}}}} not found in {env_name}.yml")
+            raise ValueError(f"Placeholder {{{{@env:{dot_path}}}}} not found in {env_name}.yml")
         # List/dict values: emit a JSON-escaped JSON literal, suitable for
         # embedding into a JSON-string field in a workflow template (e.g. a
         # Code-node `jsCode`). The double-json.dumps + [1:-1] mirrors
@@ -45,7 +45,7 @@ def resolve(text: str, env_name: str, workspace: Path) -> str:
         # the only ones reverse-sub can't repair.
         if _is_sentinel(sval) and (dot_path.startswith("workflows.") or dot_path.startswith("credentials.")):
             raise ValueError(
-                f"Sentinel value '{sval}' resolved for {{{{@:env:{dot_path}}}}} in {env_name}.yml. "
+                f"Sentinel value '{sval}' resolved for {{{{@env:{dot_path}}}}} in {env_name}.yml. "
                 f"Run `python3 <harness>/helpers/bootstrap_env.py --env {env_name}` to mint real IDs."
             )
         return sval

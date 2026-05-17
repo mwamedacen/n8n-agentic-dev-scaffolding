@@ -29,7 +29,7 @@ None.
 ## Success criteria
 
 - [ ] Output contains three sections: `calls (Execute Workflow)`, `error_handlers`, `credential_groups`.
-- [ ] Edges with `{{@:env:workflows.X.id}}` placeholders resolve to the workflow key X (post-task-9 default `--source both` includes live-side resolution for templates that haven't been hydrated yet).
+- [ ] Edges with `{{@env:workflows.X.id}}` placeholders resolve to the workflow key X (post-task-9 default `--source both` includes live-side resolution for templates that haven't been hydrated yet).
 
 ## Pitfalls
 

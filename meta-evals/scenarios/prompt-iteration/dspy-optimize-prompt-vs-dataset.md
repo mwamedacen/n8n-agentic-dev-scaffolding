@@ -42,4 +42,4 @@ None on the n8n instance. The optimization is purely prompt-iteration in the wor
 
 ## Notes
 
-This is an LLM-prompt-engineering loop — not an n8n-workflow loop. The optimized prompt eventually gets dropped into a workflow's Code node or HTTP Request body via `{{@:txt:n8n-prompts/prompts/categorize_email.txt}}`.
+This is an LLM-prompt-engineering loop — not an n8n-workflow loop. The optimized prompt eventually gets dropped into a workflow's Code node or HTTP Request body via `{{@txt:n8n-prompts/prompts/categorize_email.txt}}`.

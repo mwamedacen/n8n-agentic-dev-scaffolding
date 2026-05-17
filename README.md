@@ -31,12 +31,12 @@ flowchart LR
       displayName: "Lead Persister"
   ```
 
-- **Build-time substitution.** Code, prompts, schemas, templates, and env values live in workspace files; `{{@:js|py|txt|json|html|env|uuid:...}}` placeholders are substituted at deploy time. Template-stable round-trips. See [`code-node-discipline.md`](skills/patterns/code-node-discipline.md).
+- **Build-time substitution.** Code, prompts, schemas, templates, and env values live in workspace files; `{{@js|py|txt|json|html|env|uuid:...}}` placeholders are substituted at deploy time. Template-stable round-trips. See [`code-node-discipline.md`](skills/patterns/code-node-discipline.md).
 
   ```jsonc
   // n8n-workflows-template/lead_enrichment.template.json
   {
-    "name": "{{@:env:workflows.lead_enrichment.displayName}}{{@:env:envSuffix}}",
+    "name": "{{@env:workflows.lead_enrichment.displayName}}{{@env:envSuffix}}",
     "nodes": [
       {
         "name": "Webhook",
@@ -48,7 +48,7 @@ flowchart LR
         "type": "@n8n/n8n-nodes-langchain.openAi",
         "parameters": {
           "messages": [
-            { "role": "system", "content": "{{@:txt:n8n-prompts/prompts/score_lead.txt}}" }
+            { "role": "system", "content": "{{@txt:n8n-prompts/prompts/score_lead.txt}}" }
           ]
         }
       },
@@ -56,14 +56,14 @@ flowchart LR
         "name": "Normalize Fields",
         "type": "n8n-nodes-base.code",
         "parameters": {
-          "jsCode": "{{@:js:n8n-functions/js/normalize_lead.js}}\n\nreturn normalize(items);"
+          "jsCode": "{{@js:n8n-functions/js/normalize_lead.js}}\n\nreturn normalize(items);"
         }
       },
       {
         "name": "Persist via Sub-workflow",
         "type": "n8n-nodes-base.executeWorkflow",
         "parameters": {
-          "workflowId": "{{@:env:workflows.lead_persister.id}}"
+          "workflowId": "{{@env:workflows.lead_persister.id}}"
         }
       }
     ]
@@ -184,15 +184,15 @@ graph LR
 ├── n8n-workflows-template/  # *.template.json — canonical, version-controlled
 ├── n8n-build/               # hydrated outputs — gitignored, regenerated on deploy
 ├── n8n-functions/
-│   ├── js/                  # pure JS injected via {{@:js:...}}
-│   └── py/                  # pure Python injected via {{@:py:...}}
+│   ├── js/                  # pure JS injected via {{@js:...}}
+│   └── py/                  # pure Python injected via {{@py:...}}
 ├── n8n-functions-tests/     # *.test.js / test_*.py — paired tests, validator-required
 ├── n8n-prompts/
 │   ├── prompts/             # *_prompt.txt + *_schema.json
 │   ├── datasets/            # *.json for iterate-prompt
 │   └── evals/
 ├── n8n-assets/
-│   ├── email-templates/     # *.html injected via {{@:html:...}}
+│   ├── email-templates/     # *.html injected via {{@html:...}}
 │   ├── images/
 │   └── misc/
 ├── cloud-functions/         # FastAPI service scaffolded by add-cloud-function

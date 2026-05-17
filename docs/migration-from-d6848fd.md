@@ -67,7 +67,7 @@ This guide maps the legacy single-repo layout (where the harness checkout WAS th
 The placeholder syntax was renamed in a later commit set:
 
 - Old: `{{HYDRATE:type:path}}`, marker `/* DEHYDRATE:js:path */` (JS), `# DEHYDRATE:py:path` (Python).
-- New: `{{@:type:path}}` (preferred) or `{{INTERPOLATE:type:path}}` (canonical). Markers: `/* #:js:path */` (JS preferred), `/* MATCH:js:path */` (canonical), `# MATCH:py:path` (Python; no `#` alias).
+- New: `{{@type:path}}` (preferred) or `{{INTERPOLATE_type:path}}` (canonical). Markers: `/* #:js:path */` (JS preferred), `/* MATCH:js:path */` (canonical), `# MATCH:py:path` (Python; no `#` alias).
 
 Hard cutover write-side: resolvers no longer substitute `{{HYDRATE:*}}`. Read-side accepts all three marker forms (`#`/`MATCH`/`DEHYDRATE`) so workflows already deployed under the legacy syntax roll forward to the new syntax on next dehydrate+resync.
 

@@ -216,7 +216,7 @@ def _insert_publish(
                 n["position"] = [pos[0] + 220, pos[1]]
         publish = _make_execute_workflow_node(
             _PUBLISH_NODE_NAME,
-            "{{@:env:workflows.queue_publish.id}}",
+            "{{@env:workflows.queue_publish.id}}",
             publish_pos,
             publish_inputs,
         )
@@ -237,7 +237,7 @@ def _insert_publish(
                 n["position"] = [pos[0] + 220, pos[1]]
         publish = _make_execute_workflow_node(
             _PUBLISH_NODE_NAME,
-            "{{@:env:workflows.queue_publish.id}}",
+            "{{@env:workflows.queue_publish.id}}",
             publish_pos,
             publish_inputs,
         )

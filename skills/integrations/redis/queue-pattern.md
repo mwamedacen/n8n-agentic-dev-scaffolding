@@ -10,7 +10,7 @@ The harness ships four queue primitives backed by **HTTP Request against the Ups
 
 ## Credential
 
-`redis_rest` credential type — `httpHeaderAuth` with header `Authorization: Bearer <UPSTASH_REDIS_REST_TOKEN>`. Mint via [`manage-credentials.md`](../../manage-credentials.md) Path A from `.env.<env>`'s `UPSTASH_REDIS_REST_TOKEN`. The four queue primitives reference it via `{{@:env:credentials.redis_rest.{id,name}}}` placeholders.
+`redis_rest` credential type — `httpHeaderAuth` with header `Authorization: Bearer <UPSTASH_REDIS_REST_TOKEN>`. Mint via [`manage-credentials.md`](../../manage-credentials.md) Path A from `.env.<env>`'s `UPSTASH_REDIS_REST_TOKEN`. The four queue primitives reference it via `{{@env:credentials.redis_rest.{id,name}}}` placeholders.
 
 The existing `credentials.redis` (TCP redis@1) is left untouched — the lock + rate-limit primitives keep using it.
 
@@ -162,7 +162,7 @@ The `success: false` path leaves the message in the PEL — XAUTOCLAIM will rede
 Error Trigger
        │
        ▼
-Prepare Stream List (Code: read <env>.yml.queueScopes via {{@:env:queueScopes}};
+Prepare Stream List (Code: read <env>.yml.queueScopes via {{@env:queueScopes}};
                      fan out one item per registered stream with permits_glob,
                      inflight_key, failed_execution_id)
        │

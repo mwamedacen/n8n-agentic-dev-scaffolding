@@ -66,7 +66,7 @@ def _make_execute_workflow_node(
 ) -> dict:
     """Build an Execute Workflow node with `inputs` mapped into workflowInputs.value."""
     return {
-        "id": "{{@:uuid:" + name.lower().replace(" ", "-") + "}}",
+        "id": "{{@uuid:" + name.lower().replace(" ", "-") + "}}",
         "name": name,
         "type": "n8n-nodes-base.executeWorkflow",
         "typeVersion": 1.2,
@@ -157,7 +157,7 @@ def _insert_lock(
     }
     acquire = _make_execute_workflow_node(
         _LOCK_ACQUIRE_NODE_NAME,
-        "{{@:env:workflows.lock_acquisition.id}}",
+        "{{@env:workflows.lock_acquisition.id}}",
         acquire_pos,
         acquire_inputs,
     )
@@ -172,7 +172,7 @@ def _insert_lock(
     }
     release = _make_execute_workflow_node(
         _LOCK_RELEASE_NODE_NAME,
-        "{{@:env:workflows.lock_release.id}}",
+        "{{@env:workflows.lock_release.id}}",
         release_pos,
         release_inputs,
     )

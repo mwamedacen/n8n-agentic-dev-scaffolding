@@ -1,8 +1,8 @@
 {
-  "name": "{{@:env:displayName}} Rate Limit Check{{@:env:workflowNamePostfix}}",
+  "name": "{{@env:displayName}} Rate Limit Check{{@env:workflowNamePostfix}}",
   "nodes": [
     {
-      "id": "{{@:uuid:rl-trigger}}",
+      "id": "{{@uuid:rl-trigger}}",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -12,7 +12,7 @@
       }
     },
     {
-      "id": "{{@:uuid:rl-prep}}",
+      "id": "{{@uuid:rl-prep}}",
       "name": "Build Bucket Key",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -23,7 +23,7 @@
       }
     },
     {
-      "id": "{{@:uuid:rl-incr}}",
+      "id": "{{@uuid:rl-incr}}",
       "name": "Redis INCR",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
@@ -37,13 +37,13 @@
       },
       "credentials": {
         "redis": {
-          "id": "{{@:env:credentials.redis.id}}",
-          "name": "{{@:env:credentials.redis.name}}"
+          "id": "{{@env:credentials.redis.id}}",
+          "name": "{{@env:credentials.redis.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:rl-result}}",
+      "id": "{{@uuid:rl-result}}",
       "name": "Build Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

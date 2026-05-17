@@ -27,7 +27,7 @@ difficulty: easy
 
 - `n8n-workflows-template/support_intake.template.json` with `n8n-nodes-base.formTrigger` head.
 - `n8n-assets/email-templates/support_intake_reply.html` with the templated body.
-- The Gmail Send node references the HTML via `{{@:html:n8n-assets/email-templates/support_intake_reply.html}}`.
+- The Gmail Send node references the HTML via `{{@html:n8n-assets/email-templates/support_intake_reply.html}}`.
 
 ## Expected state changes
 
@@ -41,5 +41,5 @@ difficulty: easy
 ## Pitfalls
 
 - Form Trigger has its own public URL (different from `/webhook/<path>`). Inspect via `get_workflow_details` after deploy or in the n8n UI.
-- HTML email templates that include `<style>` or inline-CSS often interpolate variables — use `{{@:html:...}}` for the static structure and let the Gmail Send node substitute per-recipient fields via n8n expressions in the message body parameter.
+- HTML email templates that include `<style>` or inline-CSS often interpolate variables — use `{{@html:...}}` for the static structure and let the Gmail Send node substitute per-recipient fields via n8n expressions in the message body parameter.
 - If the agent inlines a 5KB HTML blob into the template's `parameters.message`, validate.py won't reject it but `git diff` becomes unreadable. Discipline says: extract to `n8n-assets/email-templates/`.

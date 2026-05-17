@@ -27,9 +27,9 @@ difficulty: easy
 - `n8n-assets/email-templates/summary.html` — HTML email body.
 - `n8n-prompts/schemas/summary_schema.json` — JSON output schema.
 - Template references:
-  - `{{@:txt:n8n-prompts/prompts/summarize.txt}}` in the OpenAI/AI Agent node's prompt parameter.
-  - `{{@:html:n8n-assets/email-templates/summary.html}}` in the Gmail Send node's message parameter.
-  - `{{@:json:n8n-prompts/schemas/summary_schema.json}}` in a Set or Function node that needs the schema as a string.
+  - `{{@txt:n8n-prompts/prompts/summarize.txt}}` in the OpenAI/AI Agent node's prompt parameter.
+  - `{{@html:n8n-assets/email-templates/summary.html}}` in the Gmail Send node's message parameter.
+  - `{{@json:n8n-prompts/schemas/summary_schema.json}}` in a Set or Function node that needs the schema as a string.
 
 ## Expected state changes
 
@@ -37,15 +37,15 @@ None until deploy.
 
 ## Success criteria
 
-- [ ] Hydrated build (`n8n-build/<env>/summarizer.generated.json`) contains the inlined contents of all three files (with `{{@:json:...}}` JSON-stringified into a string field).
-- [ ] No residual `{{@:...}}` placeholders in the built JSON.
+- [ ] Hydrated build (`n8n-build/<env>/summarizer.generated.json`) contains the inlined contents of all three files (with `{{@json:...}}` JSON-stringified into a string field).
+- [ ] No residual `{{@...}}` placeholders in the built JSON.
 - [ ] Round-trip via `resync` preserves the placeholders (round-trip markers around content).
 
 ## Pitfalls
 
 - **Path semantics**: all placeholder paths are relative to the **workspace root**, not to a default `n8n-prompts/` or `n8n-assets/` prefix. Validator's "file not found" reports the resolved path — read it.
-- The `{{@:json:...}}` placeholder reads the file content and emits it as a JSON-stringified value (suitable for embedding in a JSON-string field). Don't try to use it where a JSON object is expected directly — it produces a string.
-- Don't mix txt and html: if the asset is structured HTML, use `{{@:html:...}}`; if it's a plain prompt or markdown, use `{{@:txt:...}}`. The resolvers treat both as raw text but the convention helps reviewers know what to expect.
+- The `{{@json:...}}` placeholder reads the file content and emits it as a JSON-stringified value (suitable for embedding in a JSON-string field). Don't try to use it where a JSON object is expected directly — it produces a string.
+- Don't mix txt and html: if the asset is structured HTML, use `{{@html:...}}`; if it's a plain prompt or markdown, use `{{@txt:...}}`. The resolvers treat both as raw text but the convention helps reviewers know what to expect.
 
 ## Notes
 

@@ -1,8 +1,8 @@
 {
-  "name": "{{@:env:displayName}} Lock Acquisition{{@:env:workflowNamePostfix}}",
+  "name": "{{@env:displayName}} Lock Acquisition{{@env:workflowNamePostfix}}",
   "nodes": [
     {
-      "id": "{{@:uuid:la-trigger}}",
+      "id": "{{@uuid:la-trigger}}",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -23,7 +23,7 @@
       }
     },
     {
-      "id": "{{@:uuid:la-context}}",
+      "id": "{{@uuid:la-context}}",
       "name": "Build Lock Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -34,7 +34,7 @@
       }
     },
     {
-      "id": "{{@:uuid:la-incr}}",
+      "id": "{{@uuid:la-incr}}",
       "name": "INCR Acquire Attempt",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
@@ -48,13 +48,13 @@
       },
       "credentials": {
         "redis": {
-          "id": "{{@:env:credentials.redis.id}}",
-          "name": "{{@:env:credentials.redis.name}}"
+          "id": "{{@env:credentials.redis.id}}",
+          "name": "{{@env:credentials.redis.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:la-evaluate}}",
+      "id": "{{@uuid:la-evaluate}}",
       "name": "Evaluate Acquired",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -65,7 +65,7 @@
       }
     },
     {
-      "id": "{{@:uuid:la-set-meta}}",
+      "id": "{{@uuid:la-set-meta}}",
       "name": "Set Lock Meta",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
@@ -80,13 +80,13 @@
       },
       "credentials": {
         "redis": {
-          "id": "{{@:env:credentials.redis.id}}",
-          "name": "{{@:env:credentials.redis.name}}"
+          "id": "{{@env:credentials.redis.id}}",
+          "name": "{{@env:credentials.redis.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:la-build-output}}",
+      "id": "{{@uuid:la-build-output}}",
       "name": "Build Acquire Output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -97,7 +97,7 @@
       }
     },
     {
-      "id": "{{@:uuid:la-if-acquired}}",
+      "id": "{{@uuid:la-if-acquired}}",
       "name": "Acquired?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -112,7 +112,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:la-cond-acq}}",
+              "id": "{{@uuid:la-cond-acq}}",
               "leftValue": "={{ $json.acquired === true }}",
               "rightValue": true,
               "operator": {
@@ -128,7 +128,7 @@
       }
     },
     {
-      "id": "{{@:uuid:la-if-wait}}",
+      "id": "{{@uuid:la-if-wait}}",
       "name": "Should Wait?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -143,7 +143,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:la-cond-wait}}",
+              "id": "{{@uuid:la-cond-wait}}",
               "leftValue": "={{ $('Build Lock Context').first().json.wait_till_lock_released === true }}",
               "rightValue": true,
               "operator": {
@@ -159,7 +159,7 @@
       }
     },
     {
-      "id": "{{@:uuid:la-fail-fast}}",
+      "id": "{{@uuid:la-fail-fast}}",
       "name": "Fail Fast — Lock Held",
       "type": "n8n-nodes-base.stopAndError",
       "typeVersion": 1,
@@ -169,7 +169,7 @@
       }
     },
     {
-      "id": "{{@:uuid:la-wait-poll}}",
+      "id": "{{@uuid:la-wait-poll}}",
       "name": "Wait Before Poll",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -178,10 +178,10 @@
         "amount": 1,
         "unit": "seconds"
       },
-      "webhookId": "{{@:uuid:la-wait-poll-webhook}}"
+      "webhookId": "{{@uuid:la-wait-poll-webhook}}"
     },
     {
-      "id": "{{@:uuid:la-get}}",
+      "id": "{{@uuid:la-get}}",
       "name": "GET Lock",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
@@ -195,13 +195,13 @@
       },
       "credentials": {
         "redis": {
-          "id": "{{@:env:credentials.redis.id}}",
-          "name": "{{@:env:credentials.redis.name}}"
+          "id": "{{@env:credentials.redis.id}}",
+          "name": "{{@env:credentials.redis.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:la-check-wait}}",
+      "id": "{{@uuid:la-check-wait}}",
       "name": "Check Wait State",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -212,7 +212,7 @@
       }
     },
     {
-      "id": "{{@:uuid:la-if-timeout}}",
+      "id": "{{@uuid:la-if-timeout}}",
       "name": "Timeout?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -227,7 +227,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:la-cond-timeout}}",
+              "id": "{{@uuid:la-cond-timeout}}",
               "leftValue": "={{ $json.state === 'timeout' }}",
               "rightValue": true,
               "operator": {
@@ -243,7 +243,7 @@
       }
     },
     {
-      "id": "{{@:uuid:la-fail-timeout}}",
+      "id": "{{@uuid:la-fail-timeout}}",
       "name": "Wait Timeout — Stop",
       "type": "n8n-nodes-base.stopAndError",
       "typeVersion": 1,
@@ -253,7 +253,7 @@
       }
     },
     {
-      "id": "{{@:uuid:la-if-retry}}",
+      "id": "{{@uuid:la-if-retry}}",
       "name": "Retry INCR?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -268,7 +268,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:la-cond-retry}}",
+              "id": "{{@uuid:la-cond-retry}}",
               "leftValue": "={{ $json.state === 'retry-incr' }}",
               "rightValue": true,
               "operator": {

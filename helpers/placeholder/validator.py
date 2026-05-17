@@ -1,14 +1,19 @@
 """Post-hydration validation: check for residual placeholders.
 
-Catches all three placeholder forms (`HYDRATE`, `INTERPOLATE`, `@`) so partial
-migrations from the old `HYDRATE` syntax fail loudly. Resolvers only substitute
-`INTERPOLATE` / `@` — any leftover `HYDRATE` form means the template still uses
-the old syntax and should be migrated via `helpers/migrate_syntax.py`.
+Recognises the canonical long form (`INTERPOLATE_<type>:...`) and short alias
+(`@<type>:...`). Any leftover token after hydration is treated as a residual —
+including stale older-syntax forms (`{{@:type:...}}`, `{{INTERPOLATE:type:...}}`,
+`{{HYDRATE:type:...}}`), which won't match the new patterns and will therefore
+surface as residuals if a template hasn't been migrated yet.
 """
 import re
 from pathlib import Path
 
-RESIDUAL_PATTERN = re.compile(r"\{\{(?:HYDRATE|INTERPOLATE|@):[^}]+\}\}")
+# Match the canonical new forms (`INTERPOLATE_<type>:...`, `@<type>:...`) AND the
+# stale older syntaxes (`{{INTERPOLATE:type:...}}`, `{{@:type:...}}`, legacy
+# `{{HYDRATE:type:...}}`) so a forgotten template surfaces loudly post-hydrate
+# rather than silently shipping literal placeholder text into n8n.
+RESIDUAL_PATTERN = re.compile(r"\{\{(?:HYDRATE:|INTERPOLATE_|INTERPOLATE:|@:|@)[^}\s][^}]*\}\}")
 
 
 def check_residuals(text: str) -> list[str]:
@@ -29,7 +34,7 @@ def validate(text: str, source_label: str = "") -> None:
 
 def validate_no_absolute_paths(text: str) -> None:
     """Raise ValueError if any placeholder contains an absolute path."""
-    absolutes = re.findall(r"\{\{(?:HYDRATE|INTERPOLATE|@):\w+:(/[^}]+)\}\}", text)
+    absolutes = re.findall(r"\{\{(?:INTERPOLATE_|@)\w+:(/[^}]+)\}\}", text)
     if absolutes:
         raise ValueError(
             f"Absolute paths are forbidden in placeholders: {', '.join(absolutes)}"

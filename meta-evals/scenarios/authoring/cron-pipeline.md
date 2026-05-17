@@ -42,5 +42,5 @@ difficulty: easy
 ## Pitfalls
 
 - Cron expression syntax: n8n uses `Mon-Fri 09:00` shorthand under the Schedule Trigger node, NOT the classical 5-field `0 9 * * 1-5` format. Cron-classic format is supported via the older `n8n-nodes-base.cron` node but Schedule Trigger is the modern path.
-- HTTP Request to the shop API needs its credential linked first (`manage_credentials.py list-link --type httpHeaderAuth ...`). If the credential placeholder `{{@:env:credentials.shop_api.id}}` resolves to the bootstrap sentinel, hydrate refuses with a clear pointer to bootstrap-env.
+- HTTP Request to the shop API needs its credential linked first (`manage_credentials.py list-link --type httpHeaderAuth ...`). If the credential placeholder `{{@env:credentials.shop_api.id}}` resolves to the bootstrap sentinel, hydrate refuses with a clear pointer to bootstrap-env.
 - Postgres credential type is `postgres`, not `pg` or `postgresql` — match n8n's exact type name when calling `list-link`.

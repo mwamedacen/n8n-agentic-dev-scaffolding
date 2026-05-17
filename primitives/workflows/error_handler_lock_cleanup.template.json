@@ -1,8 +1,8 @@
 {
-  "name": "{{@:env:displayName}} Error Handler Lock Cleanup{{@:env:workflowNamePostfix}}",
+  "name": "{{@env:displayName}} Error Handler Lock Cleanup{{@env:workflowNamePostfix}}",
   "nodes": [
     {
-      "id": "{{@:uuid:err-trigger}}",
+      "id": "{{@uuid:err-trigger}}",
       "name": "Error Trigger",
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
@@ -10,18 +10,18 @@
       "parameters": {}
     },
     {
-      "id": "{{@:uuid:err-prep-scopes}}",
+      "id": "{{@uuid:err-prep-scopes}}",
       "name": "Prepare Scope List",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [460, 300],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\n// Active cleanup: iterate every scope the env has registered, GET its :meta\n// sidecar, and DEL the pair only when the meta's execution_id matches the\n// failed execution.\n//\n// `lockScopes` is read from <env>.yml and is expected to be an array of scope\n// strings (the post-prefix portion — e.g. ['excel-sharepoint', 'cms-row']).\n// add_lock_to_workflow.py auto-registers static --scope-expression values\n// here; dynamic scopes are skipped and require manual lockScopes entries.\nlet LOCK_SCOPES;\ntry {\n  LOCK_SCOPES = {{@:env:lockScopes}};\n} catch (e) {\n  LOCK_SCOPES = [];\n}\nif (!Array.isArray(LOCK_SCOPES)) LOCK_SCOPES = [];\n\nconst errorData = $('Error Trigger').first().json || {};\nconst failed_execution_id = errorData.execution?.id || errorData.executionId || $execution.id || 'unknown';\nconst failed_workflow_id = errorData.workflow?.id || 'unknown';\nconst failed_workflow_name = errorData.workflow?.name || 'unknown';\nconst failed_error_message = errorData.execution?.error?.message || errorData.error?.message || 'unknown';\n\nif (LOCK_SCOPES.length === 0) {\n  // Graceful no-op: no scopes registered → nothing to clean. Avoids errors\n  // and surfaces the configuration gap to the operator via the log entry.\n  return [{\n    json: {\n      cleaned: false,\n      reason: 'no lockScopes registered in env yaml — add to lockScopes list to enable active cleanup',\n      failed_execution_id,\n      failed_workflow_id,\n      failed_workflow_name,\n      failed_error_message,\n      cleanup_terminal: true,\n    },\n  }];\n}\n\nreturn LOCK_SCOPES.map(scope => ({\n  json: {\n    scope,\n    key: `n8n-lock-${scope}`,\n    meta_key: `n8n-lock-${scope}:meta`,\n    failed_execution_id,\n    failed_workflow_id,\n    failed_workflow_name,\n    failed_error_message,\n    cleanup_terminal: false,\n  },\n}));\n"
+        "jsCode": "// @n8n-evol-I:primitive — exempt from pure-function discipline\n// Active cleanup: iterate every scope the env has registered, GET its :meta\n// sidecar, and DEL the pair only when the meta's execution_id matches the\n// failed execution.\n//\n// `lockScopes` is read from <env>.yml and is expected to be an array of scope\n// strings (the post-prefix portion — e.g. ['excel-sharepoint', 'cms-row']).\n// add_lock_to_workflow.py auto-registers static --scope-expression values\n// here; dynamic scopes are skipped and require manual lockScopes entries.\nlet LOCK_SCOPES;\ntry {\n  LOCK_SCOPES = {{@env:lockScopes}};\n} catch (e) {\n  LOCK_SCOPES = [];\n}\nif (!Array.isArray(LOCK_SCOPES)) LOCK_SCOPES = [];\n\nconst errorData = $('Error Trigger').first().json || {};\nconst failed_execution_id = errorData.execution?.id || errorData.executionId || $execution.id || 'unknown';\nconst failed_workflow_id = errorData.workflow?.id || 'unknown';\nconst failed_workflow_name = errorData.workflow?.name || 'unknown';\nconst failed_error_message = errorData.execution?.error?.message || errorData.error?.message || 'unknown';\n\nif (LOCK_SCOPES.length === 0) {\n  // Graceful no-op: no scopes registered → nothing to clean. Avoids errors\n  // and surfaces the configuration gap to the operator via the log entry.\n  return [{\n    json: {\n      cleaned: false,\n      reason: 'no lockScopes registered in env yaml — add to lockScopes list to enable active cleanup',\n      failed_execution_id,\n      failed_workflow_id,\n      failed_workflow_name,\n      failed_error_message,\n      cleanup_terminal: true,\n    },\n  }];\n}\n\nreturn LOCK_SCOPES.map(scope => ({\n  json: {\n    scope,\n    key: `n8n-lock-${scope}`,\n    meta_key: `n8n-lock-${scope}:meta`,\n    failed_execution_id,\n    failed_workflow_id,\n    failed_workflow_name,\n    failed_error_message,\n    cleanup_terminal: false,\n  },\n}));\n"
       }
     },
     {
-      "id": "{{@:uuid:err-if-empty}}",
+      "id": "{{@uuid:err-if-empty}}",
       "name": "Has Scopes?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -36,7 +36,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:err-cond-empty}}",
+              "id": "{{@uuid:err-cond-empty}}",
               "leftValue": "={{ $json.cleanup_terminal !== true }}",
               "rightValue": true,
               "operator": {
@@ -52,7 +52,7 @@
       }
     },
     {
-      "id": "{{@:uuid:err-get-meta}}",
+      "id": "{{@uuid:err-get-meta}}",
       "name": "GET Scope Meta",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
@@ -66,13 +66,13 @@
       },
       "credentials": {
         "redis": {
-          "id": "{{@:env:credentials.redis.id}}",
-          "name": "{{@:env:credentials.redis.name}}"
+          "id": "{{@env:credentials.redis.id}}",
+          "name": "{{@env:credentials.redis.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:err-filter}}",
+      "id": "{{@uuid:err-filter}}",
       "name": "Filter Owned Scopes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -83,7 +83,7 @@
       }
     },
     {
-      "id": "{{@:uuid:err-if-found}}",
+      "id": "{{@uuid:err-if-found}}",
       "name": "Owned?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -98,7 +98,7 @@
           },
           "conditions": [
             {
-              "id": "{{@:uuid:err-cond-found}}",
+              "id": "{{@uuid:err-cond-found}}",
               "leftValue": "={{ $json.should_release === true }}",
               "rightValue": true,
               "operator": {
@@ -114,7 +114,7 @@
       }
     },
     {
-      "id": "{{@:uuid:err-del-counter}}",
+      "id": "{{@uuid:err-del-counter}}",
       "name": "DEL Owned Counter",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
@@ -125,13 +125,13 @@
       },
       "credentials": {
         "redis": {
-          "id": "{{@:env:credentials.redis.id}}",
-          "name": "{{@:env:credentials.redis.name}}"
+          "id": "{{@env:credentials.redis.id}}",
+          "name": "{{@env:credentials.redis.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:err-del-meta}}",
+      "id": "{{@uuid:err-del-meta}}",
       "name": "DEL Owned Meta",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
@@ -142,13 +142,13 @@
       },
       "credentials": {
         "redis": {
-          "id": "{{@:env:credentials.redis.id}}",
-          "name": "{{@:env:credentials.redis.name}}"
+          "id": "{{@env:credentials.redis.id}}",
+          "name": "{{@env:credentials.redis.name}}"
         }
       }
     },
     {
-      "id": "{{@:uuid:err-log}}",
+      "id": "{{@uuid:err-log}}",
       "name": "Log Cleanup",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

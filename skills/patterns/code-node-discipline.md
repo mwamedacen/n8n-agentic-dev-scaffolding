@@ -1,6 +1,6 @@
 ---
 name: pattern-code-node-discipline
-description: Pure-function-plus-glue convention for n8n Code nodes — extract logic to n8n-functions/, inject via {{@:js|py:...}}, pair with a test. Validator hard-fails otherwise.
+description: Pure-function-plus-glue convention for n8n Code nodes — extract logic to n8n-functions/, inject via {{@js|py:...}}, pair with a test. Validator hard-fails otherwise.
 user-invocable: false
 ---
 
@@ -39,9 +39,9 @@ Test files are required and the validator errors if missing. The directory names
 
 ### Path resolution
 
-`{{@:js:...}}`, `{{@:py:...}}`, `{{@:txt:...}}`, `{{@:json:...}}`, `{{@:html:...}}` placeholder paths are **relative to the workspace root** (the directory containing `n8n-config/`, `n8n-functions/`, `cloud-functions/`, …). They are NOT relative to a default `n8n-functions/js/` prefix.
+`{{@js:...}}`, `{{@py:...}}`, `{{@txt:...}}`, `{{@json:...}}`, `{{@html:...}}` placeholder paths are **relative to the workspace root** (the directory containing `n8n-config/`, `n8n-functions/`, `cloud-functions/`, …). They are NOT relative to a default `n8n-functions/js/` prefix.
 
-So `{{@:js:n8n-functions/js/aggregate.js}}` resolves to `<workspace>/n8n-functions/js/aggregate.js`. Writing `{{@:js:aggregate.js}}` would look for `<workspace>/aggregate.js` — usually a mistake. The validator's `referenced file not found` error reports the full resolved path, so always include the `n8n-functions/js/` (or `n8n-functions/py/`, `n8n-prompts/`, etc.) prefix.
+So `{{@js:n8n-functions/js/aggregate.js}}` resolves to `<workspace>/n8n-functions/js/aggregate.js`. Writing `{{@js:aggregate.js}}` would look for `<workspace>/aggregate.js` — usually a mistake. The validator's `referenced file not found` error reports the full resolved path, so always include the `n8n-functions/js/` (or `n8n-functions/py/`, `n8n-prompts/`, etc.) prefix.
 
 ---
 
@@ -72,7 +72,7 @@ The trailer is **mandatory**. The validator errors if it's missing.
 `parameters.jsCode`:
 
 ```
-{{@:js:n8n-functions/js/calculateStatsByCategory.js}}
+{{@js:n8n-functions/js/calculateStatsByCategory.js}}
 
 const body = $input.body || {};
 const articles = Array.isArray(body.articles) ? body.articles : [];
@@ -150,7 +150,7 @@ No guards, no exports — Python files are always importable as modules.
 `parameters.pythonCode` (with `parameters.language == "python"`):
 
 ```
-{{@:py:n8n-functions/py/calculate_stats_by_category.py}}
+{{@py:n8n-functions/py/calculate_stats_by_category.py}}
 
 body = items[0]["json"]
 articles = body.get("articles", [])
@@ -244,7 +244,7 @@ The structural check makes "pure functions only" enforceable, not aspirational. 
 |---|---|
 | Node type is `n8n-nodes-base.function` | Deprecated; switch to `n8n-nodes-base.code`. |
 | `jsCode` (or `pythonCode` when `language == "python"`) is empty | Cannot validate without code. |
-| No `{{@:js:...}}` (or `{{@:py:...}}`) placeholder in the code field | Inlined logic is rejected — extract to `n8n-functions/{js,py}/`. |
+| No `{{@js:...}}` (or `{{@py:...}}`) placeholder in the code field | Inlined logic is rejected — extract to `n8n-functions/{js,py}/`. |
 | Placeholder points to a file that doesn't exist | Bad path — fix or remove. |
 | JS file is missing `if (typeof module !== "undefined")` trailer | Tests cannot `require` the function. |
 | Function file contains top-level code outside function declarations | The file must be a pure-function library; n8n-glue belongs in the Code-node body. See **Structure rules** above. |

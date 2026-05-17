@@ -64,9 +64,9 @@ The `pitfalls` sections describe how the harness *currently* behaves after the t
 
 - **Bare-`=` scope-expression** auto-wraps to canonical `={{ ... }}` form with a deprecation warning. Agent should still write canonical form directly.
 - **Cloud-functions `conftest.py`** is auto-seeded by `init.py`. No manual setup required.
-- **Sentinel placeholder ids** (`'placeholder'`, `''`, `'your-...'`) trigger `ValueError` at hydrate-time when referenced via `{{@:env:workflows.X.id}}`. Run `bootstrap-env` to mint real IDs.
+- **Sentinel placeholder ids** (`'placeholder'`, `''`, `'your-...'`) trigger `ValueError` at hydrate-time when referenced via `{{@env:workflows.X.id}}`. Run `bootstrap-env` to mint real IDs.
 - **n8n Cloud sub-workflow activation** requires the callee to be activated first (n8n's "publish" terminology — but the API path is `/activate`, not `/publish`). Use `deploy_all.py` tier ordering.
-- **`{{@:py:...}}` Python Code nodes** post-Pyodide-removal have reduced capability on n8n Cloud (no binary handling, no arbitrary deps). Defer to cloud-function scaffold for those needs.
+- **`{{@py:...}}` Python Code nodes** post-Pyodide-removal have reduced capability on n8n Cloud (no binary handling, no arbitrary deps). Defer to cloud-function scaffold for those needs.
 - **Ownership-checked release** raises `LOGIC ERROR: Lock held by ...` if the caller passes a `lock_id` that doesn't match the stored owner. Catches caller bugs.
 - **`lockScopes` env config** must list every static lock scope for active error-handler cleanup to find them. `add_lock_to_workflow.py` auto-registers static literals; dynamic scopes need manual entries.
 

@@ -25,4 +25,4 @@ Checks:
 - top-level `nodes` (list) + `connections` (object keyed by node name)
 - every node has `name` / `type` / `parameters`
 - no `pinData` in templates
-- no residual `{{@:...}}` placeholders in built JSON
+- no residual `{{@...}}` placeholders in built JSON

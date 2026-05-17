@@ -21,7 +21,7 @@ difficulty: easy
 
 ## Expected artifacts
 
-- `n8n-workflows-template/payment_processing.template.json` gains `settings.errorWorkflow: "{{@:env:workflows.notify_oncall.id}}"`.
+- `n8n-workflows-template/payment_processing.template.json` gains `settings.errorWorkflow: "{{@env:workflows.notify_oncall.id}}"`.
 - `n8n-config/common.yml` updated with `error_source_to_handler.payment_processing: notify_oncall` (so `run.py` can do indirect dispatch via the source workflow when running the handler for testing).
 
 ## Expected state changes
